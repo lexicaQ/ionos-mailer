@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,6 +21,8 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 
+const HISTORY_STORAGE_KEY = "ionos-mailer-history"
+
 export function EmailForm() {
     const [isSending, setIsSending] = useState(false)
     const [sendProgress, setSendProgress] = useState(0)
@@ -29,6 +31,27 @@ export function EmailForm() {
     const [smtpSettings, setSmtpSettings] = useState<SmtpConfig | undefined>(undefined)
     const [durationMinutes, setDurationMinutes] = useState(60)
     const [useBackground, setUseBackground] = useState(false)
+
+    // Load history from localStorage on mount
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(HISTORY_STORAGE_KEY)
+            if (stored) {
+                setHistory(JSON.parse(stored))
+            }
+        } catch (e) {
+            console.error("Failed to load history:", e)
+        }
+    }, [])
+
+    // Save history to localStorage when it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history))
+        } catch (e) {
+            console.error("Failed to save history:", e)
+        }
+    }, [history])
 
     const form = useForm<EmailFormValues>({
         resolver: zodResolver(emailFormSchema),
