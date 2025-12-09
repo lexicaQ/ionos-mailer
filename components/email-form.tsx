@@ -246,7 +246,7 @@ export function EmailForm() {
                         type="submit" 
                         disabled={isSending || recipients.length === 0} 
                         size="lg"
-                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r black dark:white hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
+                        className="w-full h-14 text-lg font-semibold bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100 shadow-md transition-all"
                     >
                         {isSending ? (
                             <>

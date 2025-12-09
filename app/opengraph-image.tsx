@@ -1,94 +1,99 @@
 import { ImageResponse } from 'next/og'
 
-export const runtime = 'edge'
-export const alt = 'IONOS Mailer - Professioneller E-Mail-Versand'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default async function OGImage() {
+export default function OGImage() {
     return new ImageResponse(
         (
             <div
                 style={{
-                    height: '100%',
+                    background: 'white',
                     width: '100%',
+                    height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)',
-                    fontFamily: 'system-ui',
+                    gap: 40,
                 }}
             >
+                <svg
+                    width="200"
+                    height="200"
+                    viewBox="0 0 100 100"
+                    fill="none"
+                >
+                    <rect
+                        x="10"
+                        y="25"
+                        width="80"
+                        height="55"
+                        rx="4"
+                        stroke="black"
+                        strokeWidth="3"
+                    />
+                    <path
+                        d="M10 29L50 55L90 29"
+                        stroke="black"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                    <line
+                        x1="95"
+                        y1="42"
+                        x2="108"
+                        y2="38"
+                        stroke="black"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                    />
+                    <line
+                        x1="95"
+                        y1="52"
+                        x2="112"
+                        y2="52"
+                        stroke="black"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                    />
+                    <line
+                        x1="95"
+                        y1="62"
+                        x2="108"
+                        y2="66"
+                        stroke="black"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                    />
+                </svg>
                 <div
                     style={{
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: 40,
+                        gap: 16,
                     }}
                 >
                     <div
                         style={{
-                            width: 120,
-                            height: 120,
-                            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
-                            borderRadius: 24,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 64,
-                            fontWeight: 'bold',
-                            color: 'white',
-                            marginRight: 30,
-                        }}
-                    >
-                        IM
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 72,
-                            fontWeight: 'bold',
-                            background: 'linear-gradient(90deg, #6366f1, #a855f7, #ec4899)',
-                            backgroundClip: 'text',
-                            color: 'transparent',
+                            fontSize: 80,
+                            fontWeight: 900,
+                            color: 'black',
+                            letterSpacing: -2,
                         }}
                     >
                         IONOS Mailer
                     </div>
-                </div>
-                <div
-                    style={{
-                        fontSize: 32,
-                        color: '#a1a1aa',
-                        textAlign: 'center',
-                        maxWidth: 800,
-                    }}
-                >
-                    Professioneller E-Mail-Versand über IONOS SMTP
-                </div>
-                <div
-                    style={{
-                        display: 'flex',
-                        marginTop: 50,
-                        gap: 20,
-                    }}
-                >
-                    {['Massenversand', 'Zeitplanung', 'Hintergrund-Modus', 'Reporting'].map((feature) => (
-                        <div
-                            key={feature}
-                            style={{
-                                padding: '12px 24px',
-                                background: 'rgba(99, 102, 241, 0.2)',
-                                borderRadius: 9999,
-                                color: '#a5b4fc',
-                                fontSize: 20,
-                                border: '1px solid rgba(99, 102, 241, 0.3)',
-                            }}
-                        >
-                            {feature}
-                        </div>
-                    ))}
+                    <div
+                        style={{
+                            fontSize: 32,
+                            color: '#666',
+                        }}
+                    >
+                        Professioneller E-Mail-Versand mit SMTP & Tracking
+                    </div>
                 </div>
             </div>
         ),
