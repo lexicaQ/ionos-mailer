@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     CheckCircle, XCircle, Trash2, Filter,
-    FileSpreadsheet, FileText, Search, History, Mail, Send
+    FileSpreadsheet, FileText, Search, History, Mail, Send, Eye, EyeOff
 } from "lucide-react"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
@@ -45,6 +45,11 @@ interface HistoryModalProps {
     batches: HistoryBatch[]
     onDeleteBatch: (id: string) => void
     onClearAll: () => void
+}
+
+// Shorten ID to first 8 characters
+function shortId(id: string): string {
+    return id.substring(0, 8)
 }
 
 export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModalProps) {
@@ -96,9 +101,10 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
             "Nr.": idx + 1,
             "E-Mail Adresse": r.email,
             "Status": r.success ? "Erfolgreich" : "Fehlgeschlagen",
-            "Sitzungs-ID": r.batchId,
+            "Sitzungs-ID": shortId(r.batchId),
+            "Geöffnet": "Nicht verfügbar (nur für Hintergrund-Modus)",
             "Fehlermeldung": r.error || "Kein Fehler",
-            "Message-ID": r.messageId || "Keine ID",
+            "Message-ID": r.messageId ? shortId(r.messageId) : "Keine",
             "Zeitpunkt": format(new Date(r.batchTime), "dd.MM.yyyy HH:mm:ss", { locale: de }),
         }))
 
@@ -111,7 +117,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
             { "Metrik": "Erfolgreich gesendet", "Wert": stats.totalSuccess.toString() },
             { "Metrik": "Fehlgeschlagen", "Wert": stats.totalFailed.toString() },
             { "Metrik": "Erfolgsrate", "Wert": `${stats.totalEmails > 0 ? ((stats.totalSuccess / stats.totalEmails) * 100).toFixed(1) : 0}%` },
-            { "Metrik": "Anzahl Batches", "Wert": stats.totalBatches.toString() },
+            { "Metrik": "Anzahl Sitzungen", "Wert": stats.totalBatches.toString() },
             { "Metrik": "Export erstellt am", "Wert": format(new Date(), "dd.MM.yyyy HH:mm:ss", { locale: de }) },
         ]
         const wsSummary = XLSX.utils.json_to_sheet(summary)
@@ -124,77 +130,72 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
         const { jsPDF } = await import("jspdf")
         const autoTable = (await import("jspdf-autotable")).default
 
-        const doc = new jsPDF()
+        const doc = new jsPDF({ orientation: "landscape" })
 
-        // Header - Black only
+        // Header
         doc.setFontSize(22)
         doc.setTextColor(0, 0, 0)
-        doc.text("IONOS Mailer", 20, 20)
+        doc.text("IONOS Mailer", 20, 18)
 
-        doc.setFontSize(14)
-        doc.text("E-Mail Versand-Bericht", 20, 28)
-
-        doc.setFontSize(10)
-        doc.setTextColor(80, 80, 80)
-        doc.text(`Erstellt am: ${format(new Date(), "dd.MM.yyyy HH:mm:ss", { locale: de })}`, 20, 36)
-
-        // Summary Table
         doc.setFontSize(12)
+        doc.text("E-Mail Versand-Bericht", 20, 26)
+
+        doc.setFontSize(9)
+        doc.setTextColor(80, 80, 80)
+        doc.text(`Erstellt: ${format(new Date(), "dd.MM.yyyy HH:mm:ss", { locale: de })}`, 20, 32)
+
+        // Summary
+        doc.setFontSize(11)
         doc.setTextColor(0, 0, 0)
-        doc.text("Zusammenfassung", 20, 50)
+        doc.text("Zusammenfassung", 20, 42)
 
         autoTable(doc, {
-            startY: 54,
+            startY: 46,
             head: [["Metrik", "Wert"]],
             body: [
                 ["Gesamt E-Mails", stats.totalEmails.toString()],
-                ["Erfolgreich gesendet", stats.totalSuccess.toString()],
+                ["Erfolgreich", stats.totalSuccess.toString()],
                 ["Fehlgeschlagen", stats.totalFailed.toString()],
                 ["Erfolgsrate", `${stats.totalEmails > 0 ? ((stats.totalSuccess / stats.totalEmails) * 100).toFixed(1) : 0}%`],
-                ["Anzahl Sitzungen", stats.totalBatches.toString()],
             ],
             theme: "plain",
-            headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold" },
-            bodyStyles: { textColor: [0, 0, 0] },
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+            bodyStyles: { textColor: [0, 0, 0], fontSize: 9 },
             alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: 20 },
+            tableWidth: 80,
         })
 
-        // Details Table
-        doc.setFontSize(12)
-        doc.text("E-Mail Details", 20, (doc as any).lastAutoTable.finalY + 15)
+        // Details
+        doc.setFontSize(11)
+        doc.text("E-Mail Details", 20, (doc as any).lastAutoTable.finalY + 12)
 
         autoTable(doc, {
-            startY: (doc as any).lastAutoTable.finalY + 20,
-            head: [["Nr.", "E-Mail Adresse", "Status", "Sitzungs-ID", "Zeitpunkt", "Fehler"]],
+            startY: (doc as any).lastAutoTable.finalY + 16,
+            head: [["Nr.", "E-Mail Adresse", "Status", "ID", "Geöffnet", "Zeitpunkt", "Fehler"]],
             body: allResults.map((r, idx) => [
                 (idx + 1).toString(),
                 r.email,
-                r.success ? "Erfolgreich" : "Fehler",
-                r.batchId.substring(0, 8),
-                format(new Date(r.batchTime), "dd.MM.yyyy HH:mm", { locale: de }),
-                r.error || "-",
+                r.success ? "OK" : "Fehler",
+                shortId(r.batchId),
+                "—",
+                format(new Date(r.batchTime), "dd.MM.yy HH:mm", { locale: de }),
+                r.error ? r.error.substring(0, 30) : "—",
             ]),
             theme: "plain",
-            headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
-            bodyStyles: { textColor: [0, 0, 0], fontSize: 8 },
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+            bodyStyles: { textColor: [0, 0, 0], fontSize: 7 },
             alternateRowStyles: { fillColor: [245, 245, 245] },
-            columnStyles: {
-                0: { cellWidth: 12 },
-                1: { cellWidth: 50 },
-                2: { cellWidth: 22 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 35 },
-                5: { cellWidth: 40 },
-            },
+            margin: { left: 20, right: 20 },
         })
 
         // Footer
         const pageCount = doc.getNumberOfPages()
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i)
-            doc.setFontSize(8)
+            doc.setFontSize(7)
             doc.setTextColor(120, 120, 120)
-            doc.text(`Seite ${i} von ${pageCount} | IONOS Mailer`, 20, doc.internal.pageSize.height - 10)
+            doc.text(`Seite ${i}/${pageCount} | IONOS Mailer`, 20, doc.internal.pageSize.height - 8)
         }
 
         doc.save(`ionos-mailer-bericht-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`)
@@ -211,8 +212,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                     <Badge variant="secondary" className="ml-1">{stats.totalEmails}</Badge>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-[1400px] h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-6 pb-0">
+            <DialogContent className="w-[98vw] max-w-[1800px] h-[95vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-4 border-b">
                     <DialogTitle className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-xl bg-black dark:bg-white flex items-center justify-center shrink-0">
                             <History className="h-6 w-6 text-white dark:text-black" />
@@ -224,20 +225,22 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-6">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         {[
                             { label: "Gesamt", value: stats.totalEmails, icon: Mail },
                             { label: "Erfolgreich", value: stats.totalSuccess, icon: CheckCircle, color: "text-green-600" },
                             { label: "Fehlgeschlagen", value: stats.totalFailed, icon: XCircle, color: "text-red-600" },
                             { label: "Sitzungen", value: stats.totalBatches, icon: Send },
+                            { label: "Geöffnet", value: "—", icon: Eye, note: "Nur Hintergrund" },
                         ].map((stat) => (
                             <Card key={stat.label} className="border-neutral-200 dark:border-neutral-800">
                                 <CardContent className="p-4">
                                     <stat.icon className={`h-5 w-5 mb-2 ${stat.color || "text-neutral-600"}`} />
                                     <p className="text-2xl font-bold">{stat.value}</p>
                                     <p className="text-xs text-muted-foreground">{stat.label}</p>
+                                    {stat.note && <p className="text-[10px] text-muted-foreground mt-1">{stat.note}</p>}
                                 </CardContent>
                             </Card>
                         ))}
@@ -300,6 +303,14 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                         </Card>
                     </div>
 
+                    {/* Info Box */}
+                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                            💡 <strong>Hinweis:</strong> Das Öffnungs-Tracking ist nur für E-Mails im <strong>Hintergrund-Modus</strong> verfügbar.
+                            Verwende den "Kampagnen-Tracking" Button um Öffnungen und Klicks zu sehen.
+                        </p>
+                    </div>
+
                     {/* Filters & Actions */}
                     <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
                         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
@@ -348,14 +359,15 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-0">
-                            <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+                            <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-neutral-50 dark:bg-neutral-900">
                                             <TableHead className="font-semibold w-[50px]">Nr.</TableHead>
-                                            <TableHead className="font-semibold">E-Mail Adresse</TableHead>
+                                            <TableHead className="font-semibold min-w-[200px]">E-Mail Adresse</TableHead>
                                             <TableHead className="font-semibold">Status</TableHead>
-                                            <TableHead className="font-semibold">Sitzungs-ID</TableHead>
+                                            <TableHead className="font-semibold">Geöffnet</TableHead>
+                                            <TableHead className="font-semibold">ID</TableHead>
                                             <TableHead className="font-semibold">Zeitpunkt</TableHead>
                                             <TableHead className="font-semibold">Message-ID</TableHead>
                                             <TableHead className="font-semibold">Fehler</TableHead>
@@ -380,14 +392,20 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                         </Badge>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="font-mono text-xs">{result.batchId}</TableCell>
-                                                <TableCell className="text-sm">
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-muted-foreground">
+                                                        <EyeOff className="h-3 w-3 mr-1" />
+                                                        N/A
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs">{shortId(result.batchId)}</TableCell>
+                                                <TableCell className="text-sm whitespace-nowrap">
                                                     {format(new Date(result.batchTime), "dd.MM.yyyy HH:mm:ss", { locale: de })}
                                                 </TableCell>
-                                                <TableCell className="font-mono text-xs text-muted-foreground max-w-[200px] truncate" title={result.messageId || undefined}>
-                                                    {result.messageId || "—"}
+                                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                                    {result.messageId ? shortId(result.messageId) : "—"}
                                                 </TableCell>
-                                                <TableCell className="text-sm text-red-600 max-w-[150px]" title={result.error || undefined}>
+                                                <TableCell className="text-sm text-red-600 max-w-[200px] truncate" title={result.error || undefined}>
                                                     {result.error || "—"}
                                                 </TableCell>
                                                 <TableCell>
