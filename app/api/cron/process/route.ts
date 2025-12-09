@@ -1,14 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
 import { sendEmail } from '@/lib/mail';
+import { textToHtmlWithTracking } from '@/lib/tracking';
 
-export async function GET(req: Request) {
-    // 1. Security Check (CRON_SECRET)
-    // Vercel Cron sends Header: Authorization: Bearer <CRON_SECRET>
+export async function GET(req: NextRequest) {
+    // 1. Security Check
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Allow running without auth in Development for testing
         if (process.env.NODE_ENV === 'production') {
             return new NextResponse('Unauthorized', { status: 401 });
         }
@@ -18,19 +17,20 @@ export async function GET(req: Request) {
         const secretKey = process.env.ENCRYPTION_KEY;
         if (!secretKey) throw new Error("No Encryption Key configured");
 
+        // Get base URL for tracking
+        const baseUrl = process.env.VERCEL_URL 
+            ? `https://${process.env.VERCEL_URL}` 
+            : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
         // 2. Find Pending Jobs that are due
         const now = new Date();
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
                 status: 'PENDING',
-                scheduledFor: {
-                    lte: now // Less than or equal to now
-                }
+                scheduledFor: { lte: now }
             },
-            include: {
-                campaign: true
-            },
-            take: 20 // Batch size limit per run to avoid timeout (10s limit on Vercel Hobby)
+            include: { campaign: true },
+            take: 20
         });
 
         if (pendingJobs.length === 0) {
@@ -41,7 +41,6 @@ export async function GET(req: Request) {
 
         // 3. Process Jobs
         for (const job of pendingJobs) {
-            // Decrypt password
             let pass = "";
             try {
                 pass = decrypt(job.campaign.pass, secretKey);
@@ -54,11 +53,15 @@ export async function GET(req: Request) {
                 continue;
             }
 
-            // Send
+            // Create HTML with tracking
+            const htmlWithTracking = textToHtmlWithTracking(job.body, job.trackingId, baseUrl);
+
+            // Send with tracking
             const response = await sendEmail({
                 to: job.recipient,
                 subject: job.subject,
                 text: job.body,
+                html: htmlWithTracking,
                 config: {
                     host: job.campaign.host,
                     port: job.campaign.port,

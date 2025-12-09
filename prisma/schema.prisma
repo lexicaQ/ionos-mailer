@@ -37,7 +37,24 @@ model EmailJob {
   scheduledFor DateTime
   sentAt       DateTime?
   
+  // Tracking
+  trackingId   String    @unique @default(uuid())
+  openedAt     DateTime?
+  openCount    Int       @default(0)
+  clicks       Click[]
+  
   createdAt    DateTime  @default(now())
   
   @@index([status, scheduledFor])
+  @@index([trackingId])
+}
+
+model Click {
+  id          String   @id @default(uuid())
+  emailJobId  String
+  emailJob    EmailJob @relation(fields: [emailJobId], references: [id])
+  url         String
+  clickedAt   DateTime @default(now())
+  
+  @@index([emailJobId])
 }
