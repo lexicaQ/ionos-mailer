@@ -129,8 +129,8 @@ export function EmailForm() {
                 </div>
                 <div className="flex items-center gap-2">
                     <CampaignTracker />
-                    <HistoryModal 
-                        batches={history} 
+                    <HistoryModal
+                        batches={history}
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
@@ -148,9 +148,9 @@ export function EmailForm() {
                             <FormItem>
                                 <FormLabel className="text-sm font-semibold">Betreff</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        placeholder="z.B. Einladung zum Sommerfest 2024" 
-                                        {...field} 
+                                    <Input
+                                        placeholder="z.B. Einladung zum Sommerfest 2024"
+                                        {...field}
                                         disabled={isSending}
                                         className="h-12 text-base"
                                     />
@@ -193,8 +193,8 @@ export function EmailForm() {
                     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="h-9 w-9 rounded-lg bg-gradient-to-br black dark:white flex items-center justify-center">
-                                    <Clock className="h-4 w-4 text-white" />
+                                <div className="h-9 w-9 rounded-lg bg-black dark:bg-white flex items-center justify-center">
+                                    <Clock className="h-4 w-4 text-white dark:text-black" />
                                 </div>
                                 <div>
                                     <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Hintergrund-Versand</Label>
@@ -210,7 +210,7 @@ export function EmailForm() {
                                     <div className="flex items-center justify-between mb-3">
                                         <Label className="text-sm font-medium">Verteilungsdauer</Label>
                                         <span className="text-sm font-mono bg-white dark:bg-slate-800 px-3 py-1 rounded-lg shadow-sm">
-                                            {durationMinutes >= 60 
+                                            {durationMinutes >= 60
                                                 ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
                                                 : `${durationMinutes} min`
                                             }
@@ -231,8 +231,8 @@ export function EmailForm() {
                                 </div>
                                 <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                                     <p className="text-xs text-amber-700 dark:text-amber-400">
-                                        💡 Die E-Mails werden gleichmäßig über {durationMinutes >= 60 
-                                            ? `${Math.floor(durationMinutes / 60)} Stunden` 
+                                        💡 Die E-Mails werden gleichmäßig über {durationMinutes >= 60
+                                            ? `${Math.floor(durationMinutes / 60)} Stunden`
                                             : `${durationMinutes} Minuten`
                                         } verteilt. Du kannst den Browser schließen.
                                     </p>
@@ -242,9 +242,9 @@ export function EmailForm() {
                     </div>
 
                     {/* Submit Button */}
-                    <Button 
-                        type="submit" 
-                        disabled={isSending || recipients.length === 0} 
+                    <Button
+                        type="submit"
+                        disabled={isSending || recipients.length === 0}
                         size="lg"
                         className="w-full h-14 text-lg font-semibold bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100 shadow-md transition-all"
                     >

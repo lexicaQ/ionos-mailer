@@ -17,29 +17,31 @@ export default function Icon() {
                     borderRadius: 6,
                 }}
             >
-                {/* Simplified envelope icon */}
                 <svg
-                    width="22"
-                    height="22"
+                    width="24"
+                    height="24"
                     viewBox="0 0 100 100"
                     fill="none"
                 >
                     <rect
-                        x="10"
-                        y="25"
-                        width="80"
-                        height="55"
+                        x="12"
+                        y="28"
+                        width="76"
+                        height="50"
                         rx="4"
                         stroke="white"
-                        strokeWidth="6"
+                        strokeWidth="5"
                     />
                     <path
-                        d="M10 29L50 55L90 29"
+                        d="M12 32L50 55L88 32"
                         stroke="white"
-                        strokeWidth="6"
+                        strokeWidth="5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
+                    <line x1="92" y1="45" x2="102" y2="42" stroke="white" strokeWidth="4" strokeLinecap="round" />
+                    <line x1="92" y1="53" x2="105" y2="53" stroke="white" strokeWidth="4" strokeLinecap="round" />
+                    <line x1="92" y1="61" x2="102" y2="64" stroke="white" strokeWidth="4" strokeLinecap="round" />
                 </svg>
             </div>
         ),
