@@ -119,7 +119,7 @@ export function EmailForm() {
             {/* Header Bar */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <div className="h-10 w-10 rounded-xl bg-black dark:bg-white flex items-center justify-center shadow-lg">
                         <Sparkles className="h-5 w-5 text-white" />
                     </div>
                     <div>
@@ -193,7 +193,7 @@ export function EmailForm() {
                     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                <div className="h-9 w-9 rounded-lg bg-gradient-to-br black dark:white flex items-center justify-center">
                                     <Clock className="h-4 w-4 text-white" />
                                 </div>
                                 <div>
@@ -246,7 +246,7 @@ export function EmailForm() {
                         type="submit" 
                         disabled={isSending || recipients.length === 0} 
                         size="lg"
-                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
+                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r black dark:white hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
                     >
                         {isSending ? (
                             <>

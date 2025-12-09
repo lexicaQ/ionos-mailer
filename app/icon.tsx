@@ -8,20 +8,39 @@ export default function Icon() {
         (
             <div
                 style={{
-                    fontSize: 20,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+                    background: 'black',
                     width: '100%',
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'white',
                     borderRadius: 6,
-                    fontWeight: 'bold',
-                    fontFamily: 'system-ui',
                 }}
             >
-                IM
+                {/* Simplified envelope icon */}
+                <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 100 100"
+                    fill="none"
+                >
+                    <rect
+                        x="10"
+                        y="25"
+                        width="80"
+                        height="55"
+                        rx="4"
+                        stroke="white"
+                        strokeWidth="6"
+                    />
+                    <path
+                        d="M10 29L50 55L90 29"
+                        stroke="white"
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </svg>
             </div>
         ),
         { ...size }
