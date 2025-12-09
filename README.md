@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IONOS Mailer
 
-## Getting Started
+Eine moderne Web-Applikation zum Versenden von E-Mails über einen IONOS-SMTP-Account. Entwickelt mit Next.js, React, Tailwind CSS und shadcn/ui.
 
-First, run the development server:
+## Features
 
+- 📧 **SMTP-Versand**: Zuverlässiger Versand über IONOS SMTP.
+- ✨ **Modernes UI**: Professionelles, minimalistisches Interface (Dark/Light Mode).
+- 📝 **E-Mail-Composer**: Editor für Betreff und Nachricht.
+- 👥 **Massenversand**: Einfaches Einfügen von Empfängerlisten (Copy & Paste).
+- ✅ **Validierung**: Automatische Prüfung und Deduplizierung von E-Mail-Adressen.
+- 📊 **Status & History**: Live-Fortschrittsanzeige und Ergebnisübersicht.
+- 🔒 **Sicherheit**: Keine Hardcoded Credentials (nur via `.env`).
+
+## Installation & Start
+
+### 1. Voraussetzungen
+- Node.js 18 oder höher
+- Ein IONOS E-Mail-Konto (SMTP-Zugangsdaten)
+
+### 2. Projekt installieren
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+# oder
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Konfiguration (.env)
+Erstellen Sie eine Datei `.env.local` im Hauptverzeichnis (kopieren Sie ggf. `.env.example`) und tragen Sie Ihre IONOS-Daten ein:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+SMTP_HOST=smtp.ionos.de
+SMTP_PORT=587
+SMTP_USER=ihre-email@ionos.de
+SMTP_PASS=ihr-passwort
+SMTP_SECURE=false
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> **Hinweis**: Bei Port 587 wird `SMTP_SECURE=false` gesetzt und STARTTLS verwendet. Falls Sie Port 465 nutzen möchten, setzen Sie `SMTP_SECURE=true`.
 
-## Learn More
+### 4. Starten (Entwicklung)
+```bash
+npm run dev
+```
+Die App ist nun unter [http://localhost:3000](http://localhost:3000) erreichbar.
 
-To learn more about Next.js, take a look at the following resources:
+### 5. Build & Produktion
+Für den produktiven Einsatz:
+```bash
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Projektstruktur
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/app`: Next.js App Router Pages & API
+- `/components`: React UI Komponenten (shadcn/ui + Custom)
+- `/lib`: Hilfsfunktionen (Mail-Service, Validierung)
+- `/public`: Statische Assets
 
-## Deploy on Vercel
+## Technologie-Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js 15+ (App Router)
+- **Sprache**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI-Library**: shadcn/ui (Radix UI)
+- **Formulare**: React Hook Form + Zod
+- **Mail**: Nodemailer

@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Campaign {
+  id        String     @id @default(uuid())
+  createdAt DateTime   @default(now())
+  
+  // Encrypted SMTP Settings
+  host      String
+  port      Int
+  user      String
+  pass      String     // Encrypted
+  secure    Boolean
+  
+  jobs      EmailJob[]
+}
+
+model EmailJob {
+  id           String    @id @default(uuid())
+  campaignId   String
+  campaign     Campaign  @relation(fields: [campaignId], references: [id])
+  
+  recipient    String
+  subject      String
+  body         String
+  
+  status       String    @default("PENDING") // PENDING, SENT, FAILED
+  error        String?
+  
+  scheduledFor DateTime
+  sentAt       DateTime?
+  
+  createdAt    DateTime  @default(now())
+  
+  @@index([status, scheduledFor])
+}
