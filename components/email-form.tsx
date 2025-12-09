@@ -3,22 +3,22 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { emailFormSchema, EmailFormValues, SendResult } from "@/lib/schemas"
-
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { RecipientInput } from "@/components/recipient-input"
+import { emailFormSchema, EmailFormValues, SendResult } from "@/lib/schemas"
 import { StatusView } from "@/components/status-view"
-import { HistoryList, HistoryBatch } from "@/components/history-list"
+import { RecipientInput } from "@/components/recipient-input"
+import { HistoryModal, HistoryBatch } from "@/components/history-modal"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { SmtpConfig } from "@/lib/mail"
-import { Send, Loader2, Clock } from "lucide-react"
+import { Send, Loader2, Clock, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 
 export function EmailForm() {
     const [isSending, setIsSending] = useState(false)
@@ -26,7 +26,7 @@ export function EmailForm() {
     const [currentResults, setCurrentResults] = useState<SendResult[]>([])
     const [history, setHistory] = useState<HistoryBatch[]>([])
     const [smtpSettings, setSmtpSettings] = useState<SmtpConfig | undefined>(undefined)
-    const [durationMinutes, setDurationMinutes] = useState(0)
+    const [durationMinutes, setDurationMinutes] = useState(60)
     const [useBackground, setUseBackground] = useState(false)
 
     const form = useForm<EmailFormValues>({
@@ -39,7 +39,6 @@ export function EmailForm() {
         }
     })
 
-    // Watch recipients to validate form state if needed, though zod handles it
     const recipients = form.watch("recipients");
 
     async function onSubmit(data: EmailFormValues) {
@@ -52,8 +51,7 @@ export function EmailForm() {
         setSendProgress(0);
         setCurrentResults([]);
 
-        // Inject settings into data
-        const payload = { ...data, smtpSettings, durationMinutes };
+        const payload = { ...data, smtpSettings, durationMinutes: useBackground ? durationMinutes : 0 };
 
         try {
             const endpoint = useBackground ? "/api/campaigns" : "/api/send-emails";
@@ -73,7 +71,6 @@ export function EmailForm() {
 
             if (useBackground) {
                 toast.success(`Kampagne gestartet! ${resultData.jobCount} E-Mails geplant.`);
-                // Clean reset
                 setCurrentResults([]);
             } else {
                 const results: SendResult[] = resultData.results;
@@ -102,111 +99,169 @@ export function EmailForm() {
         }
     }
 
-    // Helper to sync RecipientInput with RHF
     const handleRecipientsChange = (newRecipients: { email: string; id: string }[]) => {
         form.setValue("recipients", newRecipients, { shouldValidate: true });
     }
 
+    const handleDeleteBatch = (id: string) => {
+        setHistory(prev => prev.filter(b => b.id !== id));
+        toast.success("Kampagne gelöscht");
+    }
+
+    const handleClearAllHistory = () => {
+        setHistory([]);
+        toast.success("Verlauf gelöscht");
+    }
+
     return (
-        <div className="space-y-8">
-            <Card className="border-neutral-200 dark:border-neutral-800 shadow-sm">
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle>Neue Nachricht verfassen</CardTitle>
-                            <CardDescription>Senden Sie E-Mails an mehrere Empfänger nacheinander (sequentiell).</CardDescription>
-                        </div>
-                        <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
+        <div className="p-6 md:p-8 space-y-8">
+            {/* Header Bar */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <Sparkles className="h-5 w-5 text-white" />
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div>
+                        <h2 className="font-bold text-lg">Neue Nachricht</h2>
+                        <p className="text-sm text-slate-500">E-Mails an mehrere Empfänger versenden</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <HistoryModal 
+                        batches={history} 
+                        onDeleteBatch={handleDeleteBatch}
+                        onClearAll={handleClearAllHistory}
+                    />
+                    <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
+                </div>
+            </div>
 
-                            <FormField
-                                control={form.control}
-                                name="subject"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Betreff</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="z.B. Einladung zum Sommerfest 2024" {...field} disabled={isSending} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+            {/* Form */}
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="subject"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-sm font-semibold">Betreff</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        placeholder="z.B. Einladung zum Sommerfest 2024" 
+                                        {...field} 
+                                        disabled={isSending}
+                                        className="h-12 text-base"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
-                            <RecipientInput
-                                onRecipientsChange={handleRecipientsChange}
-                                disabled={isSending}
-                            />
-                            {form.formState.errors.recipients && (
-                                <p className="text-sm font-medium text-destructive">
-                                    {form.formState.errors.recipients.message}
-                                </p>
-                            )}
+                    <RecipientInput
+                        onRecipientsChange={handleRecipientsChange}
+                        disabled={isSending}
+                    />
+                    {form.formState.errors.recipients && (
+                        <p className="text-sm font-medium text-destructive">
+                            {form.formState.errors.recipients.message}
+                        </p>
+                    )}
 
-                            <FormField
-                                control={form.control}
-                                name="body"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nachricht</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Geben Sie hier Ihre Nachricht ein..."
-                                                className="min-h-[200px]"
-                                                {...field}
-                                                disabled={isSending}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                    <FormField
+                        control={form.control}
+                        name="body"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-sm font-semibold">Nachricht</FormLabel>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="Geben Sie hier Ihre Nachricht ein..."
+                                        className="min-h-[200px] text-base leading-relaxed"
+                                        {...field}
+                                        disabled={isSending}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
-                            <div className="flex items-center justify-between pt-4 border-t dark:border-neutral-800">
-                                <div className="flex items-center space-x-2">
-                                    <Switch id="bg-mode" checked={useBackground} onCheckedChange={setUseBackground} />
-                                    <Label htmlFor="bg-mode">Hintergrund-Versand (Offline)</Label>
+                    {/* Background Mode Section */}
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                    <Clock className="h-4 w-4 text-white" />
                                 </div>
-                                {useBackground && (
-                                    <div className="flex items-center space-x-2">
-                                        <Label>Dauer (Minuten):</Label>
-                                        <Input
-                                            type="number"
-                                            className="w-24"
-                                            value={durationMinutes}
-                                            onChange={e => setDurationMinutes(parseInt(e.target.value) || 0)}
-                                            min={0}
-                                        />
-                                        <span className="text-sm text-neutral-500">
-                                            ({(durationMinutes / 60).toFixed(1)} Std)
+                                <div>
+                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Hintergrund-Versand</Label>
+                                    <p className="text-xs text-slate-500">E-Mails werden über Zeit verteilt gesendet</p>
+                                </div>
+                            </div>
+                            <Switch id="bg-mode" checked={useBackground} onCheckedChange={setUseBackground} />
+                        </div>
+
+                        {useBackground && (
+                            <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <Label className="text-sm font-medium">Verteilungsdauer</Label>
+                                        <span className="text-sm font-mono bg-white dark:bg-slate-800 px-3 py-1 rounded-lg shadow-sm">
+                                            {durationMinutes >= 60 
+                                                ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
+                                                : `${durationMinutes} min`
+                                            }
                                         </span>
                                     </div>
-                                )}
-
-                                <Button type="submit" disabled={isSending || recipients.length === 0} size="lg">
-                                    {isSending ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            {useBackground ? "Plane..." : "Sende..."}
-                                        </>
-                                    ) : (
-                                        <>
-                                            {useBackground ? <Clock className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                                            {useBackground ? "Kampagne Starten" : "E-Mails versenden"}
-                                        </>
-                                    )}
-                                </Button>
+                                    <Slider
+                                        value={[durationMinutes]}
+                                        onValueChange={(v) => setDurationMinutes(v[0])}
+                                        min={10}
+                                        max={1440}
+                                        step={10}
+                                        className="w-full"
+                                    />
+                                    <div className="flex justify-between text-xs text-slate-400 mt-2">
+                                        <span>10 min</span>
+                                        <span>24 Stunden</span>
+                                    </div>
+                                </div>
+                                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                                        💡 Die E-Mails werden gleichmäßig über {durationMinutes >= 60 
+                                            ? `${Math.floor(durationMinutes / 60)} Stunden` 
+                                            : `${durationMinutes} Minuten`
+                                        } verteilt. Du kannst den Browser schließen.
+                                    </p>
+                                </div>
                             </div>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
+                        )}
+                    </div>
 
-            {/* Status & History View */}
+                    {/* Submit Button */}
+                    <Button 
+                        type="submit" 
+                        disabled={isSending || recipients.length === 0} 
+                        size="lg"
+                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/25"
+                    >
+                        {isSending ? (
+                            <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                {useBackground ? "Kampagne wird erstellt..." : "E-Mails werden gesendet..."}
+                            </>
+                        ) : (
+                            <>
+                                {useBackground ? <Clock className="mr-2 h-5 w-5" /> : <Send className="mr-2 h-5 w-5" />}
+                                {useBackground ? "Kampagne starten" : `${recipients.length} E-Mail${recipients.length !== 1 ? 's' : ''} versenden`}
+                            </>
+                        )}
+                    </Button>
+                </form>
+            </Form>
+
+            {/* Status View */}
             {(isSending || currentResults.length > 0) && (
                 <StatusView
                     isSending={isSending}
@@ -214,9 +269,6 @@ export function EmailForm() {
                     results={currentResults}
                 />
             )}
-
-            {/* History List */}
-            <HistoryList batches={history} />
         </div>
     )
 }
