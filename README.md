@@ -5,12 +5,14 @@ Eine moderne Web-Applikation zum Versenden von E-Mails über einen IONOS-SMTP-Ac
 ## Features
 
 - 📧 **SMTP-Versand**: Zuverlässiger Versand über IONOS SMTP.
-- ✨ **Modernes UI**: Professionelles, minimalistisches Interface (Dark/Light Mode).
+- ✨ **Modernes UI**: Professionelles, minimalistisches Interface (Dark/Light Mode) mit Gradient-Design.
+- ⏱️ **Zeitsteuerung**: Konfigurierbare Verzögerung zwischen E-Mails.
+- 🕒 **Hintergrund-Modus (Offline)**: E-Mails über 12h+ verteilen (benötigt Datenbank).
 - 📝 **E-Mail-Composer**: Editor für Betreff und Nachricht.
 - 👥 **Massenversand**: Einfaches Einfügen von Empfängerlisten (Copy & Paste).
-- ✅ **Validierung**: Automatische Prüfung und Deduplizierung von E-Mail-Adressen.
+- ✅ **CSV Export**: Exportieren Sie Sendeberichte als CSV.
 - 📊 **Status & History**: Live-Fortschrittsanzeige und Ergebnisübersicht.
-- 🔒 **Sicherheit**: Keine Hardcoded Credentials (nur via `.env`).
+- 🔒 **Sicherheit**: Credentials werden verschlüsselt oder im Browser gespeichert.
 
 ## Installation & Start
 
@@ -25,15 +27,18 @@ npm install
 pnpm install
 ```
 
-### 3. Konfiguration (.env)
-Erstellen Sie eine Datei `.env.local` im Hauptverzeichnis (kopieren Sie ggf. `.env.example`) und tragen Sie Ihre IONOS-Daten ein:
+### 3. Konfiguration
+Die Zugangsdaten werden **direkt in der Web-Oberfläche** (Zahnrad-Symbol) eingegeben.
+Es ist keine `.env` Datei mehr für SMTP-Daten nötig!
 
+Für den **Hintergrund-Modus** (Vercel Deployment) benötigen Sie jedoch:
 ```env
-SMTP_HOST=smtp.ionos.de
-SMTP_PORT=587
-SMTP_USER=ihre-email@ionos.de
-SMTP_PASS=ihr-passwort
-SMTP_SECURE=false
+# Nur für Datenbank & Encryption nötig
+POSTGRES_URL=...
+POSTGRES_PRISMA_URL=...
+POSTGRES_URL_NON_POOLING=...
+ENCRYPTION_KEY="langes-zufalls-passwort-32-zeichen"
+CRON_SECRET="geheimes-cron-passwort"
 ```
 
 > **Hinweis**: Bei Port 587 wird `SMTP_SECURE=false` gesetzt und STARTTLS verwendet. Falls Sie Port 465 nutzen möchten, setzen Sie `SMTP_SECURE=true`.
