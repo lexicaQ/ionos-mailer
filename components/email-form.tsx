@@ -12,6 +12,7 @@ import { emailFormSchema, EmailFormValues, SendResult } from "@/lib/schemas"
 import { StatusView } from "@/components/status-view"
 import { RecipientInput } from "@/components/recipient-input"
 import { HistoryModal, HistoryBatch } from "@/components/history-modal"
+import { CampaignTracker } from "@/components/campaign-tracker"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { SmtpConfig } from "@/lib/mail"
 import { Send, Loader2, Clock, Sparkles } from "lucide-react"
@@ -127,6 +128,7 @@ export function EmailForm() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <CampaignTracker />
                     <HistoryModal 
                         batches={history} 
                         onDeleteBatch={handleDeleteBatch}
