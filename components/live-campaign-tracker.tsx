@@ -102,12 +102,25 @@ export function LiveCampaignTracker() {
     }, [open, fetchCampaigns]);
 
 
-    const deleteCampaign = async (id: string) => {
-        if (!confirm("Kampagne wirklich löschen?")) return;
+    const deleteCampaign = async (id: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+
+        if (!confirm("Kampagne wirklich löschen? Der Versand wird sofort gestoppt.")) return;
+
         try {
+            // Optimistic update to remove from UI immediately (stops user from clicking again)
+            // and gives immediate feedback "it stopped".
+            setCampaigns(prev => prev.filter(c => c.id !== id));
+
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-            if (res.ok) {
-                setCampaigns(prev => prev.filter(c => c.id !== id));
+            if (!res.ok) {
+                // formatting error or revert if failed
+                console.error("Deletion failed on server");
+                // In a real app we might revert, but for now we assume success or refresh will fix
+                fetchCampaigns();
             }
         } catch (e) { console.error(e); }
     }
@@ -170,7 +183,7 @@ export function LiveCampaignTracker() {
                                     </h3>
                                     <AnimatePresence>
                                         {activeCampaigns.map(c => (
-                                            <MinimalCampaignRow key={c.id} campaign={c} onDelete={() => deleteCampaign(c.id)} />
+                                            <MinimalCampaignRow key={c.id} campaign={c} onDelete={(e) => deleteCampaign(c.id, e)} />
                                         ))}
                                     </AnimatePresence>
                                 </section>
@@ -185,7 +198,7 @@ export function LiveCampaignTracker() {
                                     </h3>
                                     <div className="opacity-60 hover:opacity-100 transition-opacity">
                                         {completedCampaigns.map(c => (
-                                            <MinimalCampaignRow key={c.id} campaign={c} onDelete={() => deleteCampaign(c.id)} />
+                                            <MinimalCampaignRow key={c.id} campaign={c} onDelete={(e) => deleteCampaign(c.id, e)} />
                                         ))}
                                     </div>
                                 </section>
@@ -198,7 +211,7 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, onDelete }: { campaign: Campaign, onDelete: () => void }) {
+function MinimalCampaignRow({ campaign, onDelete }: { campaign: Campaign, onDelete: (e: React.MouseEvent) => void }) {
     const progress = campaign.stats.total > 0
         ? ((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100
         : 0;
