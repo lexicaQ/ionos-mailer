@@ -65,10 +65,19 @@ export async function POST(req: Request) {
                 ? `https://${process.env.VERCEL_URL}`
                 : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
-            // Fire and forget - don't wait for response
+            // Fire and forget - don't wait for response but log the URL
+            console.log(`Auto-triggering cron at: ${baseUrl}/api/cron/process`);
+
             fetch(`${baseUrl}/api/cron/process`, {
                 method: 'GET',
                 headers: { 'x-manual-trigger': 'true' }
+            }).then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('Auto-trigger response error:', res.status, text);
+                } else {
+                    console.log('Auto-trigger successful');
+                }
             }).catch(e => console.error('Auto-trigger failed:', e));
 
         } catch (triggerError) {

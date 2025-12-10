@@ -42,8 +42,19 @@ export async function GET(req: NextRequest) {
         });
 
         if (pendingJobs.length === 0) {
-            return NextResponse.json({ message: "No pending jobs due." });
+            // Check if there are ANY pending jobs in the future
+            const futureJobs = await prisma.emailJob.count({
+                where: { status: 'PENDING' }
+            });
+            console.log(`Cron: No due jobs. Total future pending: ${futureJobs}`);
+            return NextResponse.json({
+                message: "No pending jobs due.",
+                serverTime: now.toISOString(),
+                futurePendingCount: futureJobs
+            });
         }
+
+        console.log(`Cron: Found ${pendingJobs.length} due jobs. Processing...`);
 
         const results = [];
 
