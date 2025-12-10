@@ -150,16 +150,16 @@ export async function GET(req: NextRequest) {
         // If we processed successfully, trigger the next batch immediately
         if (results.length > 0) {
             console.log("Triggering next job (Fire-and-Forget)...");
-            // CRITICAL: DO NOT AWAIT response. awaiting causes the current function to wait for the NEXT function (5s),
-            // which leads to a timeout chain (5+5 = 10s limit).
-            // We just start the request and exit.
-            fetch(`${baseUrl}/api/cron/process?t=${Date.now()}`, {
-                method: 'GET',
-                headers: { 'x-manual-trigger': 'true' }
-            }).catch(e => console.error('Recursive trigger failed:', e));
+            // Use a non-awaited promise to trigger recursion without blocking 
+            // We use a timestamp to bypass Vercel caching
+            const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
 
-            // Give 100ms for the request to leave the socket before we kill the process by returning
-            await new Promise(r => setTimeout(r, 100));
+            // Fire and forget
+            fetch(triggerUrl, {
+                method: 'GET',
+                headers: { 'x-manual-trigger': 'true' },
+                signal: AbortSignal.timeout(5000) // 5s timeout for the *request* initiation
+            }).catch(e => console.error('Recursive trigger failed (this is non-fatal):', e));
         }
 
         return NextResponse.json({ processed: results.length, results });

@@ -59,6 +59,8 @@ export function LiveCampaignTracker() {
             })
             if (res.ok) {
                 const data = await res.json()
+                // Sort by date ascending (oldest first -> #1)
+                data.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
                 setCampaigns(data)
             }
         } catch (error) {
@@ -183,7 +185,12 @@ export function LiveCampaignTracker() {
                                     </h3>
                                     <AnimatePresence>
                                         {activeCampaigns.map(c => (
-                                            <MinimalCampaignRow key={c.id} campaign={c} onDelete={(e) => deleteCampaign(c.id, e)} />
+                                            <MinimalCampaignRow
+                                                key={c.id}
+                                                campaign={c}
+                                                index={campaigns.findIndex(ca => ca.id === c.id) + 1}
+                                                onDelete={(e) => deleteCampaign(c.id, e)}
+                                            />
                                         ))}
                                     </AnimatePresence>
                                 </section>
@@ -198,7 +205,12 @@ export function LiveCampaignTracker() {
                                     </h3>
                                     <div className="opacity-60 hover:opacity-100 transition-opacity">
                                         {completedCampaigns.map(c => (
-                                            <MinimalCampaignRow key={c.id} campaign={c} onDelete={(e) => deleteCampaign(c.id, e)} />
+                                            <MinimalCampaignRow
+                                                key={c.id}
+                                                campaign={c}
+                                                index={campaigns.findIndex(ca => ca.id === c.id) + 1}
+                                                onDelete={(e) => deleteCampaign(c.id, e)}
+                                            />
                                         ))}
                                     </div>
                                 </section>
@@ -211,7 +223,7 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, onDelete }: { campaign: Campaign, onDelete: (e: React.MouseEvent) => void }) {
+function MinimalCampaignRow({ campaign, index, onDelete }: { campaign: Campaign, index: number, onDelete: (e: React.MouseEvent) => void }) {
     const progress = campaign.stats.total > 0
         ? ((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100
         : 0;
@@ -227,7 +239,7 @@ function MinimalCampaignRow({ campaign, onDelete }: { campaign: Campaign, onDele
             <div className="bg-neutral-50/50 dark:bg-neutral-900/50 p-4 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-mono text-xs font-bold">
-                        #{campaign.id.substring(0, 4)}
+                        #{index}
                     </div>
                     <div>
                         <div className="text-sm font-medium">Kampagne vom {format(new Date(campaign.createdAt), "dd.MM.yyyy")}</div>

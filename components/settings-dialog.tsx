@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { SmtpConfig } from "@/lib/mail"
-import { Settings, Save, RotateCcw, Eye, EyeOff, Zap } from "lucide-react"
+import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw } from "lucide-react"
 
 interface SettingsDialogProps {
     onSettingsChange: (settings: SmtpConfig) => void;
@@ -33,6 +33,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [showPassword, setShowPassword] = useState(false)
     const [savePassword, setSavePassword] = useState(true)
     const [fromName, setFromName] = useState("")
+    const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+    const [testing, setTesting] = useState(false)
 
     useEffect(() => {
         if (typeof window !== 'undefined' && localStorage) {
@@ -194,13 +196,25 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 <div className="space-y-4 pt-4 border-t">
                     <h4 className="text-sm font-medium text-muted-foreground">Diagnose & Test</h4>
 
+                    {/* Status Message Display */}
+                    {statusMsg && (
+                        <div className={`p-3 rounded-md text-xs font-medium flex items-center gap-2 ${statusMsg.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
+                            'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                            }`}>
+                            {statusMsg.type === 'success' ? <CheckCircle className="h-3 w-3 flex-shrink-0" /> : <XCircle className="h-3 w-3 flex-shrink-0" />}
+                            <span className="break-all">{statusMsg.text}</span>
+                        </div>
+                    )}
+
                     {/* Connection Test */}
                     <div className="flex items-center justify-between">
                         <div className="text-xs text-muted-foreground">
                             <p>SMTP-Verbindung testen</p>
                             <p>(Prüft Passwort und Server)</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={async () => {
+                        <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
+                            setTesting(true);
+                            setStatusMsg(null);
                             try {
                                 const res = await fetch("/api/test-connection", {
                                     method: 'POST',
@@ -209,15 +223,17 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                 });
                                 const data = await res.json();
                                 if (data.success) {
-                                    alert("✅ " + data.message);
+                                    setStatusMsg({ type: 'success', text: "Verbindung erfolgreich!" });
                                 } else {
-                                    alert("❌ Fehler: " + data.error + "\n\nDetails: " + JSON.stringify(data.details));
+                                    setStatusMsg({ type: 'error', text: data.error + (data.details ? ` (${JSON.stringify(data.details)})` : "") });
                                 }
                             } catch (e: any) {
-                                alert("Netzwerkfehler: " + e.message);
+                                setStatusMsg({ type: 'error', text: "Netzwerkfehler: " + e.message });
+                            } finally {
+                                setTesting(false);
                             }
                         }}>
-                            <Zap className="h-3 w-3 mr-2 text-amber-500" />
+                            {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <Zap className="h-3 w-3 mr-2 text-amber-500" />}
                             Verbindung testen
                         </Button>
                     </div>
@@ -227,18 +243,26 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             <p>Cron-Job manuell starten</p>
                             <p>(Verarbeitet wartende E-Mails)</p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={async () => {
+                        <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
+                            setTesting(true);
+                            setStatusMsg(null);
                             try {
                                 const res = await fetch("/api/cron/process", {
                                     headers: { 'x-manual-trigger': 'true' }
                                 });
                                 const data = await res.json();
-                                alert(`Cron Ergebnis: ${JSON.stringify(data)}`);
-                            } catch (e) {
-                                alert("Fehler: " + e);
+                                if (res.ok) {
+                                    setStatusMsg({ type: 'success', text: `Verarbeitet: ${data.processed}. Nächster Job getriggert.` });
+                                } else {
+                                    setStatusMsg({ type: 'error', text: "Fehler: " + data.error });
+                                }
+                            } catch (e: any) {
+                                setStatusMsg({ type: 'error', text: "Fehler: " + e.message });
+                            } finally {
+                                setTesting(false);
                             }
                         }}>
-                            <RotateCcw className="h-3 w-3 mr-2" />
+                            {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
                             Cron starten
                         </Button>
                     </div>
