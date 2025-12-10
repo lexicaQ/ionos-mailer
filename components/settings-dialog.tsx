@@ -107,7 +107,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     <Settings className="h-4 w-4" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[480px]">
+            <DialogContent showCloseButton={false} className="sm:max-w-[600px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Settings className="h-5 w-5" />

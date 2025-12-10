@@ -207,7 +207,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                     <Badge variant="secondary" className="ml-1">{stats.totalEmails}</Badge>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-[1800px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-xl border shadow-2xl">
+            <DialogContent showCloseButton={false} className="w-[95vw] max-w-[1800px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-xl border shadow-2xl">
                 <DialogHeader className="p-6 pb-4 border-b">
                     <DialogTitle className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-xl bg-black dark:bg-white flex items-center justify-center shrink-0">

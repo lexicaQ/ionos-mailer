@@ -151,7 +151,7 @@ export function CampaignTracker() {
                     Kampagnen-Tracking
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-[1800px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-xl border shadow-2xl">
+            <DialogContent showCloseButton={false} className="w-[95vw] max-w-[1800px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-xl border shadow-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-4">

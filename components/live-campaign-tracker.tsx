@@ -141,7 +141,7 @@ export function LiveCampaignTracker() {
                     )}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-[1400px] h-[90vh] flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-xl border-0 shadow-2xl">
+            <DialogContent showCloseButton={false} className="w-[95vw] max-w-[1400px] h-[90vh] flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-xl border-0 shadow-2xl">
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 bg-white dark:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-800">
@@ -266,9 +266,9 @@ function MinimalCampaignRow({ campaign, index, onDelete }: { campaign: Campaign,
                 {campaign.jobs.map((job) => (
                     <div key={job.id} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm">
 
-                        {/* Recipient - Increased width and removed truncate to ensure full email visibility */}
+                        {/* Recipient - Smaller text */}
                         <div className="flex-[2] min-w-0 pr-4">
-                            <div className="font-medium text-neutral-900 dark:text-neutral-100 break-all">{job.recipient}</div>
+                            <div className="text-xs font-medium text-neutral-900 dark:text-neutral-100 break-all">{job.recipient}</div>
                             {job.openedAt && <div className="text-[10px] text-blue-500 font-medium mt-0.5">Gelesen um {format(new Date(job.openedAt), "HH:mm")}</div>}
                         </div>
 
