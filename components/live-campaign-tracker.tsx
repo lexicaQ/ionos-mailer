@@ -123,7 +123,7 @@ export function LiveCampaignTracker() {
                     )}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[90vw] max-w-[1400px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-xl border shadow-2xl">
+            <DialogContent className="w-[95vw] max-w-[1800px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-xl border shadow-2xl">
                 <DialogHeader className="p-6 pb-4 border-b bg-white dark:bg-neutral-900 shadow-sm z-10">
                     <DialogTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
