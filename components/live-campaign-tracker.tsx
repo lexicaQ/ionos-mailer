@@ -135,18 +135,19 @@ export function LiveCampaignTracker() {
                             <Activity className="h-5 w-5 text-white dark:text-black" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold tracking-tight">System Status</h2>
+                            <h2 className="text-xl font-bold tracking-tight">Live Kampagnen-Tracking</h2>
                             <p className="text-xs text-muted-foreground flex items-center gap-2">
                                 {isAutoProcessing ? (
                                     <span className="text-green-600 flex items-center gap-1">
                                         <RefreshCw className="h-3 w-3 animate-spin" /> Verarbeite Hintergrund-Jobs...
                                     </span>
-                                ) : "System bereit"}
+                                ) : "System bereit - Warte auf nächste Ausführung"}
                             </p>
                         </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={fetchCampaigns}>
+                    <Button variant="outline" size="sm" onClick={fetchCampaigns} disabled={loading} className="gap-2">
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        Aktualisieren
                     </Button>
                 </div>
 
@@ -234,11 +235,11 @@ function MinimalCampaignRow({ campaign, onDelete }: { campaign: Campaign, onDele
             {/* Email List - Minimalist Table */}
             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {campaign.jobs.map((job) => (
-                    <div key={job.id} className="p-3 px-4 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm">
+                    <div key={job.id} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm">
 
-                        {/* Recipient */}
-                        <div className="flex-1 min-w-0 pr-4">
-                            <div className="font-medium truncate text-neutral-900 dark:text-neutral-100">{job.recipient}</div>
+                        {/* Recipient - Increased width and removed truncate to ensure full email visibility */}
+                        <div className="flex-[2] min-w-0 pr-4">
+                            <div className="font-medium text-neutral-900 dark:text-neutral-100 break-all">{job.recipient}</div>
                             {job.openedAt && <div className="text-[10px] text-blue-500 font-medium mt-0.5">Gelesen um {format(new Date(job.openedAt), "HH:mm")}</div>}
                         </div>
 
