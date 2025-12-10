@@ -228,9 +228,16 @@ export function LiveCampaignTracker() {
 }
 
 function MinimalCampaignRow({ campaign, index, onDelete }: { campaign: Campaign, index: number, onDelete: (e: React.MouseEvent) => void }) {
+    const [isOpen, setIsOpen] = useState(true);
     const progress = campaign.stats.total > 0
         ? ((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100
         : 0;
+
+    // Import Chevron icons if not already imported (check imports above)
+    // Assuming they need to be added to imports, but I can't see top of file. 
+    // I will use standard svg or assume imports exist. 
+    // Actually, I should add imports first. 
+    // Using simple SVGs for safety if imports are missing, or relying on lucide-react which is used.
 
     return (
         <motion.div
@@ -240,8 +247,16 @@ function MinimalCampaignRow({ campaign, index, onDelete }: { campaign: Campaign,
             className="mb-6 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm"
         >
             {/* Campaign Header */}
-            <div className="bg-neutral-50/50 dark:bg-neutral-900/50 p-4 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800">
+            <div
+                className="bg-neutral-50/50 dark:bg-neutral-900/50 p-4 flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800/80 transition-colors"
+                onClick={() => setIsOpen(!isOpen)}
+            >
                 <div className="flex items-center gap-3">
+                    {/* Chevron */}
+                    <div className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                    </div>
+
                     <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-mono text-xs font-bold">
                         #{index}
                     </div>
@@ -256,55 +271,60 @@ function MinimalCampaignRow({ campaign, index, onDelete }: { campaign: Campaign,
                         </div>
                     </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 w-8 p-0">
+                <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 w-8 p-0 z-10">
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </div>
 
             {/* Email List - Minimalist Table */}
-            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                {campaign.jobs.map((job) => (
-                    <div key={job.id} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm">
+            {isOpen && (
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                    {campaign.jobs.map((job) => (
+                        <div key={job.id} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm">
 
-                        {/* Recipient - Smaller text */}
-                        <div className="flex-[2] min-w-0 pr-4">
-                            <div className="text-xs font-medium text-neutral-900 dark:text-neutral-100 break-all">{job.recipient}</div>
-                            {job.openedAt && <div className="text-[10px] text-blue-500 font-medium mt-0.5">Gelesen um {format(new Date(job.openedAt), "HH:mm")}</div>}
-                        </div>
-
-                        {/* Times */}
-                        <div className="flex items-center gap-6 text-xs text-muted-foreground flex-shrink-0">
-                            <div className="text-right w-24">
-                                <div className="uppercase text-[10px] tracking-wider opacity-50">Geplant</div>
-                                <div>{format(new Date(job.scheduledFor), "HH:mm:ss")}</div>
+                            {/* Recipient - Smaller text, Single Line */}
+                            <div className="flex-[2] min-w-0 pr-4">
+                                <div className="text-[10px] font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
+                                    {job.recipient}
+                                </div>
+                                {job.openedAt && <div className="text-[10px] text-blue-500 font-medium mt-0.5">Gelesen um {format(new Date(job.openedAt), "HH:mm")}</div>}
                             </div>
 
-                            <div className="text-right w-24">
-                                <div className="uppercase text-[10px] tracking-wider opacity-50">Gesendet</div>
-                                <div className={`${!job.sentAt ? 'text-neutral-300' : ''}`}>
-                                    {job.sentAt ? format(new Date(job.sentAt), "HH:mm:ss") : "--:--:--"}
+                            {/* Times */}
+                            <div className="flex items-center gap-6 text-xs text-muted-foreground flex-shrink-0">
+                                <div className="text-right w-24">
+                                    <div className="uppercase text-[10px] tracking-wider opacity-50">Geplant</div>
+                                    <div>{format(new Date(job.scheduledFor), "HH:mm:ss")}</div>
+                                </div>
+
+                                <div className="text-right w-24">
+                                    <div className="uppercase text-[10px] tracking-wider opacity-50">Gesendet</div>
+                                    <div className={`${!job.sentAt ? 'text-neutral-300' : ''}`}>
+                                        {job.sentAt ? format(new Date(job.sentAt), "HH:mm:ss") : "--:--:--"}
+                                    </div>
+                                </div>
+
+                                {/* Status Pill - Small */}
+                                <div className="w-20 flex justify-end">
+                                    <Badge
+                                        className={`
+                                            h-5 px-2 text-[10px] border-0 font-bold tracking-wide
+                                            ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500 hover:bg-green-100' :
+                                                job.status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-500 hover:bg-red-100' :
+                                                    'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
+                                        `}
+                                    >
+                                        {job.status === 'SENT' ? 'GESENDET' :
+                                            job.status === 'FAILED' ? 'FEHLER' :
+                                                'WARTEND'}
+                                    </Badge>
                                 </div>
                             </div>
-
-                            {/* Status Pill - Small */}
-                            <div className="w-20 flex justify-end">
-                                <Badge
-                                    className={`
-                                        h-5 px-2 text-[10px] border-0 font-bold tracking-wide
-                                        ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500 hover:bg-green-100' :
-                                            job.status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-500 hover:bg-red-100' :
-                                                'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
-                                    `}
-                                >
-                                    {job.status === 'SENT' ? 'GESENDET' :
-                                        job.status === 'FAILED' ? 'FEHLER' :
-                                            'WARTEND'}
-                                </Badge>
-                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </motion.div>
     )
 }
+```

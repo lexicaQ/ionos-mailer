@@ -288,7 +288,7 @@ export function EmailForm() {
                                             <span className="text-muted-foreground">Ende ca.:</span>
                                             <span className="font-mono">
                                                 {recipients.length > 1
-                                                    ? `+ ${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`
+                                                    ? format(new Date(Date.now() + durationMinutes * 60000), "HH:mm") + " Uhr"
                                                     : "Sofort"}
                                             </span>
                                         </div>
