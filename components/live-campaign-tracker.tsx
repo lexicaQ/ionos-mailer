@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -70,17 +70,33 @@ export function LiveCampaignTracker() {
         }
     }, [])
 
-    // ROBUST AUTO-POLLING & PROCESSING (Frontend "Cron")
+    const campaignsRef = useRef<Campaign[]>([]);
+
+    // Keep ref in sync for the interval
+    useEffect(() => {
+        campaignsRef.current = campaigns;
+    }, [campaigns]);
+
+
+
+    // Separate Effect for Intervals to avoid resetting timer when campaigns update
     useEffect(() => {
         if (!open) return;
 
+        // Initial fetch
+        fetchCampaigns();
+
         // 1. Refresh Data Interval
-        const refreshInterval = setInterval(fetchCampaigns, 3000); // Fast UI updates
+        const refreshInterval = setInterval(fetchCampaigns, 3000); // 3s UI updates
 
         // 2. Auto-Process trigger (Acts as a backup cron while UI is open)
+        // Checks the REF so it doesn't need to be re-created when state changes
         const processInterval = setInterval(() => {
-            const hasPending = campaigns.some(c => c.stats.pending > 0);
+            const currentCampaigns = campaignsRef.current;
+            const hasPending = currentCampaigns.some(c => c.stats.pending > 0);
+
             if (hasPending) {
+                console.log("Frontend Cron: Triggering processing...");
                 setIsAutoProcessing(true);
                 fetch('/api/cron/process', {
                     method: 'GET',
@@ -90,14 +106,13 @@ export function LiveCampaignTracker() {
                         setTimeout(() => setIsAutoProcessing(false), 2000);
                     });
             }
-        }, 10000); // Trigger every 10s if pending (augmenting the 10s backend limit)
+        }, 10000); // Trigger every 10s
 
         return () => {
             clearInterval(refreshInterval);
             clearInterval(processInterval);
         }
-    }, [open, fetchCampaigns, campaigns]);
-    // Dependency on campaigns ensures we only trigger if we KNOW there are pending items
+    }, [open, fetchCampaigns]); // Removed 'campaigns' dependency
 
     useEffect(() => {
         if (open) fetchCampaigns();
