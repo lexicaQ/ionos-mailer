@@ -26,6 +26,9 @@ interface SendMailParams {
     config?: SmtpConfig;
 }
 
+// Cache for transporters to reuse connections
+const transporterCache = new Map<string, nodemailer.Transporter>();
+
 export async function sendEmail({ to, subject, text, html, config }: SendMailParams) {
 
     // Determine configuration to use
@@ -40,22 +43,34 @@ export async function sendEmail({ to, subject, text, html, config }: SendMailPar
         throw new Error('SMTP credentials are not fully configured. Please check your settings.');
     }
 
-    console.log(`Sending email to ${to} via ${host}:${port}`);
+    // Create a cache key based on credentials
+    const cacheKey = JSON.stringify({ host, port, user, pass, secure });
+    let transporter = transporterCache.get(cacheKey);
 
-    const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
-        auth: {
-            user,
-            pass,
-        },
-        // Connection pooling for better performance
-        pool: true,
-        maxConnections: 1,
-        rateDelta: 1000,
-        rateLimit: 3, // max 3 emails per second
-    });
+    if (!transporter) {
+        console.log(`Creating new transporter for ${user} at ${host}:${port}`);
+        transporter = nodemailer.createTransport({
+            host,
+            port,
+            secure,
+            auth: {
+                user,
+                pass,
+            },
+            // Connection pooling for better performance
+            pool: true,
+            maxConnections: 1,
+            rateDelta: 1000,
+            rateLimit: 3, // max 3 emails per second
+            // Close connection if idle for too long (e.g. 30s)
+            socketTimeout: 30000,
+        });
+        transporterCache.set(cacheKey, transporter);
+    } else {
+        // console.log(`Reusing transporter for ${user}`);
+    }
+
+    console.log(`Sending email to ${to} via ${host}:${port}`);
 
     try {
         // Generate unique Message-ID for tracking
@@ -81,13 +96,18 @@ export async function sendEmail({ to, subject, text, html, config }: SendMailPar
             }
         });
 
-        // Close connection after sending
-        transporter.close();
+        // Do NOT close the transporter here if we want to reuse the pool!
+        // transporter.close(); 
 
         return { success: true, messageId: info.messageId };
     } catch (error: any) {
         console.error('Error sending email:', error);
-        transporter.close();
+
+        // Only close/remove from cache if it's a fatal connection error
+        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+            transporter.close();
+            transporterCache.delete(cacheKey);
+        }
 
         // Return specific error messages
         if (error.responseCode === 535) {

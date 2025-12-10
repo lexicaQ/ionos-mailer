@@ -21,13 +21,13 @@ export async function POST(req: Request) {
         // For now we trust the user as this is a personal tool authenticated via their SMTP.
 
         // Sequential sending
-        const delayMs = smtpSettings?.delay || 0;
+        // Enforce minimum delay of 1.5s to avoid 450 rate limit errors
+        const explicitDelay = smtpSettings?.delay || 0;
+        const delayMs = Math.max(explicitDelay, 1500);
 
         for (const recipient of recipients) {
-            // Delay if configured
-            if (delayMs > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
+            // Always wait before sending (rate limit protection)
+            await new Promise(resolve => setTimeout(resolve, delayMs));
 
             const sendResponse = await sendEmail({
                 to: recipient.email,

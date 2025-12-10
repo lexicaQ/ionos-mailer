@@ -30,18 +30,18 @@ export async function POST(req: Request) {
             }
         });
 
-        // 2. Schedule Jobs - First email starts 1 minute from now to ensure reliable sending
+        // 2. Schedule Jobs
         const totalDurationMs = (durationMinutes || 0) * 60 * 1000;
-        const now = Date.now();
-        const FIRST_EMAIL_DELAY = 60 * 1000; // 1 minute delay for first email
+        // Start 1 minute in the future to ensure reliability and avoid immediate-send blocks
+        const startTime = Date.now() + 60000;
 
         const jobsData = recipients.map((r: any, index: number) => {
-            let scheduleTime = now + FIRST_EMAIL_DELAY; // Start 1 minute from now
+            let scheduleTime = startTime;
 
             if (totalDurationMs > 0 && recipients.length > 1) {
                 const distinctSteps = recipients.length - 1;
                 const stepSize = totalDurationMs / (distinctSteps || 1);
-                scheduleTime = now + FIRST_EMAIL_DELAY + (index * stepSize);
+                scheduleTime = startTime + (index * stepSize);
             }
 
             return {
@@ -58,23 +58,22 @@ export async function POST(req: Request) {
             data: jobsData
         });
 
-        // 3. AUTO-TRIGGER: Process emails after 1 minute delay
-        // Schedule the first trigger to run after the delay period
+        // 3. AUTO-TRIGGER: Immediately process the first batch of emails
+        // This ensures emails start sending even without external cron
         try {
             const baseUrl = process.env.VERCEL_URL
                 ? `https://${process.env.VERCEL_URL}`
                 : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
-            // Trigger after 65 seconds (1 min + 5s buffer)
-            setTimeout(() => {
-                fetch(`${baseUrl}/api/cron/process`, {
-                    method: 'GET',
-                    headers: { 'x-manual-trigger': 'true' }
-                }).catch(e => console.error('Auto-trigger failed:', e));
-            }, 65000);
+            // Fire and forget - don't wait for response
+            fetch(`${baseUrl}/api/cron/process`, {
+                method: 'GET',
+                headers: { 'x-manual-trigger': 'true' }
+            }).catch(e => console.error('Auto-trigger failed:', e));
 
         } catch (triggerError) {
-            console.error('Failed to schedule auto-trigger:', triggerError);
+            console.error('Failed to auto-trigger cron:', triggerError);
+            // Don't fail the campaign creation if trigger fails
         }
 
         return NextResponse.json({
