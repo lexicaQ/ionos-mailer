@@ -7,10 +7,6 @@ export async function POST(req: Request) {
     try {
         const json = await req.json();
 
-        // Manual validation since schema might change, but reusing parts
-        // Ideally we update schema, but let's parse manual structure for now
-        // Expecting: { recipients, subject, body, smtpSettings, durationMinutes }
-
         const { recipients, subject, body, smtpSettings, durationMinutes } = json;
 
         if (!smtpSettings || !recipients || !subject || !body) {
@@ -28,29 +24,20 @@ export async function POST(req: Request) {
                 host: smtpSettings.host,
                 port: smtpSettings.port,
                 user: smtpSettings.user,
-                // Encrypt password
                 pass: encrypt(smtpSettings.pass, secretKey),
                 secure: smtpSettings.secure,
-                // Privacy
                 userId: json.userId || "anonymous",
             }
         });
 
         // 2. Schedule Jobs
-        // Distribute emails evenly over durationMinutes
-        // e.g. 100 emails over 720 minutes (12h) = 1 email every 7.2 minutes.
-        // OR: Randomize slightly? For now, linear distribution.
-
         const totalDurationMs = (durationMinutes || 0) * 60 * 1000;
         const now = Date.now();
         const jobsData = recipients.map((r: any, index: number) => {
             let scheduleTime = now;
 
             if (totalDurationMs > 0 && recipients.length > 1) {
-                // Determine offset for this email
-                // index 0 = now
-                // index last = now + duration
-                const distinctSteps = recipients.length - 1; // intervals
+                const distinctSteps = recipients.length - 1;
                 const stepSize = totalDurationMs / (distinctSteps || 1);
                 scheduleTime = now + (index * stepSize);
             }
@@ -69,6 +56,24 @@ export async function POST(req: Request) {
             data: jobsData
         });
 
+        // 3. AUTO-TRIGGER: Immediately process the first batch of emails
+        // This ensures emails start sending even without external cron
+        try {
+            const baseUrl = process.env.VERCEL_URL
+                ? `https://${process.env.VERCEL_URL}`
+                : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+            // Fire and forget - don't wait for response
+            fetch(`${baseUrl}/api/cron/process`, {
+                method: 'GET',
+                headers: { 'x-manual-trigger': 'true' }
+            }).catch(e => console.error('Auto-trigger failed:', e));
+
+        } catch (triggerError) {
+            console.error('Failed to auto-trigger cron:', triggerError);
+            // Don't fail the campaign creation if trigger fails
+        }
+
         return NextResponse.json({
             success: true,
             campaignId: campaign.id,
@@ -81,3 +86,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+

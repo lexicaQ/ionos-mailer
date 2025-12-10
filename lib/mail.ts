@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { v4 as uuidv4 } from 'uuid';
 
 // Keep env vars as defaults
 const DEFAULT_SMTP_HOST = process.env.SMTP_HOST;
@@ -14,6 +15,7 @@ export interface SmtpConfig {
     pass: string;
     secure: boolean;
     delay?: number;
+    fromName?: string; // Added for anti-spam
 }
 
 interface SendMailParams {
@@ -32,12 +34,13 @@ export async function sendEmail({ to, subject, text, html, config }: SendMailPar
     const user = config?.user || DEFAULT_SMTP_USER;
     const pass = config?.pass || DEFAULT_SMTP_PASS;
     const secure = config ? config.secure : DEFAULT_SMTP_SECURE;
+    const fromName = config?.fromName || user?.split('@')[0] || 'Sender';
 
     if (!host || !user || !pass) {
         throw new Error('SMTP credentials are not fully configured. Please check your settings.');
     }
 
-    console.log(`Creating transporter with: Host=${host}, Port=${port}, User=${user}, Secure=${secure}`);
+    console.log(`Sending email to ${to} via ${host}:${port}`);
 
     const transporter = nodemailer.createTransport({
         host,
@@ -47,23 +50,59 @@ export async function sendEmail({ to, subject, text, html, config }: SendMailPar
             user,
             pass,
         },
+        // Connection pooling for better performance
+        pool: true,
+        maxConnections: 1,
+        rateDelta: 1000,
+        rateLimit: 3, // max 3 emails per second
     });
 
     try {
+        // Generate unique Message-ID for tracking
+        const domain = user.split('@')[1] || 'localhost';
+        const messageId = `<${uuidv4()}@${domain}>`;
+
         const info = await transporter.sendMail({
-            from: user, // Sender is the authenticated user
+            from: `"${fromName}" <${user}>`, // Proper From with name
+            replyTo: user, // Reply-To header
             to,
             subject,
             text,
             html: html || text,
+            messageId,
+            headers: {
+                // Anti-spam headers
+                'X-Priority': '3', // Normal priority
+                'X-Mailer': 'IONOS Mailer Pro',
+                'Precedence': 'bulk', // Indicates bulk mail (honest)
+                // Add List-Unsubscribe header (improves deliverability)
+                'List-Unsubscribe': `<mailto:${user}?subject=Unsubscribe>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            }
         });
+
+        // Close connection after sending
+        transporter.close();
+
         return { success: true, messageId: info.messageId };
     } catch (error: any) {
         console.error('Error sending email:', error);
-        // Return specific error message for 535
+        transporter.close();
+
+        // Return specific error messages
         if (error.responseCode === 535) {
             return { success: false, error: "Authentifizierung fehlgeschlagen (535). Prüfen Sie Benutzername/Passwort." };
+        }
+        if (error.responseCode === 550) {
+            return { success: false, error: "Empfänger abgelehnt (550). E-Mail-Adresse ungültig oder blockiert." };
+        }
+        if (error.code === 'ECONNREFUSED') {
+            return { success: false, error: "Verbindung verweigert. Prüfen Sie Host/Port." };
+        }
+        if (error.code === 'ETIMEDOUT') {
+            return { success: false, error: "Verbindung Timeout. Server nicht erreichbar." };
         }
         return { success: false, error: error.message };
     }
 }
+
