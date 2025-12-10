@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 
             // Add delay between emails (except first one)
             if (i > 0) {
-                await delay(1500); // 1.5 second delay between emails
+                await delay(5000); // 5 second delay between emails (IONOS rate limit protection)
             }
 
             let pass = "";

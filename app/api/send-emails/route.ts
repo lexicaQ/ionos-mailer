@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         // Sequential sending
         // Enforce minimum delay of 1.5s to avoid 450 rate limit errors
         const explicitDelay = smtpSettings?.delay || 0;
-        const delayMs = Math.max(explicitDelay, 1500);
+        const delayMs = Math.max(explicitDelay, 5000); // Minimum 5s for IONOS rate limit
 
         for (const recipient of recipients) {
             // Always wait before sending (rate limit protection)
