@@ -81,13 +81,18 @@ export function LiveCampaignTracker() {
 
     // Separate Effect for Intervals to avoid resetting timer when campaigns update
     useEffect(() => {
-        if (!open) return;
-
         // Initial fetch
         fetchCampaigns();
 
         // 1. Refresh Data Interval
-        const refreshInterval = setInterval(fetchCampaigns, 3000); // 3s UI updates
+        const refreshInterval = setInterval(() => {
+            // If open, full refresh. If closed, maybe we should still refresh to update campaignsRef for the cron?
+            // Yes, we need campaignsRef up to date for the cron to know if there are pending jobs.
+            // But full fetch of all campaigns might be heavy every 3s if closed.
+            // For now, we fetch every 5s if closed, 3s if open.
+            if (open) fetchCampaigns();
+            else if (Math.random() > 0.4) fetchCampaigns(); // Probabilistic throttling ~5-6s
+        }, 3000);
 
         // 2. Auto-Process trigger (Acts as a backup cron while UI is open)
         // Checks the REF so it doesn't need to be re-created when state changes
@@ -103,6 +108,7 @@ export function LiveCampaignTracker() {
                     headers: { 'x-manual-trigger': 'true' }
                 }).catch(e => console.error("Auto-process failed", e))
                     .finally(() => {
+                        // Keep the indicator handling local or global - here it's fine
                         setTimeout(() => setIsAutoProcessing(false), 2000);
                     });
             }
@@ -112,7 +118,7 @@ export function LiveCampaignTracker() {
             clearInterval(refreshInterval);
             clearInterval(processInterval);
         }
-    }, [open, fetchCampaigns]); // Removed 'campaigns' dependency
+    }, [open, fetchCampaigns]); // fetchCampaigns is stable
 
     useEffect(() => {
         if (open) fetchCampaigns();
