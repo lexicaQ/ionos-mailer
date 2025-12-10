@@ -191,12 +191,41 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
 
                 {/* Debug / Test */}
-                <div className="space-y-3 pt-4 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground">Diagnose</h4>
+                <div className="space-y-4 pt-4 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground">Diagnose & Test</h4>
+
+                    {/* Connection Test */}
                     <div className="flex items-center justify-between">
                         <div className="text-xs text-muted-foreground">
-                            <p>Hintergrund-Prozess manuell starten</p>
-                            <p>(Falls E-Mails "hängen" bleiben)</p>
+                            <p>SMTP-Verbindung testen</p>
+                            <p>(Prüft Passwort und Server)</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={async () => {
+                            try {
+                                const res = await fetch("/api/test-connection", {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ host, port, user, pass, secure: parseInt(port) === 465 })
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                    alert("✅ " + data.message);
+                                } else {
+                                    alert("❌ Fehler: " + data.error + "\n\nDetails: " + JSON.stringify(data.details));
+                                }
+                            } catch (e: any) {
+                                alert("Netzwerkfehler: " + e.message);
+                            }
+                        }}>
+                            <Zap className="h-3 w-3 mr-2 text-amber-500" />
+                            Verbindung testen
+                        </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                            <p>Cron-Job manuell starten</p>
+                            <p>(Verarbeitet wartende E-Mails)</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={async () => {
                             try {
@@ -209,8 +238,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                 alert("Fehler: " + e);
                             }
                         }}>
-                            <Zap className="h-3 w-3 mr-2" />
-                            Starten
+                            <RotateCcw className="h-3 w-3 mr-2" />
+                            Cron starten
                         </Button>
                     </div>
                 </div>
