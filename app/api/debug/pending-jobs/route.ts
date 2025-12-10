@@ -29,6 +29,12 @@ export async function GET(req: Request) {
         }));
 
         return NextResponse.json({
+            status: "ok",
+            env: {
+                hasEncryptionKey: !!process.env.ENCRYPTION_KEY,
+                hasDbUrl: !!process.env.POSTGRES_PRISMA_DATABASE_URL,
+                baseUrl: process.env.VERCEL_URL || process.env.NEXT_PUBLIC_BASE_URL || 'localhost'
+            },
             count: pendingJobs.length,
             serverTime: new Date().toISOString(),
             jobs: jobsWithLocalTime
