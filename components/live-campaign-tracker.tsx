@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardTitle } from "@/components/ui/card"
 import {
     Dialog,
     DialogContent,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import {
     Activity, CheckCircle, XCircle, Clock, Mail,
-    RefreshCw, Zap, Send, Eye, ChevronDown, ChevronUp, FileText, ArrowRight
+    RefreshCw, Zap, Send, ChevronDown, ChevronUp, FileText
 } from "lucide-react"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
@@ -50,7 +50,8 @@ export function LiveCampaignTracker() {
     const [open, setOpen] = useState(false)
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [loading, setLoading] = useState(false)
-    const [autoRefresh, setAutoRefresh] = useState(true)
+    // Auto-refresh always on
+    const autoRefresh = true
 
     const fetchCampaigns = useCallback(async () => {
         setLoading(true)
@@ -75,7 +76,7 @@ export function LiveCampaignTracker() {
 
     useEffect(() => {
         if (open && autoRefresh) {
-            const interval = setInterval(fetchCampaigns, 10000)
+            const interval = setInterval(fetchCampaigns, 5000) // 5s interval for live feeling
             return () => clearInterval(interval)
         }
     }, [open, autoRefresh, fetchCampaigns])
@@ -127,15 +128,10 @@ export function LiveCampaignTracker() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <Button
-                                variant={autoRefresh ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setAutoRefresh(!autoRefresh)}
-                                className={`gap-2 transition-all ${autoRefresh ? "bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black" : ""}`}
-                            >
-                                <Zap className={`h-4 w-4 ${autoRefresh ? "animate-pulse" : ""}`} />
-                                {autoRefresh ? "Auto-Refresh" : "Manuell"}
-                            </Button>
+                            <Badge variant="secondary" className="gap-2 px-3 py-1.5 bg-black text-white dark:bg-white dark:text-black">
+                                <Zap className="h-3 w-3 animate-pulse text-yellow-500" />
+                                Live-Update Aktiv
+                            </Badge>
                             <Button variant="outline" size="sm" onClick={fetchCampaigns} disabled={loading} className="w-10 px-0">
                                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                             </Button>
@@ -355,7 +351,7 @@ function EmailCard({ job, index }: { job: EmailJob; index: number }) {
                                 className="h-6 w-6 p-0 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"
                                 onClick={() => setFlipped(!flipped)}
                             >
-                                <FileText className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                             </Button>
                         </div>
                     </div>
@@ -385,11 +381,17 @@ function EmailCard({ job, index }: { job: EmailJob; index: number }) {
                             <div className="space-y-3 overflow-y-auto text-xs">
                                 <div>
                                     <p className="font-semibold mb-1">Betreff:</p>
-                                    <p className="text-muted-foreground">{job.subject}</p>
+                                    <p className="text-muted-foreground whitespace-pre-wrap">{job.subject}</p>
                                 </div>
+                                {job.openedAt && (
+                                    <div className="mt-2 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                                        <p className="font-semibold text-blue-600 dark:text-blue-400">Gelesen</p>
+                                        <p className="text-blue-600 dark:text-blue-400">{format(new Date(job.openedAt), "HH:mm:ss")}</p>
+                                    </div>
+                                )}
                                 <div>
                                     <p className="font-semibold mb-1">Nachricht:</p>
-                                    <p className="text-muted-foreground line-clamp-4 italic">{job.body || "Kein Inhalt verfügbar"}</p>
+                                    <p className="text-muted-foreground line-clamp-3 italic">{job.body || "Kein Inhalt verfügbar"}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t">
                                     <div>
