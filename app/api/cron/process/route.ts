@@ -147,14 +147,19 @@ export async function GET(req: NextRequest) {
         // This ensures even if we chain instantly, there is a 5s gap between sends.
         await delay(5000);
 
-        // If we processed successfully (or failed but handled), trigger the next batch immediately
+        // If we processed successfully, trigger the next batch immediately
         if (results.length > 0) {
-            console.log("Triggering next job...");
-            // Await the fetch to ensure it actually fires before the function terminates
-            await fetch(`${baseUrl}/api/cron/process`, {
+            console.log("Triggering next job (Fire-and-Forget)...");
+            // CRITICAL: DO NOT AWAIT response. awaiting causes the current function to wait for the NEXT function (5s),
+            // which leads to a timeout chain (5+5 = 10s limit).
+            // We just start the request and exit.
+            fetch(`${baseUrl}/api/cron/process?t=${Date.now()}`, {
                 method: 'GET',
                 headers: { 'x-manual-trigger': 'true' }
             }).catch(e => console.error('Recursive trigger failed:', e));
+
+            // Give 100ms for the request to leave the socket before we kill the process by returning
+            await new Promise(r => setTimeout(r, 100));
         }
 
         return NextResponse.json({ processed: results.length, results });
