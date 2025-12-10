@@ -6,10 +6,17 @@ import { textToHtmlWithTracking } from '@/lib/tracking';
 import { extractCompanyFromEmail } from '@/lib/company-scraper';
 
 export async function GET(req: NextRequest) {
-    // 1. Security Check
+    // 1. Security Check - Allow manual trigger during development or internal calls
     const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        if (process.env.NODE_ENV === 'production') {
+    const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    const isManualTrigger = req.headers.get('x-manual-trigger') === 'true';
+
+    // In production, require CRON_SECRET unless it's a manual trigger from the app
+    if (process.env.NODE_ENV === 'production' && !isVercelCron && !isManualTrigger) {
+        // Allow if referer is from our own domain
+        const referer = req.headers.get('referer') || '';
+        const host = req.headers.get('host') || '';
+        if (!referer.includes(host)) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
     }

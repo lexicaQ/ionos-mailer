@@ -123,7 +123,7 @@ export function LiveCampaignTracker() {
                     )}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[100vw] h-[100vh] max-w-none flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-none border-0 pt-0">
+            <DialogContent className="w-[90vw] max-w-[1400px] h-auto max-h-[85vh] flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-xl border shadow-2xl">
                 <DialogHeader className="p-6 pb-4 border-b bg-white dark:bg-neutral-900 shadow-sm z-10">
                     <DialogTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -290,7 +290,7 @@ function CampaignCard({ campaign, isActive, onDelete }: { campaign: Campaign; is
                             transition={{ duration: 0.3 }}
                         >
                             <div className="border-t border-neutral-100 dark:border-neutral-800 bg-white dark:bg-black p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     <AnimatePresence>
                                         {campaign.jobs.map((job, index) => (
                                             <EmailCard key={job.id} job={job} index={index} />

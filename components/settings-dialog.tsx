@@ -200,7 +200,9 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         </div>
                         <Button variant="outline" size="sm" onClick={async () => {
                             try {
-                                const res = await fetch("/api/cron/process");
+                                const res = await fetch("/api/cron/process", {
+                                    headers: { 'x-manual-trigger': 'true' }
+                                });
                                 const data = await res.json();
                                 alert(`Cron Ergebnis: ${JSON.stringify(data)}`);
                             } catch (e) {
