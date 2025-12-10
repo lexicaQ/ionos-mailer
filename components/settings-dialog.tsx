@@ -212,19 +212,18 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         </Button>
                     </div>
                 </div>
-            </div>
 
-            <DialogFooter className="flex justify-between sm:justify-between">
-                <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Zurücksetzen
-                </Button>
-                <Button onClick={handleSave}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Speichern
-                </Button>
-            </DialogFooter>
-        </DialogContent>
+                <DialogFooter className="flex justify-between sm:justify-between">
+                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Zurücksetzen
+                    </Button>
+                    <Button onClick={handleSave}>
+                        <Save className="h-4 w-4 mr-2" />
+                        Speichern
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
         </Dialog >
     )
 }
