@@ -133,7 +133,7 @@ export function CampaignTracker() {
                     Kampagnen-Tracking
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[95vw] w-[1400px] max-h-[95vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] max-w-[1800px] max-h-[95vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-4">

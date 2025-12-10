@@ -254,12 +254,35 @@ export function EmailForm() {
                                         <span>24 Stunden</span>
                                     </div>
                                 </div>
-                                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                                    <p className="text-xs text-amber-700 dark:text-amber-400">
-                                        💡 Die E-Mails werden gleichmäßig über {durationMinutes >= 60
-                                            ? `${Math.floor(durationMinutes / 60)} Stunden`
-                                            : `${durationMinutes} Minuten`
-                                        } verteilt. Du kannst den Browser schließen.
+                                <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
+                                    <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-neutral-800">
+                                        <p className="text-sm font-semibold">Versand-Zeitplan</p>
+                                        <p className="text-xs font-mono">{recipients.length} Empfänger</p>
+                                    </div>
+                                    <div className="space-y-2 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Intervall:</span>
+                                            <span className="font-mono">
+                                                {recipients.length > 1
+                                                    ? `Alle ${(durationMinutes / (recipients.length - 1)).toFixed(1)} Minuten`
+                                                    : "Sofort"}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Start:</span>
+                                            <span className="font-mono">Sofort</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Ende ca.:</span>
+                                            <span className="font-mono">
+                                                {recipients.length > 1
+                                                    ? `+ ${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`
+                                                    : "Sofort"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground pt-2 border-t border-neutral-200 dark:border-neutral-800">
+                                        Der Browser muss nicht geöffnet bleiben. Der Server übernimmt den Versand.
                                     </p>
                                 </div>
                             </div>
