@@ -32,15 +32,16 @@ export async function GET(req: NextRequest) {
 
         // 2. Find Pending Jobs that are due
         const now = new Date();
-        // Limit processing to 2 emails per run because Vercel Hobby has 10s timeout
-        // 2 emails * 5s delay = 10s execution time (approx).
+        // Limit processing to 1 email per run to ensure:
+        // 1. We stay under Vercel Hobby 10s timeout
+        // 2. We can enforce the 5s delay reliably across the chain
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
                 status: 'PENDING',
                 scheduledFor: { lte: now }
             },
             include: { campaign: true },
-            take: 2 // CRITICAL: Reduced to fit in serverless timeout
+            take: 1
         });
 
         if (pendingJobs.length === 0) {
@@ -60,34 +61,24 @@ export async function GET(req: NextRequest) {
 
         const results = [];
 
-        // Cache transporters by campaign to reuse connections
-        const transporterCache = new Map<string, any>();
-
         // Helper to add delay
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-        // 3. Process Jobs with delay to avoid rate limiting
-        for (let i = 0; i < pendingJobs.length; i++) {
-            const job = pendingJobs[i];
+        // Process single job
+        const job = pendingJobs[0];
+        let pass = "";
+        try {
+            pass = decrypt(job.campaign.pass, secretKey);
+        } catch (e) {
+            console.error(`Failed to decrypt for job ${job.id}`, e);
+            await prisma.emailJob.update({
+                where: { id: job.id },
+                data: { status: 'FAILED', error: "Decryption failed" }
+            });
+            results.push({ id: job.id, success: false });
+        }
 
-            // Add delay between emails (except first one)
-            if (i > 0) {
-                await delay(5000); // 5 second delay between emails (IONOS rate limit protection)
-            }
-
-            let pass = "";
-            try {
-                pass = decrypt(job.campaign.pass, secretKey);
-            } catch (e) {
-                console.error(`Failed to decrypt for job ${job.id}`, e);
-                await prisma.emailJob.update({
-                    where: { id: job.id },
-                    data: { status: 'FAILED', error: "Decryption failed" }
-                });
-                results.push({ id: job.id, success: false });
-                continue;
-            }
-
+        if (pass) {
             // Company Name Extraction & Replacement
             let finalBody = job.body;
             let finalSubject = job.subject;
@@ -152,11 +143,15 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // If we processed any jobs, trigger the next batch immediately
-        // This allows processing more than 2 emails per minute by chaining requests
+        // Enforce 5s delay AFTER processing to protect rate limit for the NEXT run
+        // This ensures even if we chain instantly, there is a 5s gap between sends.
+        await delay(5000);
+
+        // If we processed successfully (or failed but handled), trigger the next batch immediately
         if (results.length > 0) {
-            console.log("Triggering next batch...");
-            fetch(`${baseUrl}/api/cron/process`, {
+            console.log("Triggering next job...");
+            // Await the fetch to ensure it actually fires before the function terminates
+            await fetch(`${baseUrl}/api/cron/process`, {
                 method: 'GET',
                 headers: { 'x-manual-trigger': 'true' }
             }).catch(e => console.error('Recursive trigger failed:', e));
