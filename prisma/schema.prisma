@@ -19,6 +19,9 @@ model Campaign {
   pass      String     // Encrypted
   secure    Boolean
   
+  // Privacy
+  userId    String     @default("anonymous")
+  
   jobs      EmailJob[]
 }
 

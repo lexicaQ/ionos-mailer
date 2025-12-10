@@ -76,7 +76,19 @@ export function EmailForm() {
         setSendProgress(0);
         setCurrentResults([]);
 
-        const payload = { ...data, smtpSettings, durationMinutes: useBackground ? durationMinutes : 0 };
+        // Get or create pseudo-anonymous User ID for data isolation
+        let userId = localStorage.getItem("ionos-mailer-user-id");
+        if (!userId) {
+            userId = crypto.randomUUID();
+            localStorage.setItem("ionos-mailer-user-id", userId);
+        }
+
+        const payload = {
+            ...data,
+            smtpSettings,
+            durationMinutes: useBackground ? durationMinutes : 0,
+            userId // Send ID for privacy isolation
+        };
 
         try {
             const endpoint = useBackground ? "/api/campaigns" : "/api/send-emails";

@@ -47,7 +47,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     setDelay(parsed.delay || 500);
                     setFromName(parsed.fromName || "");
                     setSavePassword(parsed.savePassword !== false);
-                    
+
                     // Auto-apply settings if password exists
                     if (parsed.pass && parsed.user) {
                         const config: SmtpConfig = {
@@ -80,10 +80,10 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
         onSettingsChange(config);
 
         // Save all settings including password if user opted in
-        const dataToSave = savePassword 
+        const dataToSave = savePassword
             ? { host, port, user, pass, delay, fromName, savePassword }
             : { host, port, user, delay, fromName, savePassword };
-            
+
         localStorage.setItem("smtp-config-full", JSON.stringify(dataToSave));
         setOpen(false)
     }
@@ -115,7 +115,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         Konfigurieren Sie Ihre IONOS-Zugangsdaten. Diese können optional lokal gespeichert werden.
                     </DialogDescription>
                 </DialogHeader>
-                
+
                 <div className="grid gap-4 py-4">
                     {/* Server Settings */}
                     <div className="space-y-3">
@@ -142,13 +142,13 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         <div>
                             <Label htmlFor="pass" className="text-xs">Passwort</Label>
                             <div className="relative">
-                                <Input 
-                                    id="pass" 
-                                    type={showPassword ? "text" : "password"} 
-                                    value={pass} 
-                                    onChange={e => setPass(e.target.value)} 
+                                <Input
+                                    id="pass"
+                                    type={showPassword ? "text" : "password"}
+                                    value={pass}
+                                    onChange={e => setPass(e.target.value)}
                                 />
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -190,17 +190,41 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     </div>
                 </div>
 
-                <DialogFooter className="flex justify-between sm:justify-between">
-                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Zurücksetzen
-                    </Button>
-                    <Button onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Speichern
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                {/* Debug / Test */}
+                <div className="space-y-3 pt-4 border-t">
+                    <h4 className="text-sm font-medium text-muted-foreground">Diagnose</h4>
+                    <div className="flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                            <p>Hintergrund-Prozess manuell starten</p>
+                            <p>(Falls E-Mails "hängen" bleiben)</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={async () => {
+                            try {
+                                const res = await fetch("/api/cron/process");
+                                const data = await res.json();
+                                alert(`Cron Ergebnis: ${JSON.stringify(data)}`);
+                            } catch (e) {
+                                alert("Fehler: " + e);
+                            }
+                        }}>
+                            <Zap className="h-3 w-3 mr-2" />
+                            Starten
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <DialogFooter className="flex justify-between sm:justify-between">
+                <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Zurücksetzen
+                </Button>
+                <Button onClick={handleSave}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Speichern
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+        </Dialog >
     )
 }

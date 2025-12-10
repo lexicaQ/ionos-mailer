@@ -1,10 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
+        const userId = req.headers.get('x-user-id');
+
+        // If no userId, return empty or unauthorized?
+        // User said "locally stored... not visible to others"
+        // Return empty if no ID provided to prevent leaking all data
+        if (!userId) {
+            return NextResponse.json([]);
+        }
+
         // Get all campaigns with their jobs and tracking info
         const campaigns = await prisma.campaign.findMany({
+            where: { userId },
             orderBy: { createdAt: 'desc' },
             take: 50,
             include: {

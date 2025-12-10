@@ -56,7 +56,10 @@ export function LiveCampaignTracker() {
     const fetchCampaigns = useCallback(async () => {
         setLoading(true)
         try {
-            const res = await fetch("/api/campaigns/status")
+            const userId = localStorage.getItem("ionos-mailer-user-id");
+            const res = await fetch("/api/campaigns/status", {
+                headers: { 'x-user-id': userId || '' }
+            })
             if (res.ok) {
                 const data = await res.json()
                 setCampaigns(data)
@@ -67,6 +70,20 @@ export function LiveCampaignTracker() {
             setLoading(false)
         }
     }, [])
+
+    const deleteCampaign = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // Stop expansion
+        if (!confirm("Kampagne wirklich löschen?")) return;
+
+        try {
+            const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                setCampaigns(prev => prev.filter(c => c.id !== id));
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
 
     useEffect(() => {
         if (open) {
@@ -106,7 +123,7 @@ export function LiveCampaignTracker() {
                     )}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[100vw] w-screen h-[100vh] flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-none border-0 pt-0">
+            <DialogContent className="w-[100vw] h-[100vh] max-w-none flex flex-col p-0 overflow-hidden bg-neutral-50 dark:bg-black rounded-none border-0 pt-0">
                 <DialogHeader className="p-6 pb-4 border-b bg-white dark:bg-neutral-900 shadow-sm z-10">
                     <DialogTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -161,7 +178,7 @@ export function LiveCampaignTracker() {
 
                                     <AnimatePresence>
                                         {activeCampaigns.map((campaign) => (
-                                            <CampaignCard key={campaign.id} campaign={campaign} isActive />
+                                            <CampaignCard key={campaign.id} campaign={campaign} isActive onDelete={(e) => deleteCampaign(campaign.id, e)} />
                                         ))}
                                     </AnimatePresence>
                                 </section>
@@ -178,7 +195,7 @@ export function LiveCampaignTracker() {
 
                                     <AnimatePresence>
                                         {completedCampaigns.map((campaign) => (
-                                            <CampaignCard key={campaign.id} campaign={campaign} isActive={false} />
+                                            <CampaignCard key={campaign.id} campaign={campaign} isActive={false} onDelete={(e) => deleteCampaign(campaign.id, e)} />
                                         ))}
                                     </AnimatePresence>
                                 </section>
@@ -191,7 +208,7 @@ export function LiveCampaignTracker() {
     )
 }
 
-function CampaignCard({ campaign, isActive }: { campaign: Campaign; isActive: boolean }) {
+function CampaignCard({ campaign, isActive, onDelete }: { campaign: Campaign; isActive: boolean; onDelete: (e: React.MouseEvent) => void }) {
     const [expanded, setExpanded] = useState(isActive)
     const progress = campaign.stats.total > 0
         ? ((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100
@@ -252,7 +269,10 @@ function CampaignCard({ campaign, isActive }: { campaign: Campaign; isActive: bo
                         </div>
 
                         {/* Right Toggle */}
-                        <div className="hidden lg:flex items-center justify-end flex-shrink-0 w-[100px]">
+                        <div className="hidden lg:flex items-center justify-end flex-shrink-0 w-[140px] gap-2">
+                            <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={onDelete}>
+                                <XCircle className="h-5 w-5" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="rounded-full">
                                 {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                             </Button>
@@ -298,24 +318,24 @@ function EmailCard({ job, index }: { job: EmailJob; index: number }) {
         >
             <div
                 className={`relative group h-full rounded-xl border-2 transition-all duration-300 hover:shadow-lg flex flex-col ${job.status === "SENT"
-                        ? "border-neutral-100 bg-white dark:border-neutral-800 dark:bg-neutral-900"
-                        : job.status === "FAILED"
-                            ? "border-red-100 bg-red-50/10 dark:border-red-900/30 dark:bg-red-900/10"
-                            : "border-amber-100 bg-amber-50/10 dark:border-amber-900/30 dark:bg-amber-900/10"
+                    ? "border-neutral-100 bg-white dark:border-neutral-800 dark:bg-neutral-900"
+                    : job.status === "FAILED"
+                        ? "border-red-100 bg-red-50/10 dark:border-red-900/30 dark:bg-red-900/10"
+                        : "border-amber-100 bg-amber-50/10 dark:border-amber-900/30 dark:bg-amber-900/10"
                     }`}
             >
                 {/* Status Indicator Bar */}
                 <div className={`h-1.5 w-full absolute top-0 left-0 right-0 rounded-t-sm ${job.status === "SENT" ? "bg-green-500"
-                        : job.status === "FAILED" ? "bg-red-500"
-                            : "bg-amber-500 animate-pulse"
+                    : job.status === "FAILED" ? "bg-red-500"
+                        : "bg-amber-500 animate-pulse"
                     }`} />
 
                 <div className="p-5 pt-7 flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                         <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${job.status === "SENT" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500"
-                                : job.status === "FAILED" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-500"
-                                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-500"
+                            : job.status === "FAILED" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-500"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-500"
                             }`}>
                             {job.status === "SENT" ? <CheckCircle className="h-5 w-5" />
                                 : job.status === "FAILED" ? <XCircle className="h-5 w-5" />
@@ -339,8 +359,8 @@ function EmailCard({ job, index }: { job: EmailJob; index: number }) {
 
                         <div className="flex items-center justify-between pt-3 border-t border-dashed border-neutral-200 dark:border-neutral-800">
                             <span className={`text-xs font-bold uppercase tracking-wider ${job.status === "SENT" ? "text-green-600"
-                                    : job.status === "FAILED" ? "text-red-600"
-                                        : "text-amber-600"
+                                : job.status === "FAILED" ? "text-red-600"
+                                    : "text-amber-600"
                                 }`}>
                                 {job.status === "SENT" ? "Gesendet" : job.status === "FAILED" ? "Fehlgeschlagen" : "Wartend"}
                             </span>

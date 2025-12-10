@@ -31,6 +31,8 @@ export async function POST(req: Request) {
                 // Encrypt password
                 pass: encrypt(smtpSettings.pass, secretKey),
                 secure: smtpSettings.secure,
+                // Privacy
+                userId: json.userId || "anonymous",
             }
         });
 

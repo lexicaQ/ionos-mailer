@@ -71,7 +71,12 @@ export function CampaignTracker() {
     const fetchCampaigns = async () => {
         setLoading(true)
         try {
-            const res = await fetch("/api/campaigns/status")
+            const userId = localStorage.getItem("ionos-mailer-user-id");
+            const res = await fetch("/api/campaigns/status", {
+                headers: {
+                    'x-user-id': userId || ''
+                }
+            })
             if (res.ok) {
                 const data = await res.json()
                 setCampaigns(data)
@@ -80,6 +85,19 @@ export function CampaignTracker() {
             console.error("Failed to fetch campaigns:", error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const deleteCampaign = async (id: string) => {
+        if (!confirm("Kampagne wirklich löschen? Alle Daten gehen verloren.")) return;
+
+        try {
+            const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                setCampaigns(prev => prev.filter(c => c.id !== id));
+            }
+        } catch (e) {
+            console.error(e);
         }
     }
 
@@ -133,7 +151,7 @@ export function CampaignTracker() {
                     Kampagnen-Tracking
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-[1800px] max-h-[95vh] overflow-y-auto">
+            <DialogContent className="w-[98vw] max-w-[2400px] h-[98vh] max-h-[98vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -264,6 +282,9 @@ export function CampaignTracker() {
                                                     <MousePointer className="h-3 w-3 mr-1" />
                                                     {campaign.stats.clicked} geklickt
                                                 </Badge>
+                                                <Button size="icon" variant="ghost" onClick={() => deleteCampaign(campaign.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                                                    <XCircle className="h-5 w-5" />
+                                                </Button>
                                             </div>
                                         </div>
                                     </CardHeader>
