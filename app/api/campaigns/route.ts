@@ -32,8 +32,8 @@ export async function POST(req: Request) {
 
         // 2. Schedule Jobs
         const totalDurationMs = (durationMinutes || 0) * 60 * 1000;
-        // Start 1 minute in the future to ensure reliability and avoid immediate-send blocks
-        const startTime = Date.now() + 60000;
+        // Start immediately - the cron job will process with delay between emails
+        const startTime = Date.now();
 
         const jobsData = recipients.map((r: any, index: number) => {
             let scheduleTime = startTime;
