@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { SmtpConfig } from "@/lib/mail"
-import { Settings, Eye, EyeOff, Save, RotateCcw } from "lucide-react"
+import { Settings, Save, RotateCcw, Eye, EyeOff, Zap } from "lucide-react"
 
 interface SettingsDialogProps {
     onSettingsChange: (settings: SmtpConfig) => void;
