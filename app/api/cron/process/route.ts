@@ -47,8 +47,21 @@ export async function GET(req: NextRequest) {
 
         const results = [];
 
-        // 3. Process Jobs
-        for (const job of pendingJobs) {
+        // Cache transporters by campaign to reuse connections
+        const transporterCache = new Map<string, any>();
+
+        // Helper to add delay
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 3. Process Jobs with delay to avoid rate limiting
+        for (let i = 0; i < pendingJobs.length; i++) {
+            const job = pendingJobs[i];
+
+            // Add delay between emails (except first one)
+            if (i > 0) {
+                await delay(1500); // 1.5 second delay between emails
+            }
+
             let pass = "";
             try {
                 pass = decrypt(job.campaign.pass, secretKey);
@@ -58,6 +71,7 @@ export async function GET(req: NextRequest) {
                     where: { id: job.id },
                     data: { status: 'FAILED', error: "Decryption failed" }
                 });
+                results.push({ id: job.id, success: false });
                 continue;
             }
 
@@ -75,23 +89,10 @@ export async function GET(req: NextRequest) {
                         finalBody = finalBody.replace(placeholderRegex, companyName);
                         finalSubject = finalSubject.replace(placeholderRegex, companyName);
 
-                        // Update the job with the enhanced content so we know what was sent
                         await prisma.emailJob.update({
                             where: { id: job.id },
-                            data: { body: finalBody, subject: finalSubject } // Ideally we should store this
+                            data: { body: finalBody, subject: finalSubject }
                         });
-                    } else {
-                        // Fallback: If we can't find it, replace with generic "Partner" or keep generic?
-                        // User said "replace it", but if we fail? 
-                        // Let's replace with "Partner" or similar to avoid "Dear Team of XXX" 
-                        // But maybe XXX is better left if manual intervention needed?
-                        // For now, let's leave it or replace with empty string if it looks weird?
-                        // "Dear Team of XXX" -> "Dear Team of " looks bad.
-                        // "Dear Team of Partner" is okay.
-                        // Better to stick to "Team" if we can't find it?
-                        // Let's replace XXX with "Team" if the context suggests "Team of XXX" -> "Team of Team" (bad)
-                        // This is risky. Let's just NOT replace if not found, or maybe just remove XXX in a smart way?
-                        // Simpler: Just try to extract, if null, do nothing or user has to ensure data.
                     }
                 } catch (e) {
                     console.error("Failed to extract company info", e);
@@ -101,32 +102,41 @@ export async function GET(req: NextRequest) {
             // Create HTML with tracking
             const htmlWithTracking = textToHtmlWithTracking(finalBody, job.trackingId, baseUrl);
 
-            // Send with tracking
-            const response = await sendEmail({
-                to: job.recipient,
-                subject: finalSubject,
-                text: finalBody,
-                html: htmlWithTracking,
-                config: {
-                    host: job.campaign.host,
-                    port: job.campaign.port,
-                    user: job.campaign.user,
-                    pass: pass,
-                    secure: job.campaign.secure,
-                }
-            });
+            try {
+                // Send with tracking
+                const response = await sendEmail({
+                    to: job.recipient,
+                    subject: finalSubject,
+                    text: finalBody,
+                    html: htmlWithTracking,
+                    config: {
+                        host: job.campaign.host,
+                        port: job.campaign.port,
+                        user: job.campaign.user,
+                        pass: pass,
+                        secure: job.campaign.secure,
+                    }
+                });
 
-            // Update DB
-            await prisma.emailJob.update({
-                where: { id: job.id },
-                data: {
-                    status: response.success ? 'SENT' : 'FAILED',
-                    sentAt: new Date(),
-                    error: response.error || null
-                }
-            });
+                // Update DB
+                await prisma.emailJob.update({
+                    where: { id: job.id },
+                    data: {
+                        status: response.success ? 'SENT' : 'FAILED',
+                        sentAt: new Date(),
+                        error: response.error || null
+                    }
+                });
 
-            results.push({ id: job.id, success: response.success });
+                results.push({ id: job.id, success: response.success });
+            } catch (sendError: any) {
+                console.error(`Failed to send email ${job.id}:`, sendError);
+                await prisma.emailJob.update({
+                    where: { id: job.id },
+                    data: { status: 'FAILED', error: sendError.message || 'Unknown send error' }
+                });
+                results.push({ id: job.id, success: false });
+            }
         }
 
         return NextResponse.json({ processed: results.length, results });

@@ -364,26 +364,21 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                     <TableHeader>
                                         <TableRow className="bg-neutral-50 dark:bg-neutral-900">
                                             <TableHead className="font-semibold w-[50px]">Nr.</TableHead>
-                                            <TableHead className="font-semibold min-w-[200px]">E-Mail Adresse</TableHead>
                                             <TableHead className="font-semibold">Status</TableHead>
-                                            <TableHead className="font-semibold">Geöffnet</TableHead>
-                                            <TableHead className="font-semibold">ID</TableHead>
                                             <TableHead className="font-semibold">Zeitpunkt</TableHead>
-                                            <TableHead className="font-semibold">Message-ID</TableHead>
-                                            <TableHead className="font-semibold">Fehler</TableHead>
-                                            <TableHead className="w-[50px]"></TableHead>
+                                            <TableHead className="font-semibold min-w-[200px]">Empfänger</TableHead>
+                                            <TableHead className="w-[100px]">Aktion</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {allResults.map((result, idx) => (
                                             <TableRow key={idx}>
                                                 <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                                                <TableCell className="font-medium">{result.email}</TableCell>
                                                 <TableCell>
                                                     {result.success ? (
                                                         <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30">
                                                             <CheckCircle className="h-3 w-3 mr-1" />
-                                                            Gesendet
+                                                            OK
                                                         </Badge>
                                                     ) : (
                                                         <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30">
@@ -392,31 +387,61 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                         </Badge>
                                                     )}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-muted-foreground">
-                                                        <EyeOff className="h-3 w-3 mr-1" />
-                                                        N/A
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="font-mono text-xs">{shortId(result.batchId)}</TableCell>
                                                 <TableCell className="text-sm whitespace-nowrap">
-                                                    {format(new Date(result.batchTime), "dd.MM.yyyy HH:mm:ss", { locale: de })}
+                                                    {format(new Date(result.batchTime), "dd.MM.yy HH:mm", { locale: de })}
                                                 </TableCell>
-                                                <TableCell className="font-mono text-xs text-muted-foreground">
-                                                    {result.messageId ? shortId(result.messageId) : "—"}
-                                                </TableCell>
-                                                <TableCell className="text-sm text-red-600 max-w-[200px] truncate" title={result.error || undefined}>
-                                                    {result.error || "—"}
-                                                </TableCell>
+                                                <TableCell className="font-medium">{result.email}</TableCell>
                                                 <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 text-neutral-400 hover:text-red-500"
-                                                        onClick={() => onDeleteBatch(result.batchId)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="sm" className="gap-1">
+                                                                <Eye className="h-3 w-3" />
+                                                                Details
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-lg">
+                                                            <DialogHeader>
+                                                                <DialogTitle className="flex items-center gap-2">
+                                                                    <Mail className="h-5 w-5" />
+                                                                    E-Mail Details
+                                                                </DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="space-y-4 py-4">
+                                                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                                                    <div>
+                                                                        <p className="text-muted-foreground text-xs">Status</p>
+                                                                        <p className={result.success ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                                                                            {result.success ? "Gesendet" : "Fehlgeschlagen"}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-muted-foreground text-xs">Zeitpunkt</p>
+                                                                        <p className="font-medium">{format(new Date(result.batchTime), "dd.MM.yyyy HH:mm:ss", { locale: de })}</p>
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-muted-foreground text-xs">Sitzungs-ID</p>
+                                                                        <p className="font-mono text-xs">{shortId(result.batchId)}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="border-t pt-4">
+                                                                    <p className="text-muted-foreground text-xs mb-1">Empfänger</p>
+                                                                    <p className="font-medium">{result.email}</p>
+                                                                </div>
+                                                                {result.messageId && (
+                                                                    <div>
+                                                                        <p className="text-muted-foreground text-xs mb-1">Message-ID</p>
+                                                                        <p className="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded">{result.messageId}</p>
+                                                                    </div>
+                                                                )}
+                                                                {result.error && (
+                                                                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                                                                        <p className="text-red-600 text-xs font-medium mb-1">Fehlermeldung</p>
+                                                                        <p className="text-red-700 dark:text-red-400 text-sm">{result.error}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
