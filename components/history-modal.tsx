@@ -101,11 +101,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
             "Nr.": idx + 1,
             "E-Mail Adresse": r.email,
             "Status": r.success ? "Erfolgreich" : "Fehlgeschlagen",
-            "Sitzungs-ID": shortId(r.batchId),
-            "Geöffnet": "Nicht verfügbar (nur für Hintergrund-Modus)",
-            "Fehlermeldung": r.error || "Kein Fehler",
-            "Message-ID": r.messageId ? shortId(r.messageId) : "Keine",
             "Zeitpunkt": format(new Date(r.batchTime), "dd.MM.yyyy HH:mm:ss", { locale: de }),
+            "Fehlermeldung": r.error || "—",
         }))
 
         const ws = XLSX.utils.json_to_sheet(data)
@@ -172,13 +169,11 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
 
         autoTable(doc, {
             startY: (doc as any).lastAutoTable.finalY + 16,
-            head: [["Nr.", "E-Mail Adresse", "Status", "ID", "Geöffnet", "Zeitpunkt", "Fehler"]],
+            head: [["Nr.", "E-Mail Adresse", "Status", "Zeitpunkt", "Fehler"]],
             body: allResults.map((r, idx) => [
                 (idx + 1).toString(),
                 r.email,
                 r.success ? "OK" : "Fehler",
-                shortId(r.batchId),
-                "—",
                 format(new Date(r.batchTime), "dd.MM.yy HH:mm", { locale: de }),
                 r.error ? r.error.substring(0, 30) : "—",
             ]),
@@ -407,7 +402,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                                 </DialogTitle>
                                                             </DialogHeader>
                                                             <div className="space-y-4 py-4">
-                                                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                                                <div className="grid grid-cols-2 gap-4 text-sm">
                                                                     <div>
                                                                         <p className="text-muted-foreground text-xs">Status</p>
                                                                         <p className={result.success ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
@@ -418,21 +413,11 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                                         <p className="text-muted-foreground text-xs">Zeitpunkt</p>
                                                                         <p className="font-medium">{format(new Date(result.batchTime), "dd.MM.yyyy HH:mm:ss", { locale: de })}</p>
                                                                     </div>
-                                                                    <div>
-                                                                        <p className="text-muted-foreground text-xs">Sitzungs-ID</p>
-                                                                        <p className="font-mono text-xs">{shortId(result.batchId)}</p>
-                                                                    </div>
                                                                 </div>
                                                                 <div className="border-t pt-4">
                                                                     <p className="text-muted-foreground text-xs mb-1">Empfänger</p>
                                                                     <p className="font-medium">{result.email}</p>
                                                                 </div>
-                                                                {result.messageId && (
-                                                                    <div>
-                                                                        <p className="text-muted-foreground text-xs mb-1">Message-ID</p>
-                                                                        <p className="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded">{result.messageId}</p>
-                                                                    </div>
-                                                                )}
                                                                 {result.error && (
                                                                     <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
                                                                         <p className="text-red-600 text-xs font-medium mb-1">Fehlermeldung</p>

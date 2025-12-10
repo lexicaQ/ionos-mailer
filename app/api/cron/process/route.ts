@@ -99,23 +99,16 @@ export async function GET(req: NextRequest) {
                 }
             }
 
-            // Create HTML with tracking OR plain text (tracking can cause spam issues)
-            // For now, skip tracking to improve deliverability - just convert newlines
-            const simpleHtml = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6;">
-${finalBody.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}
-</body>
-</html>`;
+            // Create HTML with tracking for open/click detection
+            const htmlWithTracking = textToHtmlWithTracking(finalBody, job.trackingId, baseUrl);
 
             try {
-                // Send WITHOUT tracking for better deliverability
+                // Send with tracking
                 const response = await sendEmail({
                     to: job.recipient,
                     subject: finalSubject,
                     text: finalBody,
-                    html: simpleHtml,
+                    html: htmlWithTracking,
                     config: {
                         host: job.campaign.host,
                         port: job.campaign.port,
