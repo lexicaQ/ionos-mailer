@@ -32,13 +32,15 @@ export async function GET(req: NextRequest) {
 
         // 2. Find Pending Jobs that are due
         const now = new Date();
+        // Limit processing to 2 emails per run because Vercel Hobby has 10s timeout
+        // 2 emails * 5s delay = 10s execution time (approx).
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
                 status: 'PENDING',
                 scheduledFor: { lte: now }
             },
             include: { campaign: true },
-            take: 20
+            take: 2 // CRITICAL: Reduced to fit in serverless timeout
         });
 
         if (pendingJobs.length === 0) {
@@ -148,6 +150,16 @@ export async function GET(req: NextRequest) {
                 });
                 results.push({ id: job.id, success: false });
             }
+        }
+
+        // If we processed any jobs, trigger the next batch immediately
+        // This allows processing more than 2 emails per minute by chaining requests
+        if (results.length > 0) {
+            console.log("Triggering next batch...");
+            fetch(`${baseUrl}/api/cron/process`, {
+                method: 'GET',
+                headers: { 'x-manual-trigger': 'true' }
+            }).catch(e => console.error('Recursive trigger failed:', e));
         }
 
         return NextResponse.json({ processed: results.length, results });
