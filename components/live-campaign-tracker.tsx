@@ -327,4 +327,3 @@ function MinimalCampaignRow({ campaign, index, onDelete }: { campaign: Campaign,
         </motion.div>
     )
 }
-```
