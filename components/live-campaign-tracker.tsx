@@ -152,11 +152,15 @@ export function LiveCampaignTracker() {
                         <div>
                             <h2 className="text-xl font-bold tracking-tight">Live Kampagnen-Tracking</h2>
                             <p className="text-xs text-muted-foreground flex items-center gap-2">
-                                {isAutoProcessing ? (
-                                    <span className="text-green-600 flex items-center gap-1">
-                                        <RefreshCw className="h-3 w-3 animate-spin" /> Verarbeite Hintergrund-Jobs...
-                                    </span>
-                                ) : "System bereit - Warte auf nächste Ausführung"}
+                                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                    {isAutoProcessing ? (
+                                        <span className="text-green-600 flex items-center gap-1">
+                                            <RefreshCw className="h-3 w-3 animate-spin" /> Verarbeite Hintergrund-Jobs...
+                                        </span>
+                                    ) : (
+                                        <span>System bereit • Letzte Aktualisierung: {format(new Date(), "HH:mm:ss")}</span>
+                                    )}
+                                </p>
                             </p>
                         </div>
                     </div>
