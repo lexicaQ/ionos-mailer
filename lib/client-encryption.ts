@@ -81,10 +81,10 @@ export async function encryptData(data: any): Promise<{ iv: string, data: string
     const encrypted = await window.crypto.subtle.encrypt(
         {
             name: "AES-GCM",
-            iv: iv
+            iv: iv as BufferSource
         },
         key,
-        encoded
+        encoded as BufferSource
     );
 
     return {
@@ -105,10 +105,10 @@ export async function decryptData(encryptedData: { iv: string, data: string }): 
         const decrypted = await window.crypto.subtle.decrypt(
             {
                 name: "AES-GCM",
-                iv: iv
+                iv: iv as BufferSource
             },
             key,
-            data
+            data as BufferSource
         );
 
         const decoded = new TextDecoder().decode(decrypted);
