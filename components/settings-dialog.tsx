@@ -172,27 +172,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
         </Button>
     )
 
-    const headerActions = (
-        <div className="flex items-center gap-2">
-            {/* Mobile Actions (Icon Only) */}
-            <Button variant="ghost" size="icon" onClick={handleReset} className="md:hidden h-8 w-8 text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full">
-                <RotateCcw className="h-4 w-4" />
-            </Button>
-            <Button size="icon" onClick={handleSave} className="md:hidden h-8 w-8 rounded-full">
-                <Save className="h-4 w-4" />
-            </Button>
+    const headerActions = null // Removed
 
-            {/* Desktop Actions (Text) */}
-            <Button variant="ghost" size="sm" onClick={handleReset} className="hidden md:flex text-red-500 hover:text-red-600 h-8 px-2">
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                Reset
-            </Button>
-            <Button size="sm" onClick={handleSave} className="hidden md:flex h-8 px-3">
-                <Save className="h-3.5 w-3.5 mr-1.5" />
-                Save
-            </Button>
-        </div>
-    )
 
     return (
         <ResponsiveModal
@@ -202,7 +183,6 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             title="SMTP Settings"
             description="Configure your IONOS credentials"
             className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
-            headerActions={headerActions}
         >
             <ScrollArea className="flex-1 h-full pr-4">
 
@@ -283,7 +263,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
 
                 {/* Debug / Test */}
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-1">
                     <h4 className="text-sm font-medium text-muted-foreground">Diagnosis & Test</h4>
 
                     {/* Status Message Display */}
