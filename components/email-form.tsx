@@ -421,7 +421,7 @@ export function EmailForm() {
                 </div>
 
                 {/* Actions Grid for Mobile, Flex for Desktop */}
-                <div className="flex flex-wrap justify-end gap-2 w-full sm:w-auto items-center">
+                <div className="flex flex-nowrap justify-end gap-2 w-full sm:w-auto items-center overflow-x-auto no-scrollbar py-1">
                     <DraftsModal
                         currentSubject={form.watch('subject')}
                         currentBody={form.watch('body')}
@@ -436,9 +436,9 @@ export function EmailForm() {
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
-                    <div className="flex items-center gap-2">
-                        <AuthDialog />
+                    <div className="flex items-center gap-2 shrink-0">
                         <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
+                        <AuthDialog />
                     </div>
                 </div>
             </div>

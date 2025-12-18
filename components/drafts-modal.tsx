@@ -67,9 +67,9 @@ export function DraftsModal({
 
         setIsSaving(true);
         try {
-            // Strip images and attachments as requested to prevent sync errors
-            // Use aggressive sanitization on body
-            const cleanBody = currentBody.replace(/<img[^>]*>/g, '').replace(/<p><br><\/p>/g, '');
+            // Strip images as requested (optional, but requested previously). 
+            // Do NOT strip empty lines (<p><br></p>) to preserve formatting.
+            const cleanBody = currentBody.replace(/<img[^>]*>/g, '');
 
             await saveDraft({
                 id: selectedDraftId || undefined,
@@ -220,11 +220,18 @@ export function DraftsModal({
                                                 className="group relative flex flex-col p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1e1e1e] hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-700 transition-all cursor-pointer shadow-sm"
                                             >
                                                 <div className="flex justify-between items-start gap-4 mb-2">
-                                                    <div className="min-w-0 flex-1 pr-8">
-                                                        <h4 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1 mb-1">{draft.name}</h4>
-                                                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                                                            {draft.subject || '(No Subject)'}
-                                                        </p>
+                                                    <div className="min-w-0 flex-1 pr-8 space-y-1">
+                                                        <h4 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">{draft.name}</h4>
+                                                        {draft.subject && <p className="text-xs font-medium text-neutral-700 dark:text-neutral-300 line-clamp-1">{draft.subject}</p>}
+                                                        <div
+                                                            className="text-xs text-muted-foreground line-clamp-2 leading-relaxed opacity-80"
+                                                            dangerouslySetInnerHTML={{
+                                                                __html: draft.body
+                                                                    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+                                                                    .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
+                                                                    .replace(/<(img|iframe|object|embed)[^>]*>/gi, "")
+                                                            }}
+                                                        />
                                                     </div>
                                                     <Badge variant="outline" className="shrink-0 text-[10px] font-mono bg-neutral-50 dark:bg-[#252525] border-neutral-200 dark:border-neutral-800 text-neutral-500">
                                                         {format(new Date(draft.updatedAt), 'MMM dd')}

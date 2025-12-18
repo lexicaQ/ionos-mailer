@@ -144,9 +144,11 @@ model SmtpSettings {
   
   host      String
   port      Int
-  email     String
-  password  String  // Encrypted
+  email     String // SMTP Username
+  password  String // SMTP Password
+  fromEmail String?
   fromName  String?
+  replyTo   String?
   delay     Int     @default(500)
   
   createdAt DateTime @default(now())

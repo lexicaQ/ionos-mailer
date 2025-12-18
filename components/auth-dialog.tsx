@@ -117,10 +117,10 @@ export function AuthDialog() {
         )
     }
 
-    // Logged in state - Minimalist (Just Logout Icon)
+    // Logged in state - Minimalist (Just Logout Icon, matches Settings)
     if (session?.user) {
         return (
-            <Button variant="ghost" size="sm" onClick={handleLogout} title="Disconnect" className="h-9 w-9 p-0 rounded-full text-neutral-500 hover:text-black dark:text-neutral-400 dark:hover:text-white">
+            <Button variant="outline" size="icon" onClick={handleLogout} title="Disconnect">
                 <LogOut className="h-4 w-4" />
             </Button>
         )
@@ -136,7 +136,7 @@ export function AuthDialog() {
                 className="gap-2 bg-white dark:bg-neutral-950"
             >
                 <Cloud className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign In</span>
+                <span>Sign In</span>
             </Button>
 
             <ResponsiveModal

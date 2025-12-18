@@ -1,33 +1,36 @@
+
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 
-// GET: Fetch SMTP settings for the authenticated user
+// GET: Fetch settings
 export async function GET() {
     try {
         const session = await auth()
-
         if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
         const settings = await prisma.smtpSettings.findUnique({
-            where: { userId: session.user.id },
+            where: { userId: session.user.id }
         })
 
         if (!settings) {
             return NextResponse.json({ settings: null })
         }
 
+        // Return flattened settings matching SmtpConfig interface
         return NextResponse.json({
             settings: {
                 host: settings.host,
                 port: settings.port,
-                email: settings.email,
-                // Don't return password - let client store locally if needed
-                fromName: settings.fromName,
-                delay: settings.delay,
-            },
+                user: settings.email, // Map DB email -> API user
+                pass: settings.password, // Map DB password -> API pass
+                fromEmail: settings.fromEmail || "",
+                fromName: settings.fromName || "",
+                replyTo: settings.replyTo || "",
+                simulation: false
+            }
         })
     } catch (error: any) {
         console.error("Error fetching settings:", error)
@@ -35,52 +38,43 @@ export async function GET() {
     }
 }
 
-// POST: Save SMTP settings
+// POST: Save settings
 export async function POST(request: Request) {
     try {
         const session = await auth()
-
         if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
-        const { host, port, email, password, fromName, delay } = await request.json()
+        const body = await request.json()
+        const { host, port, user, pass, fromEmail, fromName, replyTo } = body
 
-        if (!host || !port || !email) {
-            return NextResponse.json(
-                { error: "Host, port, and email are required" },
-                { status: 400 }
-            )
-        }
-
-        const data = {
-            host,
-            port: parseInt(port),
-            email,
-            password: password || "", // Store encrypted in production
-            fromName: fromName || null,
-            delay: delay || 500,
-        }
-
+        // Validate required fields? User might have partial settings.
+        // Prisma upsert
         const settings = await prisma.smtpSettings.upsert({
             where: { userId: session.user.id },
-            update: data,
-            create: {
-                ...data,
-                userId: session.user.id,
+            update: {
+                host,
+                port: Number(port),
+                email: user, // Map API user -> DB email
+                password: pass, // Map API pass -> DB password
+                fromEmail,
+                fromName,
+                replyTo
             },
+            create: {
+                userId: session.user.id,
+                host: host || "",
+                port: Number(port) || 587,
+                email: user || "",
+                password: pass || "",
+                fromEmail: fromEmail || "",
+                fromName: fromName || "",
+                replyTo: replyTo || ""
+            }
         })
 
-        return NextResponse.json({
-            success: true,
-            settings: {
-                host: settings.host,
-                port: settings.port,
-                email: settings.email,
-                fromName: settings.fromName,
-                delay: settings.delay,
-            },
-        })
+        return NextResponse.json({ success: true, settings })
     } catch (error: any) {
         console.error("Error saving settings:", error)
         return NextResponse.json({ error: "Failed to save settings" }, { status: 500 })

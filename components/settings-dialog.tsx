@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud } from "lucide-react"
+import { toast } from "sonner"
 
 
 
@@ -35,39 +36,87 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [testing, setTesting] = useState(false)
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && localStorage) {
-            const saved = localStorage.getItem("smtp-config-full");
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    setHost(parsed.host || "smtp.ionos.de");
-                    setPort(parsed.port || "587");
-                    setUser(parsed.user || "");
-                    setPass(parsed.pass || "");
-                    setDelay(parsed.delay || 500);
-                    setFromName(parsed.fromName || "");
-                    setSavePassword(parsed.savePassword !== false);
+        const loadSettings = async () => {
+            let loadedFromCloud = false;
 
-                    // Auto-apply settings if password exists
-                    if (parsed.pass && parsed.user) {
-                        const config: SmtpConfig = {
-                            host: parsed.host || "smtp.ionos.de",
-                            port: parseInt(parsed.port) || 587,
-                            user: parsed.user,
-                            pass: parsed.pass,
-                            secure: parseInt(parsed.port) === 465,
-                            delay: parsed.delay || 500,
-                        };
-                        onSettingsChange(config);
+            // 1. Try Cloud Sync
+            if (session?.user) {
+                try {
+                    const res = await fetch('/api/sync/settings');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.settings) {
+                            const s = data.settings;
+                            setHost(s.host || "smtp.ionos.de");
+                            setPort(String(s.port || "587"));
+                            setUser(s.user || "");
+                            setPass(s.pass || "");
+                            setDelay(s.delay || 500);
+                            setFromName(s.fromName || "");
+
+                            // Sync down to local
+                            localStorage.setItem("smtp-config-full", JSON.stringify(s));
+
+                            if (s.user && s.pass) {
+                                onSettingsChange({ ...s, secure: Number(s.port) === 465 });
+                            }
+                            loadedFromCloud = true;
+                            // toast.success("Settings synced from cloud");
+                        }
                     }
                 } catch (e) {
-                    console.error("Failed to parse saved settings", e);
+                    console.error("Cloud sync check failed", e);
                 }
             }
-        }
-    }, [])
 
-    const handleSave = () => {
+            // 2. Load Local (if not loaded from cloud OR if we want to check for upload)
+            if (typeof window !== 'undefined' && localStorage) {
+                const saved = localStorage.getItem("smtp-config-full");
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+
+                        // If cloud was empty but we have local, Upload it (First Sync)
+                        if (session?.user && !loadedFromCloud && parsed.user) {
+                            fetch('/api/sync/settings', {
+                                method: 'POST',
+                                body: JSON.stringify(parsed)
+                            }).then(() => toast.success("Local settings synced to cloud"));
+                        }
+
+                        // Use local if cloud didn't load
+                        if (!loadedFromCloud) {
+                            setHost(parsed.host || "smtp.ionos.de");
+                            setPort(parsed.port || "587");
+                            setUser(parsed.user || "");
+                            setPass(parsed.pass || "");
+                            setDelay(parsed.delay || 500);
+                            setFromName(parsed.fromName || "");
+                            setSavePassword(parsed.savePassword !== false);
+
+                            if (parsed.pass && parsed.user) {
+                                onSettingsChange({
+                                    host: parsed.host || "smtp.ionos.de",
+                                    port: parseInt(parsed.port) || 587,
+                                    user: parsed.user,
+                                    pass: parsed.pass,
+                                    secure: parseInt(parsed.port) === 465,
+                                    delay: parsed.delay || 500,
+                                    fromName: parsed.fromName,
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse saved settings", e);
+                    }
+                }
+            }
+        };
+
+        loadSettings();
+    }, [session]); // Re-run when session changes (login/logout)
+
+    const handleSave = async () => {
         const config: SmtpConfig = {
             host,
             port: parseInt(port),
@@ -80,12 +129,30 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
 
         onSettingsChange(config);
 
-        // Save all settings including password if user opted in
+        // Save to Local
         const dataToSave = savePassword
             ? { host, port, user, pass, delay, fromName, savePassword }
             : { host, port, user, delay, fromName, savePassword };
 
         localStorage.setItem("smtp-config-full", JSON.stringify(dataToSave));
+
+        // Save to Cloud
+        if (session?.user) {
+            try {
+                // Ensure port is number in payload
+                await fetch('/api/sync/settings', {
+                    method: 'POST',
+                    body: JSON.stringify({ ...dataToSave, port: parseInt(port) })
+                });
+                toast.success("Settings saved to cloud");
+            } catch (e) {
+                console.error(e);
+                toast.error("Saved locally, but cloud sync failed");
+            }
+        } else {
+            toast.success("Settings saved locally");
+        }
+
         setOpen(false)
     }
 
@@ -105,25 +172,39 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
         </Button>
     )
 
+    const headerActions = (
+        <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleReset} className="text-red-500 hover:text-red-600 h-8 px-2">
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                Reset
+            </Button>
+            <Button size="sm" onClick={handleSave} className="h-8 px-3">
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                Save
+            </Button>
+        </div>
+    )
+
     return (
         <ResponsiveModal
             open={open}
             onOpenChange={setOpen}
-            trigger={triggerButton} // Now renders BOTH buttons
+            trigger={triggerButton}
             title="SMTP Settings"
             description="Configure your IONOS credentials"
             className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
+            headerActions={headerActions}
         >
             <ScrollArea className="flex-1 h-full pr-4">
 
-                <div className="grid gap-6 py-4">
+                <div className="grid gap-6 pt-4 pb-20">
                     {/* Cloud Sync Status (if logged in) */}
                     {session?.user && (
-                        <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
+                        <div className="space-y-4 px-2">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400">
-                                        <Cloud className="h-4 w-4" />
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400">
+                                        <Cloud className="h-5 w-5" />
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-neutral-900 dark:text-neutral-200">Connected as</p>
@@ -139,9 +220,13 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                     Disconnect
                                 </Button>
                             </div>
-                            <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex gap-4">
-                                <span className="flex items-center gap-1">✓ Drafts Syncing</span>
-                                <span className="flex items-center gap-1">✓ History Syncing</span>
+                            <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex gap-4 pl-1">
+                                <span className="flex items-center gap-1.5">
+                                    <CheckCircle className="h-3 w-3 text-green-500" /> Drafts Syncing
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <CheckCircle className="h-3 w-3 text-green-500" /> History Syncing
+                                </span>
                             </div>
                         </div>
                     )}

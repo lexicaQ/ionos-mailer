@@ -39,8 +39,9 @@ export function ResponsiveModal({
     title,
     description,
     trigger,
-    className
-}: ResponsiveModalProps) {
+    className,
+    headerActions
+}: ResponsiveModalProps & { headerActions?: React.ReactNode }) {
     // This hook is key - it swaps component based on screen size
     const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -50,6 +51,12 @@ export function ResponsiveModal({
             <Dialog open={open} onOpenChange={onOpenChange}>
                 {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
                 <DialogContent className={className}>
+                    {/* Header Actions - Positioned to the left of the Close button */}
+                    {headerActions && (
+                        <div className="absolute right-12 top-4 z-50 flex items-center gap-2">
+                            {headerActions}
+                        </div>
+                    )}
                     {(title || description) && (
                         <DialogHeader>
                             {title && <DialogTitle>{title}</DialogTitle>}
@@ -68,7 +75,8 @@ export function ResponsiveModal({
         <Drawer open={open} onOpenChange={onOpenChange}>
             {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
             <DrawerContent className="max-h-[90vh]">
-                <div className="absolute right-4 top-4 z-50">
+                <div className="absolute right-4 top-4 z-50 flex items-center gap-2">
+                    {headerActions}
                     <DrawerClose asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-black dark:hover:text-white">
                             <span className="sr-only">Close</span>
