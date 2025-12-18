@@ -129,6 +129,11 @@ export function DraftsModal({
 
     const canSave = (currentSubject?.trim() || '') !== '' || (currentBody?.trim() || '') !== '' || (currentRecipients?.length || 0) > 0
 
+    // Helper to count images in body (simple regex) - MUST be defined BEFORE use
+    const countImagesInBody = (body: string) => {
+        return (body.match(/<img/g) || []).length;
+    }
+
     const filteredDrafts = drafts.filter(d => {
         const matchesSearch =
             d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -142,11 +147,6 @@ export function DraftsModal({
 
         return true
     })
-
-    // Helper to count images in body (simple regex)
-    const countImagesInBody = (body: string) => {
-        return (body.match(/<img/g) || []).length;
-    }
 
     return (
         <>
