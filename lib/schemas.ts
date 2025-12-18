@@ -12,18 +12,18 @@ export const attachmentSchema = z.object({
 export type Attachment = z.infer<typeof attachmentSchema>
 
 export const emailFormSchema = z.object({
-    subject: z.string().min(1, "Betreff ist erforderlich").max(100, "Betreff zu lang (max. 100 Zeichen)"),
-    body: z.string().min(1, "Nachrichtentext ist erforderlich"),
+    subject: z.string().min(1, "Subject is required").max(100, "Subject too long (max. 100 characters)"),
+    body: z.string().min(1, "Message text is required"),
     recipients: z.array(z.object({
-        email: z.string().email("Ungültige E-Mail-Adresse"),
+        email: z.string().email("Invalid email address"),
         id: z.string().optional(),
-    })).min(1, "Mindestens ein gültiger Empfänger ist erforderlich"),
+    })).min(1, "At least one valid recipient is required"),
     attachments: z.array(attachmentSchema).optional(),
     smtpSettings: z.object({
         host: z.string().min(1),
         port: z.number(),
-        user: z.string().min(1, "Benutzername erforderlich"),
-        pass: z.string().min(1, "Passwort erforderlich"),
+        user: z.string().min(1, "Username required"),
+        pass: z.string().min(1, "Password required"),
         secure: z.boolean(),
         delay: z.number().optional()
     }).optional(),

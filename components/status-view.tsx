@@ -22,7 +22,7 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
             {isSending && (
                 <div className="space-y-2">
                     <div className="flex justify-between text-sm font-medium">
-                        <span>Sende E-Mails...</span>
+                        <span>Sending Emails...</span>
                         <span>{progress.toFixed(0)}%</span>
                     </div>
                     <Progress value={progress} className="h-2" />
@@ -33,11 +33,11 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
                 <div className="flex gap-4 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-sm font-medium">
                     <div className="flex items-center gap-2 text-green-600 dark:text-green-500">
                         <CheckCircle className="h-5 w-5" />
-                        {successful} Erfolgreich
+                        {successful} Successful
                     </div>
                     <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
                         <XCircle className="h-5 w-5" />
-                        {failed} Fehlgeschlagen
+                        {failed} Failed
                     </div>
                 </div>
             )}
@@ -47,9 +47,9 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Empfänger</TableHead>
+                                <TableHead>Recipient</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Zeit</TableHead>
+                                <TableHead>Time</TableHead>
                                 <TableHead>Details</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -60,11 +60,11 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
                                     <TableCell>
                                         {result.success ? (
                                             <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800">
-                                                Gesendet
+                                                Sent
                                             </Badge>
                                         ) : (
                                             <Badge variant="outline" className="bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800">
-                                                Fehler
+                                                Failed
                                             </Badge>
                                         )}
                                     </TableCell>

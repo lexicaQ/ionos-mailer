@@ -47,7 +47,7 @@ interface RichTextEditorProps {
 }
 
 const FONT_FAMILIES = [
-    { value: 'default', label: 'Standard', fontFamily: '' },
+    { value: 'default', label: 'Default', fontFamily: '' },
     { value: 'arial', label: 'Arial', fontFamily: 'Arial, sans-serif' },
     { value: 'helvetica', label: 'Helvetica', fontFamily: 'Helvetica, Arial, sans-serif' },
     { value: 'times', label: 'Times New Roman', fontFamily: '"Times New Roman", serif' },
@@ -283,7 +283,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     className={editor.isActive('bold') ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white font-semibold' : ''}
-                    title="Fett"
+                    title="Bold"
                 >
                     <Bold className="h-4 w-4" />
                 </Button>
@@ -292,7 +292,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
                     className={editor.isActive('italic') ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white font-semibold' : ''}
-                    title="Kursiv"
+                    title="Italic"
                 >
                     <Italic className="h-4 w-4" />
                 </Button>
@@ -301,7 +301,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
                     className={editor.isActive('underline') ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white font-semibold' : ''}
-                    title="Unterstrichen"
+                    title="Underline"
                 >
                     <UnderlineIcon className="h-4 w-4" />
                 </Button>
@@ -310,7 +310,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleStrike().run()}
                     className={editor.isActive('strike') ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white font-semibold' : ''}
-                    title="Durchgestrichen"
+                    title="Strikethrough"
                 >
                     <Strikethrough className="h-4 w-4" />
                 </Button>
@@ -322,7 +322,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                     className={editor.isActive('heading', { level: 1 }) ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white font-semibold' : ''}
-                    title="Überschrift 1"
+                    title="Heading 1"
                 >
                     <Heading1 className="h-4 w-4" />
                 </Button>
@@ -331,7 +331,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                     className={editor.isActive('heading', { level: 2 }) ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white font-semibold' : ''}
-                    title="Überschrift 2"
+                    title="Heading 2"
                 >
                     <Heading2 className="h-4 w-4" />
                 </Button>
@@ -340,7 +340,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                     className={editor.isActive('heading', { level: 3 }) ? 'bg-neutral-200 dark:bg-neutral-800' : ''}
-                    title="Überschrift 3"
+                    title="Heading 3"
                 >
                     <Heading3 className="h-4 w-4" />
                 </Button>
@@ -361,7 +361,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     }}
                 >
                     <SelectTrigger className="w-[130px] h-8 text-xs border-0 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 focus:ring-0">
-                        <SelectValue placeholder="Schriftart" />
+                        <SelectValue placeholder="Font" />
                     </SelectTrigger>
                     <SelectContent>
                         {FONT_FAMILIES.map((font) => (
@@ -379,7 +379,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
                     className={editor.isActive('bulletList') ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white' : ''}
-                    title="Ungeordnete Liste"
+                    title="Bullet List"
                 >
                     <List className="h-4 w-4" />
                 </Button>
@@ -388,7 +388,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
                     className={editor.isActive('orderedList') ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white' : ''}
-                    title="Geordnete Liste"
+                    title="Ordered List"
                 >
                     <ListOrdered className="h-4 w-4" />
                 </Button>
@@ -401,14 +401,14 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                             variant="ghost"
                             size="sm"
                             className={editor.isActive('link') ? 'bg-neutral-200 dark:bg-neutral-800' : ''}
-                            title="Link einfügen"
+                            title="Insert Link"
                         >
                             <LinkIcon className="h-4 w-4" />
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Link einfügen</DialogTitle>
+                            <DialogTitle>Insert Link</DialogTitle>
                         </DialogHeader>
                         <div className="flex gap-2">
                             <Input
@@ -417,7 +417,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                                 onChange={(e) => setLinkUrl(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && setLink()}
                             />
-                            <Button onClick={setLink}>Einfügen</Button>
+                            <Button onClick={setLink}>Insert</Button>
                         </div>
                         {editor.isActive('link') && (
                             <Button
@@ -429,7 +429,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                                 }}
                             >
                                 <Unlink className="h-4 w-4 mr-2" />
-                                Link entfernen
+                                Remove Link
                             </Button>
                         )}
                     </DialogContent>
@@ -441,18 +441,18 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                             variant="ghost"
                             size="sm"
                             className={editor.isActive('image') ? 'bg-neutral-200 dark:bg-neutral-800' : ''}
-                            title="Bild einfügen"
+                            title="Insert Image"
                         >
                             <ImageIcon className="h-4 w-4" />
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Bild einfügen</DialogTitle>
+                            <DialogTitle>Insert Image</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Bild-URL</label>
+                                <label className="text-sm font-medium">Image URL</label>
                                 <div className="flex gap-2">
                                     <Input
                                         placeholder="https://..."
@@ -460,11 +460,11 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                                         onChange={(e) => setImageUrl(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && addImage()}
                                     />
-                                    <Button onClick={addImage}>Einfügen</Button>
+                                    <Button onClick={addImage}>Insert</Button>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Oder hochladen</label>
+                                <label className="text-sm font-medium">Or upload</label>
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"
@@ -472,7 +472,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                                         className="w-full"
                                     >
                                         <Upload className="h-4 w-4 mr-2" />
-                                        Bild auswählen
+                                        Choose Image
                                     </Button>
                                     <input
                                         type="file"
@@ -510,7 +510,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     onClick={() => attachmentInputRef.current?.click()}
                 >
                     <Paperclip className="h-4 w-4" />
-                    <span className="hidden sm:inline text-xs">Anhang</span>
+                    <span className="hidden sm:inline text-xs">Attachment</span>
                 </Button>
                 <input
                     type="file"
@@ -527,7 +527,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().undo().run()}
                     disabled={!editor.can().undo()}
-                    title="Rückgängig"
+                    title="Undo"
                 >
                     <Undo className="h-4 w-4" />
                 </Button>
@@ -536,7 +536,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     size="sm"
                     onClick={() => editor.chain().focus().redo().run()}
                     disabled={!editor.can().redo()}
-                    title="Wiederholen"
+                    title="Redo"
                 >
                     <Redo className="h-4 w-4" />
                 </Button>

@@ -20,12 +20,12 @@ const geistMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "IONOS Mailer | Professioneller E-Mail-Versand",
+    default: "IONOS Mailer | Professional Email Delivery",
     template: "%s | IONOS Mailer"
   },
-  description: "Die sichere Lösung für professionelles E-Mail-Marketing mit IONOS. DSGVO-konform, verschlüsselt und mit intelligentem Hintergrund-Versand für maximale Zustellbarkeit.",
+  description: "The secure solution for professional email marketing with IONOS. GDPR-compliant, encrypted, and with intelligent background delivery for maximum deliverability.",
   authors: [{ name: "Maxim Keibel" }],
-  keywords: ["IONOS Mailer", "SMTP Versand", "Newsletter Tool", "Massenmail", "DSGVO konform", "E-Mail Automatisierung", "Next.js", "Serienbrief"],
+  keywords: ["IONOS Mailer", "SMTP Delivery", "Newsletter Tool", "Bulk Mail", "GDPR compliant", "Email Automation", "Next.js", "Mail Merge"],
   creator: "Maxim Keibel",
   publisher: "Maxim Keibel",
   robots: {
@@ -41,11 +41,11 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "de_DE",
+    locale: "en_US",
     url: "https://ionos-mailer.vercel.app",
     siteName: "IONOS Mailer Pro",
-    title: "IONOS Mailer | Professionelles E-Mail-Marketing",
-    description: "Versenden Sie Newsletter sicher und effizient über Ihren eigenen IONOS Account. Keine Limits, volle Kostenkontrolle.",
+    title: "IONOS Mailer | Professional Email Marketing",
+    description: "Send newsletters securely and efficiently via your own IONOS account. No limits, full cost control.",
     images: [
       {
         url: "/og-image.png",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "IONOS Mailer Pro",
-    description: "Sicheres E-Mail-Marketing ohne Abo-Kosten.",
+    description: "Secure email marketing without subscription costs.",
     images: ["/og-image.png"],
   },
   manifest: "/manifest.json",
@@ -84,7 +84,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black`}
       >

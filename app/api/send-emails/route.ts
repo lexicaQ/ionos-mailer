@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
         if (!result.success) {
             return NextResponse.json(
-                { error: 'Validierung fehlgeschlagen', details: result.error.flatten() },
+                { error: 'Validation failed', details: result.error.flatten() },
                 { status: 400 }
             );
         }
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
         // 1. Find or Create "Direct Send" Campaign Container
         // We group direct sends by Month to avoid one giant list
         const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-        const campaignName = `Direkt-Versand ${currentMonth}`;
+        const campaignName = `Direct Send ${currentMonth}`;
 
         // Try to find existing campaign for this user
         let campaign = await prisma.campaign.findFirst({
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('API Error:', error);
         return NextResponse.json(
-            { error: 'Interner Server-Fehler' },
+            { error: 'Internal Server Error' },
             { status: 500 }
         );
     }

@@ -61,7 +61,7 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
     const getPreviewContent = (text: string) => {
         const placeholderRegex = /(XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\])/gi;
 
-        if (!text) return <span className="text-neutral-400 italic">Leer</span>;
+        if (!text) return <span className="text-neutral-400 italic">Empty</span>;
 
         if (!placeholderRegex.test(text)) {
             return <span>{text}</span>;
@@ -87,26 +87,26 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="h-14 w-14 shrink-0" title="Vorschau & Platzhalter prüfen">
+                <Button variant="outline" className="h-14 w-14 shrink-0" title="Check Preview & Placeholders">
                     <Eye className="h-6 w-6" />
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Vorschau & Platzhalter</DialogTitle>
+                    <DialogTitle>Preview & Placeholders</DialogTitle>
                     <DialogDescription>
-                        Prüfen Sie, wie die E-Mail für einen bestimmten Empfänger aussehen wird.
+                        Check how the email will look for a specific recipient.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
                     {/* Recipient Selection */}
                     <div className="space-y-2">
-                        <Label>Empfänger wählen</Label>
+                        <Label>Select Recipient</Label>
                         <div className="flex gap-2">
                             <Select value={selectedEmail} onValueChange={setSelectedEmail} disabled={recipients.length === 0}>
                                 <SelectTrigger className="flex-1">
-                                    <SelectValue placeholder="Empfänger wählen..." />
+                                    <SelectValue placeholder="Select recipient..." />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[200px]">
                                     {recipients.map((r) => (
@@ -121,7 +121,7 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
                                 size="icon"
                                 onClick={() => fetchCompanyForPreview(selectedEmail)}
                                 disabled={!selectedEmail || isLoading}
-                                title="Erneut prüfen"
+                                title="Check again"
                             >
                                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                             </Button>
@@ -146,15 +146,15 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
 
                                     <div className="text-sm">
                                         {isLoading ? (
-                                            <p className="text-neutral-600 dark:text-neutral-400">Analysiere Domain...</p>
+                                            <p className="text-neutral-600 dark:text-neutral-400">Analyzing domain...</p>
                                         ) : companyName ? (
                                             <p className="font-medium text-green-800 dark:text-green-300">
-                                                Firma erkannt: <strong>{companyName}</strong>
+                                                Company recognized: <strong>{companyName}</strong>
                                             </p>
                                         ) : (
                                             <div className="text-yellow-800 dark:text-yellow-300">
-                                                <p className="font-medium">Keine Firma erkannt.</p>
-                                                <p className="text-xs opacity-90 mt-0.5">Platzhalter werden nicht ersetzt.</p>
+                                                <p className="font-medium">No company recognized.</p>
+                                                <p className="text-xs opacity-90 mt-0.5">Placeholders will not be replaced.</p>
                                             </div>
                                         )}
                                     </div>
@@ -182,14 +182,14 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
                     {/* Preview Content */}
                     <div className="space-y-4 border-t border-neutral-200 dark:border-neutral-800 pt-4">
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Betreff</Label>
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Subject</Label>
                             <div className="p-3 rounded-md bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm font-medium">
                                 {getPreviewContent(subject)}
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nachricht</Label>
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Message</Label>
                             <div className="p-4 rounded-md bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm whitespace-pre-wrap min-h-[80px] max-h-[200px] overflow-y-auto">
                                 {/* Using a div + dangerouslySetInnerHTML is risky for preview if we don't sanitize, 
                                     but here we want to show text mainly. Since RichTextEditor produces HTML, we should strip tags or render carefully.

@@ -37,7 +37,7 @@ export function HistoryList({ batches }: HistoryListProps) {
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Mail className="h-5 w-5" />
-                        Sofort-Versand Verlauf
+                        Instant Delivery History
                     </CardTitle>
                     <Badge variant="outline">{batches.length} Batches</Badge>
                 </div>
@@ -53,7 +53,7 @@ export function HistoryList({ batches }: HistoryListProps) {
                             <div className="flex items-center gap-4 text-sm">
                                 <div className="text-left">
                                     <p className="font-mono text-muted-foreground">
-                                        {new Date(batch.timestamp).toLocaleDateString('de-DE')} • {new Date(batch.timestamp).toLocaleTimeString('de-DE')}
+                                        {new Date(batch.timestamp).toLocaleDateString('en-US')} • {new Date(batch.timestamp).toLocaleTimeString('en-US')}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         ID: {batch.id.slice(0, 8)}...
@@ -62,12 +62,12 @@ export function HistoryList({ batches }: HistoryListProps) {
                                 <div className="flex gap-2">
                                     <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20">
                                         <CheckCircle className="h-3 w-3 mr-1" />
-                                        {batch.success} erfolgreich
+                                        {batch.success} successful
                                     </Badge>
                                     {batch.failed > 0 && (
                                         <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20">
                                             <XCircle className="h-3 w-3 mr-1" />
-                                            {batch.failed} fehlgeschlagen
+                                            {batch.failed} failed
                                         </Badge>
                                     )}
                                 </div>
@@ -99,9 +99,9 @@ export function HistoryList({ batches }: HistoryListProps) {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-[50px]">Status</TableHead>
-                                            <TableHead>E-Mail Adresse</TableHead>
+                                            <TableHead>Email Address</TableHead>
                                             <TableHead>Message-ID</TableHead>
-                                            <TableHead>Fehlerdetails</TableHead>
+                                            <TableHead>Error Details</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>

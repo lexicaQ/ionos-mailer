@@ -17,7 +17,6 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
-import { de } from "date-fns/locale"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface EmailJob {
@@ -135,7 +134,7 @@ export function LiveCampaignTracker() {
             e.preventDefault();
         }
 
-        if (!confirm("Kampagne wirklich löschen? Der Versand wird sofort gestoppt.")) return;
+        if (!confirm("Do you really want to delete the campaign? Sending will be stopped immediately.")) return;
 
         try {
             // Optimistic update
@@ -157,21 +156,21 @@ export function LiveCampaignTracker() {
         campaigns.forEach(c => {
             c.jobs.forEach(j => {
                 data.push({
-                    "Kampagne": c.name || "Unbenannt",
-                    "Erstellt am": format(new Date(c.createdAt), "dd.MM.yyyy HH:mm"),
-                    "Empfänger": j.recipient,
-                    "Betreff": j.subject,
+                    "Campaign": c.name || "Untitled",
+                    "Created at": format(new Date(c.createdAt), "yyyy-MM-dd HH:mm"),
+                    "Recipient": j.recipient,
+                    "Subject": j.subject,
                     "Status": j.status,
-                    "Geöffnet": j.openedAt ? `Ja (${format(new Date(j.openedAt), "dd.MM HH:mm")})` : "Nein",
-                    "Gesendet am": j.sentAt ? format(new Date(j.sentAt), "dd.MM HH:mm:ss") : "-",
-                    "Fehler": j.error || ""
+                    "Opened": j.openedAt ? `Yes (${format(new Date(j.openedAt), "MMM dd HH:mm")})` : "No",
+                    "Sent at": j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm:ss") : "-",
+                    "Error": j.error || ""
                 })
             })
         })
 
         const ws = XLSX.utils.json_to_sheet(data)
         const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, "Kampagnen Export")
+        XLSX.utils.book_append_sheet(wb, ws, "Campaign Export")
         XLSX.writeFile(wb, `ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`)
     }
 
@@ -181,26 +180,26 @@ export function LiveCampaignTracker() {
 
         const doc = new jsPDF({ orientation: "landscape" })
         doc.setFontSize(18)
-        doc.text("IONOS Mailer - Kampagnen Bericht", 14, 22)
+        doc.text("IONOS Mailer - Campaign Report", 14, 22)
         doc.setFontSize(10)
-        doc.text(`Erstellt: ${format(new Date(), "dd.MM.yyyy HH:mm")}`, 14, 30)
+        doc.text(`Created: ${format(new Date(), "yyyy-MM-dd HH:mm")}`, 14, 30)
 
         const rows: any[] = []
         campaigns.forEach(c => {
             c.jobs.forEach(j => {
                 rows.push([
-                    c.name || "Unbenannt",
+                    c.name || "Untitled",
                     j.recipient,
                     j.status,
-                    j.openedAt ? "Ja" : "Nein",
-                    j.sentAt ? format(new Date(j.sentAt), "dd.MM HH:mm") : "-",
-                    j.error ? "Ja" : "-"
+                    j.openedAt ? "Yes" : "No",
+                    j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm") : "-",
+                    j.error ? "Yes" : "-"
                 ])
             })
         })
 
         autoTable(doc, {
-            head: [["Kampagne", "Empfänger", "Status", "Geöffnet", "Gesendet", "Fehler"]],
+            head: [["Campaign", "Recipient", "Status", "Opened", "Sent", "Error"]],
             body: rows,
             startY: 40,
         })
@@ -215,7 +214,7 @@ export function LiveCampaignTracker() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2 relative">
                     <Activity className="h-4 w-4" />
-                    Live-Tracking
+                    Live Tracking
                     {activeCampaigns.length > 0 && (
                         <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
                     )}
@@ -231,14 +230,14 @@ export function LiveCampaignTracker() {
                                 <Activity className="h-5 w-5 text-white dark:text-black" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold tracking-tight">Live Kampagnen-Tracking</h2>
+                                <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                 <p className="text-xs text-muted-foreground flex items-center gap-2">
                                     {isAutoProcessing ? (
                                         <span className="text-green-600 flex items-center gap-1">
-                                            <RefreshCw className="h-3 w-3 animate-spin" /> Verarbeite Hintergrund-Jobs...
+                                            <RefreshCw className="h-3 w-3 animate-spin" /> Processing background jobs...
                                         </span>
                                     ) : (
-                                        <span>System bereit • Letzte Aktualisierung: {format(new Date(), "HH:mm:ss")}</span>
+                                        <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>
                                     )}
                                 </p>
                             </div>
@@ -254,7 +253,7 @@ export function LiveCampaignTracker() {
                             </Button>
                             <Button variant="outline" size="sm" onClick={fetchCampaigns} disabled={loading} className="gap-2">
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                                Aktualisieren
+                                Refresh
                             </Button>
                         </div>
                     </div>
@@ -264,7 +263,7 @@ export function LiveCampaignTracker() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Kampagne suchen (Name, ID)..."
+                                placeholder="Search campaign (name, ID)..."
                                 className="pl-9 bg-neutral-50 dark:bg-neutral-800 border-none"
                                 value={searchTerm}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
@@ -278,7 +277,7 @@ export function LiveCampaignTracker() {
                     {filteredCampaigns.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                             <Mail className="h-12 w-12 opacity-20 mb-4" />
-                            <p>Keine Kampagnen gefunden</p>
+                            <p>No campaigns found</p>
                         </div>
                     ) : (
                         <div className="space-y-4 max-w-5xl mx-auto">
@@ -332,23 +331,23 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                     </div>
                     <div>
                         <div className="text-base font-semibold flex items-center gap-2">
-                            {campaign.name || <span>Kampagne <span className="text-muted-foreground font-normal text-sm">vom {format(new Date(campaign.createdAt), "dd.MM.yyyy")}</span></span>}
+                            {campaign.name || <span>Campaign <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "yyyy-MM-dd")}</span></span>}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
-                            <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Fertig</span>
+                            <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Finished</span>
                             <span className="h-1 w-1 bg-neutral-300 rounded-full" />
-                            <span>{campaign.stats.sent} Gesendet</span>
+                            <span>{campaign.stats.sent} Sent</span>
                             <span className="h-1 w-1 bg-neutral-300 rounded-full" />
                             <span className="flex items-center gap-1 text-green-600 font-medium">
                                 <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
-                                {campaign.stats.opened} Geöffnet
+                                {campaign.stats.opened} Opened
                             </span>
                         </div>
                     </div>
                 </div>
                 <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 px-2 p-0 z-10 gap-1 text-xs">
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Löschen</span>
+                    <span className="hidden sm:inline">Delete</span>
                 </Button>
             </div>
 
@@ -357,9 +356,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
                     <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                         <div className="w-[100px]">Status</div>
-                        <div className="w-[110px]">Geöffnet</div>
-                        <div className="flex-1">Empfänger / Betreff</div>
-                        <div className="w-[140px] text-right">Zeiten</div>
+                        <div className="w-[110px]">Opened</div>
+                        <div className="flex-1">Recipient / Subject</div>
+                        <div className="w-[140px] text-right">Time</div>
                     </div>
                     {campaign.jobs.map((job) => (
                         <div key={job.id} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-4">
@@ -375,9 +374,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                                 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
                                     `}
                                 >
-                                    {job.status === 'SENT' ? 'GESENDET' :
-                                        job.status === 'FAILED' ? 'FEHLER' :
-                                            'WARTEND'}
+                                    {job.status === 'SENT' ? 'SENT' :
+                                        job.status === 'FAILED' ? 'FAILED' :
+                                            'WAITING'}
                                 </Badge>
                             </div>
 
@@ -388,9 +387,6 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                         <div className="text-green-600 dark:text-green-500 font-bold text-sm tracking-wide">
                                             {format(new Date(job.openedAt), "HH:mm")}
                                         </div>
-                                        <span className="text-[10px] text-muted-foreground opacity-70">
-                                            Uhr
-                                        </span>
                                     </div>
                                 ) : (
                                     <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
@@ -408,13 +404,13 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                             {/* Times - LAST */}
                             <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground flex-shrink-0 w-[140px]">
                                 <div className="text-right">
-                                    <div className="uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Geplant</div>
+                                    <div className="uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
                                     <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>
                                 </div>
 
                                 {job.sentAt && (
                                     <div className="text-right">
-                                        <div className="uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Gesendet</div>
+                                        <div className="uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Sent</div>
                                         <div className="font-mono text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
                                             {format(new Date(job.sentAt), "HH:mm")}
                                         </div>

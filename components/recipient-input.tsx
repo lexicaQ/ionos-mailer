@@ -69,7 +69,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     return (
         <div className="space-y-4">
             <div className="space-y-2">
-                <label className="text-sm font-medium">Empfänger (Liste)</label>
+                <label className="text-sm font-medium">Recipients (List)</label>
                 <Textarea
                     placeholder={"max@mustermann.de\nerika@musterfrau.de\n..."}
                     value={rawInput}
@@ -80,7 +80,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 />
                 <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground">
-                        Tipp: Adressen werden automatisch beim Verlassen des Feldes analysiert
+                        Tip: Addresses are automatically analyzed when leaving the field
                     </span>
                     <div className="flex items-center gap-2">
                         {customAction}
@@ -96,16 +96,16 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                 <TabsList className="grid w-fit grid-cols-2">
                                     <TabsTrigger value="valid" className="gap-2">
                                         <Check className="h-4 w-4 text-green-500" />
-                                        Gültig ({validEmails.length})
+                                        Valid ({validEmails.length})
                                     </TabsTrigger>
                                     <TabsTrigger value="invalid" className="gap-2" disabled={invalidEmails.length === 0}>
                                         <AlertTriangle className="h-4 w-4 text-red-500" />
-                                        Ungültig ({invalidEmails.length})
+                                        Invalid ({invalidEmails.length})
                                     </TabsTrigger>
                                 </TabsList>
                                 <Button variant="ghost" size="sm" onClick={handleClearAll} className="text-red-500 hover:text-red-600">
                                     <Trash2 className="h-4 w-4 mr-1" />
-                                    Alle löschen
+                                    Clear all
                                 </Button>
                             </div>
 
@@ -121,7 +121,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                     ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
                                                     : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                                                     }`}
-                                                title={isGeneric ? "Generische Adresse: Automatische 'XXX' Ersetzung nicht möglich" : "Gültige Firmen-Adresse"}
+                                                title={isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address"}
                                             >
                                                 {isGeneric && <AlertTriangle className="h-3 w-3 mr-1" />}
                                                 {recipient.email}
@@ -139,7 +139,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         );
                                     })}
                                     {validEmails.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">Keine gültigen E-Mail-Adressen</p>
+                                        <p className="text-sm text-muted-foreground">No valid email addresses</p>
                                     )}
                                 </div>
                             </TabsContent>

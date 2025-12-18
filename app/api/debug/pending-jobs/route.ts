@@ -22,8 +22,8 @@ export async function GET(req: Request) {
             id: j.id,
             recipient: j.recipient,
             scheduledFor: j.scheduledFor,
-            scheduledForLocal: new Date(j.scheduledFor).toLocaleString('de-DE'),
-            nowLocal: new Date().toLocaleString('de-DE'),
+            scheduledForLocal: new Date(j.scheduledFor).toLocaleString('en-US'),
+            nowLocal: new Date().toLocaleString('en-US'),
             isDue: new Date(j.scheduledFor) <= new Date(),
             user: j.campaign.user
         }));

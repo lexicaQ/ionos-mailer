@@ -80,7 +80,7 @@ export function ResponsiveModal({
                 </div>
                 <DrawerFooter className="pt-2">
                     <DrawerClose asChild>
-                        <Button variant="outline">Schließen</Button>
+                        <Button variant="outline">Close</Button>
                     </DrawerClose>
                 </DrawerFooter>
             </DrawerContent>

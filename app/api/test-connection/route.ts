@@ -6,7 +6,7 @@ export async function POST(req: Request) {
         const { host, port, user, pass, secure } = await req.json();
 
         if (!host || !user || !pass) {
-            return NextResponse.json({ success: false, error: "Host, User und Passwort sind erforderlich." }, { status: 400 });
+            return NextResponse.json({ success: false, error: "Host, user and password are required." }, { status: 400 });
         }
 
         const transporter = nodemailer.createTransport({
@@ -23,17 +23,17 @@ export async function POST(req: Request) {
         // Verify connection
         try {
             await transporter.verify();
-            return NextResponse.json({ success: true, message: "Verbindung erfolgreich hergestellt!" });
+            return NextResponse.json({ success: true, message: "Connection successfully established!" });
         } catch (verifyError: any) {
             console.error("SMTP Verify Error:", verifyError);
 
             let errorMessage = verifyError.message;
             if (verifyError.responseCode === 535) {
-                errorMessage = "Login fehlgeschlagen. Passwort oder Benutzername falsch.";
+                errorMessage = "Login failed. Incorrect password or username.";
             } else if (verifyError.code === 'ECONNREFUSED') {
-                errorMessage = "Verbindung verweigert. Falscher Host oder Port?";
+                errorMessage = "Connection refused. Wrong host or port?";
             } else if (verifyError.code === 'ETIMEDOUT') {
-                errorMessage = "Zeitüberschreitung. Firewall blockiert Port " + port + "?";
+                errorMessage = "Timeout. Firewall blocking port " + port + "?";
             }
 
             return NextResponse.json({ success: false, error: errorMessage, details: verifyError }, { status: 500 });

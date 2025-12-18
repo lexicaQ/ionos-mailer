@@ -118,16 +118,16 @@ export async function sendEmail({ to, subject, text, html, config, attachments }
 
         // Return specific error messages
         if (error.responseCode === 535) {
-            return { success: false, error: "Authentifizierung fehlgeschlagen (535). Prüfen Sie Benutzername/Passwort." };
+            return { success: false, error: "Authentication failed (535). Check username/password." };
         }
         if (error.responseCode === 550) {
-            return { success: false, error: "Empfänger abgelehnt (550). E-Mail-Adresse ungültig oder blockiert." };
+            return { success: false, error: "Recipient rejected (550). Email address invalid or blocked." };
         }
         if (error.code === 'ECONNREFUSED') {
-            return { success: false, error: "Verbindung verweigert. Prüfen Sie Host/Port." };
+            return { success: false, error: "Connection refused. Check host/port." };
         }
         if (error.code === 'ETIMEDOUT') {
-            return { success: false, error: "Verbindung Timeout. Server nicht erreichbar." };
+            return { success: false, error: "Connection timeout. Server not reachable." };
         }
         return { success: false, error: error.message };
     }

@@ -89,7 +89,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
     const handleFile = useCallback(async (file: File) => {
         setSelectedFile(file);
         setStage('parsing');
-        setProgress({ stage: 'loading', percent: 0, message: 'Starte...' });
+        setProgress({ stage: 'loading', percent: 0, message: 'Starting...' });
 
         abortControllerRef.current = new AbortController();
 
@@ -115,7 +115,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                 rawText: '',
                 structuredFields: {},
                 warnings: [],
-                errors: [error.message || 'Unbekannter Fehler'],
+                errors: [error.message || 'Unknown error'],
                 fileType: 'unknown',
                 fileName: file.name,
             });
@@ -137,7 +137,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
         if (result) {
             onImport(result);
             handleOpenChange(false);
-            toast.success(`${result.detectedRecipients.length} Empfänger importiert.`);
+            toast.success(`${result.detectedRecipients.length} recipients imported.`);
         }
     }, [result, onImport, handleOpenChange]);
 
@@ -175,7 +175,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-neutral-900 dark:text-white truncate">{result.fileName}</p>
-                        <p className="text-xs text-neutral-500 uppercase tracking-wider font-medium">{result.fileType} • {(result.detectedRecipients.length || 0)} Gefunden</p>
+                        <p className="text-xs text-neutral-500 uppercase tracking-wider font-medium">{result.fileType} • {(result.detectedRecipients.length || 0)} Found</p>
                     </div>
                 </div>
 
@@ -196,7 +196,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                     <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
                         <div className="bg-neutral-50 dark:bg-neutral-900 px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
                             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                E-Mail-Adressen
+                                Email Addresses
                             </span>
                             <Badge variant="outline" className="bg-white dark:bg-black text-neutral-900 dark:text-white border-neutral-200 dark:border-neutral-700">
                                 {result.detectedRecipients.length}
@@ -225,7 +225,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                 ) : (
                     <div className="text-center py-8 text-neutral-500 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg">
                         <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Keine E-Mail-Adressen gefunden.</p>
+                        <p className="text-sm">No email addresses found.</p>
                     </div>
                 )}
             </div>
@@ -236,8 +236,8 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
         <ResponsiveModal
             open={open}
             onOpenChange={handleOpenChange}
-            title="E-Mail-Adressen importieren"
-            description="Importieren Sie Empfänger aus Dateien. Es werden nur E-Mail-Adressen extrahiert."
+            title="Import Email Addresses"
+            description="Import recipients from files. Only email addresses will be extracted."
             className="sm:max-w-[500px] max-h-[85vh] flex flex-col bg-white dark:bg-black border-neutral-200 dark:border-neutral-800"
         >
             <div className="flex-1 overflow-hidden p-1">
@@ -256,10 +256,10 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                             <Upload className="h-6 w-6 text-neutral-900 dark:text-white" />
                         </div>
                         <p className="font-semibold text-neutral-900 dark:text-white mb-2">
-                            {isDragActive ? 'Loslassen zum Analysieren' : 'Datei hochladen'}
+                            {isDragActive ? 'Release to analyze' : 'Upload File'}
                         </p>
                         <p className="text-sm text-neutral-500 mb-6">
-                            Klicken oder Datei hierher ziehen
+                            Click or drag file here
                         </p>
                         <div className="flex flex-wrap justify-center gap-2 opacity-60">
                             {['JSON', 'PDF', 'EXCEL', 'CSV', 'WORD'].map((type) => (
@@ -283,7 +283,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                             <Progress value={progress.percent} className="h-1 w-full bg-neutral-100 dark:bg-neutral-900" indicatorClassName="bg-neutral-900 dark:bg-white" />
                         </div>
                         <Button variant="ghost" size="sm" onClick={handleCancel} className="text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
-                            Abbrechen
+                            Cancel
                         </Button>
                     </div>
                 )}
@@ -298,11 +298,11 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                         </div>
                         <div className="flex justify-end gap-3 pt-6 mt-2 border-t border-neutral-100 dark:border-neutral-900">
                             <Button variant="outline" onClick={handleCancel} className="border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-900">
-                                Abbrechen
+                                Cancel
                             </Button>
                             <Button onClick={handleApply} className="bg-neutral-900 dark:bg-white text-white dark:text-black hover:bg-black dark:hover:bg-neutral-200">
                                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                                {result.detectedRecipients.length} Importieren
+                                Import {result.detectedRecipients.length}
                             </Button>
                         </div>
                     </div>
@@ -316,7 +316,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                         </div>
                         <div className="text-center space-y-2 px-6">
                             <p className="font-medium text-neutral-900 dark:text-white">
-                                Analyse fehlgeschlagen
+                                Analysis failed
                             </p>
                             {result.errors.map((error, i) => (
                                 <p key={i} className="text-sm text-neutral-500">
@@ -325,7 +325,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                             ))}
                         </div>
                         <Button variant="outline" onClick={handleCancel} className="mt-4 border-neutral-200 dark:border-neutral-800">
-                            Erneut versuchen
+                            Try Again
                         </Button>
                     </div>
                 )}

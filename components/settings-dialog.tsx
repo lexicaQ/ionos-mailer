@@ -94,7 +94,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     }
 
     const triggerButton = (
-        <Button variant="outline" size="icon" title="SMTP Einstellungen">
+        <Button variant="outline" size="icon" title="SMTP Settings">
             <Settings className="h-4 w-4" />
         </Button>
     )
@@ -104,8 +104,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             open={open}
             onOpenChange={setOpen}
             trigger={triggerButton}
-            title="SMTP Einstellungen"
-            description="Konfigurieren Sie Ihre IONOS-Zugangsdaten"
+            title="SMTP Settings"
+            description="Configure your IONOS credentials"
             className="sm:max-w-[600px]"
         >
             <div className="grid gap-4 py-4">
@@ -126,13 +126,13 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
 
                 {/* Authentication */}
                 <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground">Authentifizierung</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground">Authentication</h4>
                     <div>
-                        <Label htmlFor="user" className="text-xs">E-Mail / Benutzer</Label>
-                        <Input id="user" value={user} onChange={e => setUser(e.target.value)} placeholder="email@ionos.de" />
+                        <Label htmlFor="user" className="text-xs">Email / User</Label>
+                        <Input id="user" value={user} onChange={e => setUser(e.target.value)} placeholder="email@ionos.com" />
                     </div>
                     <div>
-                        <Label htmlFor="pass" className="text-xs">Passwort</Label>
+                        <Label htmlFor="pass" className="text-xs">Password</Label>
                         <div className="relative">
                             <Input
                                 id="pass"
@@ -151,8 +151,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     </div>
                     <div className="flex items-center justify-between rounded-lg border p-3">
                         <div>
-                            <Label htmlFor="save-pass" className="text-sm font-medium">Passwort speichern</Label>
-                            <p className="text-xs text-muted-foreground">Im Browser-Cache speichern</p>
+                            <Label htmlFor="save-pass" className="text-sm font-medium">Save Password</Label>
+                            <p className="text-xs text-muted-foreground">Save in browser cache</p>
                         </div>
                         <Switch id="save-pass" checked={savePassword} onCheckedChange={setSavePassword} />
                     </div>
@@ -160,14 +160,14 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
 
                 {/* Sending Settings */}
                 <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground">Versand</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground">Sending</h4>
                     <div>
-                        <Label htmlFor="fromName" className="text-xs">Absender-Name (optional)</Label>
-                        <Input id="fromName" value={fromName} onChange={e => setFromName(e.target.value)} placeholder="Mein Unternehmen" />
+                        <Label htmlFor="fromName" className="text-xs">Sender Name (optional)</Label>
+                        <Input id="fromName" value={fromName} onChange={e => setFromName(e.target.value)} placeholder="My Company" />
                     </div>
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <Label className="text-xs">Verzögerung zwischen E-Mails</Label>
+                            <Label className="text-xs">Delay between emails</Label>
                             <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{(delay / 1000).toFixed(1)}s</span>
                         </div>
                         <Slider
@@ -177,14 +177,14 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             step={100}
                             onValueChange={(vals) => setDelay(vals[0])}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">Empfohlen: 0.5-2s um Rate-Limits zu vermeiden</p>
+                        <p className="text-xs text-muted-foreground mt-1">Recommended: 0.5-2s to avoid rate limits</p>
                     </div>
                 </div>
             </div>
 
             {/* Debug / Test */}
             <div className="space-y-4 pt-4 border-t">
-                <h4 className="text-sm font-medium text-muted-foreground">Diagnose & Test</h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Diagnosis & Test</h4>
 
                 {/* Status Message Display */}
                 {statusMsg && (
@@ -199,8 +199,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 {/* Connection Test */}
                 <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                        <p>SMTP-Verbindung testen</p>
-                        <p>(Prüft Passwort und Server)</p>
+                        <p>Test SMTP Connection</p>
+                        <p>(Checks password and server)</p>
                     </div>
                     <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
                         setTesting(true);
@@ -213,25 +213,25 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             });
                             const data = await res.json();
                             if (data.success) {
-                                setStatusMsg({ type: 'success', text: "Verbindung erfolgreich!" });
+                                setStatusMsg({ type: 'success', text: "Connection successful!" });
                             } else {
                                 setStatusMsg({ type: 'error', text: data.error + (data.details ? ` (${JSON.stringify(data.details)})` : "") });
                             }
                         } catch (e: any) {
-                            setStatusMsg({ type: 'error', text: "Netzwerkfehler: " + e.message });
+                            setStatusMsg({ type: 'error', text: "Network error: " + e.message });
                         } finally {
                             setTesting(false);
                         }
                     }}>
                         {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <Zap className="h-3 w-3 mr-2 text-amber-500" />}
-                        Verbindung testen
+                        Test Connection
                     </Button>
                 </div>
 
                 <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                        <p>Cron-Job manuell starten</p>
-                        <p>(Verarbeitet wartende E-Mails)</p>
+                        <p>Manual Cron Start</p>
+                        <p>(Processes pending emails)</p>
                     </div>
                     <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
                         setTesting(true);
@@ -242,39 +242,39 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             });
                             const data = await res.json();
                             if (res.ok) {
-                                setStatusMsg({ type: 'success', text: `Verarbeitet: ${data.processed}. Nächster Job getriggert.` });
+                                setStatusMsg({ type: 'success', text: `Processed: ${data.processed}. Next job triggered.` });
                             } else {
-                                setStatusMsg({ type: 'error', text: "Fehler: " + data.error });
+                                setStatusMsg({ type: 'error', text: "Error: " + data.error });
                             }
                         } catch (e: any) {
-                            setStatusMsg({ type: 'error', text: "Fehler: " + e.message });
+                            setStatusMsg({ type: 'error', text: "Error: " + e.message });
                         } finally {
                             setTesting(false);
                         }
                     }}>
                         {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
-                        Cron starten
+                        Start Cron
                     </Button>
                 </div>
             </div>
 
             {/* Data Management */}
             <div className="space-y-4 pt-4 border-t">
-                <h4 className="text-sm font-medium text-muted-foreground">Datenverwaltung</h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Data Management</h4>
                 <div className="flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">
-                        <p>App zurücksetzen</p>
-                        <p>(Löscht Verlauf & Einstellungen)</p>
+                        <p>Reset App</p>
+                        <p>(Deletes history & settings)</p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => {
-                        if (confirm("Möchten Sie wirklich alle lokalen Daten (Verlauf, Einstellungen) löschen?")) {
+                        if (confirm("Do you really want to delete all local data (history, settings)?")) {
                             localStorage.removeItem("ionos-mailer-history");
                             localStorage.removeItem("smtp-config-full");
                             window.location.reload();
                         }
                     }}>
                         <Trash2 className="h-3 w-3 mr-2" />
-                        Alle Daten löschen
+                        Delete All Data
                     </Button>
                 </div>
             </div>
@@ -282,11 +282,11 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 mt-6">
                 <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
                     <RotateCcw className="h-4 w-4 mr-2" />
-                    Zurücksetzen
+                    Reset
                 </Button>
                 <Button onClick={handleSave}>
                     <Save className="h-4 w-4 mr-2" />
-                    Speichern
+                    Save
                 </Button>
             </div>
         </ResponsiveModal>

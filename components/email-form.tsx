@@ -72,7 +72,7 @@ export function EmailForm() {
 
     const onSubmit = useCallback(async (data: EmailFormValues) => {
         if (!smtpSettings) {
-            toast.error("Bitte konfigurieren Sie zuerst die SMTP-Einstellungen (Zahnrad-Symbol).");
+            toast.error("Please configure the SMTP settings first (gear icon).");
             return;
         }
 
@@ -105,13 +105,13 @@ export function EmailForm() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Fehler beim Senden");
+                throw new Error(errorData.error || "Sending failed");
             }
 
             const resultData = await response.json();
 
             if (useBackground) {
-                toast.success(`Kampagne gestartet! ${resultData.jobCount} E-Mails geplant.`);
+                toast.success(`Campaign started! ${resultData.jobCount} emails scheduled.`);
                 setCurrentResults([]);
             } else {
                 const results: SendResult[] = resultData.results;
@@ -129,11 +129,11 @@ export function EmailForm() {
                 };
                 setHistory(prev => [...prev, newBatch]);
 
-                toast.success("Versand abgeschlossen");
+                toast.success("Delivery completed");
             }
 
         } catch (error: any) {
-            toast.error(error.message || "Ein unerwarteter Fehler ist aufgetreten");
+            toast.error(error.message || "An unexpected error occurred");
             console.error(error);
         } finally {
             setIsSending(false);
@@ -172,7 +172,7 @@ export function EmailForm() {
                 const hasSeenWarning = localStorage.getItem("ionos-mailer-seen-warning");
                 if (!hasSeenWarning) {
                     e.preventDefault();
-                    e.returnValue = "Der Versand läuft im Hintergrund weiter, aber mit Verzögerung. Möchten Sie wirklich schließen?";
+                    e.returnValue = "The delivery will continue in the background, but with a delay. Do you really want to close?";
                     localStorage.setItem("ionos-mailer-seen-warning", "true");
                     return e.returnValue;
                 }
@@ -189,12 +189,12 @@ export function EmailForm() {
 
     const handleDeleteBatch = (id: string) => {
         setHistory(prev => prev.filter(b => b.id !== id));
-        toast.success("Kampagne gelöscht");
+        toast.success("Campaign deleted");
     }
 
     const handleClearAllHistory = () => {
         setHistory([]);
-        toast.success("Verlauf gelöscht");
+        toast.success("History cleared");
     }
 
     const handleLoadDraft = useCallback((draft: EmailDraft) => {
@@ -212,7 +212,7 @@ export function EmailForm() {
 
                 // Add visual placeholder for removed images if needed, or just leave broken
                 if (clean.includes('data-removed="blob-url"')) {
-                    clean = clean.replace(/<img[^>]*data-removed="blob-url"[^>]*>/g, '<span class="text-xs text-muted-foreground italic">[Bild entfernt: Ungültige Quelle]</span>');
+                    clean = clean.replace(/<img[^>]*data-removed="blob-url"[^>]*>/g, '<span class="text-xs text-muted-foreground italic">[Image removed: Invalid source]</span>');
                 }
                 return clean;
             };
@@ -246,13 +246,13 @@ export function EmailForm() {
 
             // Safety check for user feedback
             if (safeBody !== draft.body) {
-                toast.success(`Entwurf "${draft.name}" geladen (Ungültige Bilder entfernt)`);
+                toast.success(`Draft "${draft.name}" loaded (Invalid images removed)`);
             } else {
-                toast.success(`Entwurf "${draft.name}" geladen`);
+                toast.success(`Draft "${draft.name}" loaded`);
             }
         } catch (error: any) {
             console.error("Critical error loading draft:", error);
-            toast.error("Fehler beim Laden des Entwurfs: " + error.message);
+            toast.error("Error loading draft: " + error.message);
         }
     }, [form, smtpSettings]);
 
@@ -299,7 +299,7 @@ export function EmailForm() {
             }
         } catch (error: any) {
             console.error('Error applying file import:', error);
-            toast.error('Fehler beim Anwenden des Imports');
+            toast.error('Error applying import');
         }
     }, [form]);
 
@@ -312,8 +312,8 @@ export function EmailForm() {
                         <Sparkles className="h-5 w-5 text-white dark:text-black" />
                     </div>
                     <div>
-                        <h2 className="font-bold text-lg">Neue Nachricht</h2>
-                        <p className="text-sm text-neutral-500">E-Mails an mehrere Empfänger versenden</p>
+                        <h2 className="font-bold text-lg">New Message</h2>
+                        <p className="text-sm text-neutral-500">Send emails to multiple recipients</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -343,10 +343,10 @@ export function EmailForm() {
                         name="subject"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-sm font-semibold">Betreff</FormLabel>
+                                <FormLabel className="text-sm font-semibold">Subject</FormLabel>
                                 <FormControl>
                                     <Input
-                                        placeholder="z.B. Einladung zum Sommerfest 2024"
+                                        placeholder="e.g. Invitation to Summer Party 2024"
                                         {...field}
                                         disabled={isSending}
                                         className="h-12 text-base"
@@ -368,10 +368,10 @@ export function EmailForm() {
                                 size="sm"
                                 onClick={() => setFileImportOpen(true)}
                                 className="gap-2 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
-                                title="E-Mail-Adressen aus Datei laden"
+                                title="Load email addresses from file"
                             >
                                 <FileUp className="h-4 w-4" />
-                                E-Mail-Adressen importieren
+                                Import Email Addresses
                             </Button>
                         }
                     />
@@ -386,7 +386,7 @@ export function EmailForm() {
                         name="body"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-sm font-semibold">Nachricht</FormLabel>
+                                <FormLabel className="text-sm font-semibold">Message</FormLabel>
                                 <FormControl>
                                     <RichTextEditor
                                         key={editorKey} // Force reset on load
@@ -397,7 +397,7 @@ export function EmailForm() {
                                             form.setValue('attachments', atts);
                                             setCurrentAttachments(atts);
                                         }}
-                                        placeholder="Geben Sie hier Ihre Nachricht ein..."
+                                        placeholder="Enter your message here..."
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -413,8 +413,8 @@ export function EmailForm() {
                                     <Clock className="h-4 w-4 text-white dark:text-black" />
                                 </div>
                                 <div>
-                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Hintergrund-Versand</Label>
-                                    <p className="text-xs text-neutral-500">E-Mails werden über Zeit verteilt gesendet</p>
+                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Background Delivery</Label>
+                                    <p className="text-xs text-neutral-500">Emails are sent distributed over time</p>
                                 </div>
                             </div>
                             <Switch id="bg-mode" checked={useBackground} onCheckedChange={setUseBackground} />
@@ -427,10 +427,10 @@ export function EmailForm() {
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-sm font-semibold">Kampagnen-Name (Optional)</FormLabel>
+                                            <FormLabel className="text-sm font-semibold">Campaign Name (Optional)</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="z.B. Newsletter Dezember 2024"
+                                                    placeholder="e.g. Newsletter December 2024"
                                                     {...field}
                                                     disabled={isSending}
                                                     className="h-10"
@@ -442,7 +442,7 @@ export function EmailForm() {
                                 />
                                 <div>
                                     <div className="flex items-center justify-between mb-3">
-                                        <Label className="text-sm font-medium">Verteilungsdauer</Label>
+                                        <Label className="text-sm font-medium">Distribution Duration</Label>
                                         <span className="text-sm font-mono bg-white dark:bg-neutral-800 px-3 py-1 rounded-lg shadow-sm">
                                             {durationMinutes >= 60
                                                 ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
@@ -460,38 +460,38 @@ export function EmailForm() {
                                     />
                                     <div className="flex justify-between text-xs text-neutral-500 mt-2">
                                         <span>1 min</span>
-                                        <span>24 Stunden</span>
+                                        <span>24 hours</span>
                                     </div>
                                 </div>
                                 <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
                                     <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-neutral-800">
-                                        <p className="text-sm font-semibold">Versand-Zeitplan</p>
-                                        <p className="text-xs font-mono">{recipients.length} Empfänger</p>
+                                        <p className="text-sm font-semibold">Delivery Schedule</p>
+                                        <p className="text-xs font-mono">{recipients.length} Recipients</p>
                                     </div>
                                     <div className="space-y-2 text-xs">
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Intervall:</span>
+                                            <span className="text-muted-foreground">Interval:</span>
                                             <span className="font-mono">
                                                 {recipients.length > 1
-                                                    ? `Alle ${(durationMinutes / (recipients.length - 1)).toFixed(1)} Minuten`
-                                                    : "Sofort"}
+                                                    ? `Every ${(durationMinutes / (recipients.length - 1)).toFixed(1)} minutes`
+                                                    : "Immediate"}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Start:</span>
-                                            <span className="font-mono">Sofort</span>
+                                            <span className="font-mono">Immediate</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Ende ca.:</span>
+                                            <span className="text-muted-foreground">End approx.:</span>
                                             <span className="font-mono">
                                                 {recipients.length > 1
-                                                    ? format(new Date(Date.now() + durationMinutes * 60000), "HH:mm") + " Uhr"
-                                                    : "Sofort"}
+                                                    ? format(new Date(Date.now() + durationMinutes * 60000), "HH:mm")
+                                                    : "Immediate"}
                                             </span>
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-muted-foreground pt-2 border-t border-neutral-200 dark:border-neutral-800">
-                                        Der Browser muss nicht geöffnet bleiben. Der Server übernimmt den Versand.
+                                        The browser does not need to stay open. The server handles the delivery.
                                     </p>
                                 </div>
                             </div>
@@ -514,12 +514,12 @@ export function EmailForm() {
                             {isSending ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    {useBackground ? "Kampagne wird erstellt..." : "E-Mails werden gesendet..."}
+                                    {useBackground ? "Creating Campaign..." : "Sending Emails..."}
                                 </>
                             ) : (
                                 <>
                                     {useBackground ? <Clock className="mr-2 h-5 w-5" /> : <Send className="mr-2 h-5 w-5" />}
-                                    {useBackground ? "Kampagne starten" : `${recipients.length} E-Mail${recipients.length !== 1 ? 's' : ''} versenden`}
+                                    {useBackground ? "Start Campaign" : `Send ${recipients.length} Email${recipients.length !== 1 ? 's' : ''}`}
                                 </>
                             )}
                         </Button>
