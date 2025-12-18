@@ -199,7 +199,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             </div>
                             <div>
                                 <Label htmlFor="port" className="text-xs mb-2 block">Port</Label>
-                                <Input id="port" value={port} onChange={e => setPort(e.target.value)} />
+                                <Input id="port" value={port} onChange={e => setPort(e.target.value)} autoComplete="off" />
                             </div>
                         </div>
                     </div>
@@ -209,7 +209,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         <h4 className="text-sm font-medium text-muted-foreground">Authentication</h4>
                         <div>
                             <Label htmlFor="user" className="text-xs mb-2 block">Email / User</Label>
-                            <Input id="user" value={user} onChange={e => setUser(e.target.value)} placeholder="email@ionos.com" />
+                            <Input id="user" value={user} onChange={e => setUser(e.target.value)} placeholder="email@ionos.com" autoComplete="off" />
                         </div>
                         <div>
                             <Label htmlFor="pass" className="text-xs mb-2 block">Password</Label>
@@ -219,6 +219,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                     type={showPassword ? "text" : "password"}
                                     value={pass}
                                     onChange={e => setPass(e.target.value)}
+                                    autoComplete="new-password"
                                 />
                                 <button
                                     type="button"
@@ -243,7 +244,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         <h4 className="text-sm font-medium text-muted-foreground">Sending</h4>
                         <div>
                             <Label htmlFor="fromName" className="text-xs mb-2 block">Sender Name (optional)</Label>
-                            <Input id="fromName" value={fromName} onChange={e => setFromName(e.target.value)} placeholder="My Company" />
+                            <Input id="fromName" value={fromName} onChange={e => setFromName(e.target.value)} placeholder="My Company" autoComplete="off" />
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-3">
@@ -260,6 +261,18 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             <p className="text-xs text-muted-foreground mt-1">Recommended: 0.5-2s to avoid rate limits</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Actions (Save / Reset) - Middle */}
+                <div className="flex items-center justify-between py-2 border-t border-neutral-100 dark:border-neutral-800 my-2">
+                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600 h-9 px-2">
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reset
+                    </Button>
+                    <Button onClick={handleSave} className="px-6">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Configuration
+                    </Button>
                 </div>
 
                 {/* Debug / Test */}
