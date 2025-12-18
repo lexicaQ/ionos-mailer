@@ -24,7 +24,7 @@ export async function GET(req: Request) {
                 },
                 status: { in: ['SENT', 'FAILED'] }
             },
-            take: 1000,
+            take: 50, // Limit to 50 for performance (Lazy Load)
             orderBy: { createdAt: 'desc' },
             include: { campaign: true } // Need campaign to verify ownership context if needed
         })
