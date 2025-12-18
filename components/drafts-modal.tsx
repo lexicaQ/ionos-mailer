@@ -175,10 +175,10 @@ export function DraftsModal({
                 open={open}
                 onOpenChange={setOpen}
                 title="My Drafts"
-                className="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 gap-0 rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
+                className="sm:max-w-[650px] max-h-[85vh] flex flex-col rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
             >
                 {/* Header Content handled by ResponsiveModal title, but we have custom search bar */}
-                <div className="px-5 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818]">
+                <div className="px-6 py-6 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818]">
                     {/* Search integrated in header for cleaner look */}
                     <div className="mt-0 relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -204,7 +204,7 @@ export function DraftsModal({
                                 <p className="text-sm font-medium">No drafts found</p>
                             </div>
                         ) : (
-                            <div className="p-4 space-y-3">
+                            <div className="p-6 pb-12 space-y-4">
                                 {filteredDrafts.map((draft) => {
                                     const imageCount = countImagesInBody(draft.body);
                                     const attachmentCount = draft.attachments?.length || 0;
@@ -278,7 +278,7 @@ export function DraftsModal({
                 description={currentAttachments.length > 0 ? "Attachments will be saved." : "Choose a name for your draft."}
                 className="sm:max-w-[425px] bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
             >
-                <div className="py-4 space-y-4">
+                <div className="py-6 space-y-6">
                     {selectedDraftId && (
                         <Badge variant="outline" className="mb-2 bg-neutral-50 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700">
                             Overwrite existing draft
