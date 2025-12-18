@@ -158,10 +158,11 @@ async function parsePDF(file: File, options: ParseOptions): Promise<ExtractionRe
 
     try {
         const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        // Use local worker instead of CDN for reliability
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
         const arrayBuffer = await readFileAsArrayBuffer(file);
-        options.onProgress?.({ stage: 'parsing', percent: 30, message: 'Analyzing PDF...' });
+        options.onProgress?.({ stage: 'parsing', percent: 20, message: 'Analyzing document structure...' });
 
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const numPages = pdf.numPages;
@@ -181,8 +182,8 @@ async function parsePDF(file: File, options: ParseOptions): Promise<ExtractionRe
 
             options.onProgress?.({
                 stage: 'parsing',
-                percent: 30 + Math.round((i / pagesToProcess) * 50),
-                message: `Page ${i} of ${numPages}...`
+                percent: 20 + Math.round((i / pagesToProcess) * 60),
+                message: `Reading page ${i} of ${numPages}...`
             });
         }
 
@@ -450,14 +451,26 @@ async function parseImage(file: File, options: ParseOptions): Promise<Extraction
     const fileName = file.name;
     const fileType = 'image';
 
-    options.onProgress?.({ stage: 'loading', percent: 5, message: 'Loading image...' });
+    options.onProgress?.({ stage: 'loading', percent: 5, message: 'Initialising OCR...' });
 
     try {
-        const Tesseract = await import('tesseract.js');
-        options.onProgress?.({ stage: 'ocr', percent: 10, message: 'OCR in progress...' });
+        const { createWorker } = await import('tesseract.js');
+        const worker = await createWorker(options.ocrLanguages?.join('+') || 'eng+deu', 1, {
+            logger: m => {
+                if (m.status === 'recognizing text') {
+                    options.onProgress?.({
+                        stage: 'ocr',
+                        percent: 10 + Math.round(m.progress * 80),
+                        message: `OCR: ${Math.round(m.progress * 100)}%`
+                    });
+                }
+            }
+        });
 
-        const result = await Tesseract.recognize(file, 'eng+deu');
+        const result = await worker.recognize(file);
         const detectedRecipients = extractEmailsFromText(result.data.text);
+
+        await worker.terminate();
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
 
