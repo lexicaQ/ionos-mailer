@@ -471,13 +471,14 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                                         onChange={(e) => setImageUrl(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && addImage()}
                                     />
-                                    <Button onClick={addImage}>Insert</Button>
+                                    <Button type="button" onClick={addImage}>Insert</Button>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Or upload</label>
                                 <div className="flex gap-2">
                                     <Button
+                                        type="button"
                                         variant="outline"
                                         onClick={() => fileInputRef.current?.click()}
                                         className="w-full"

@@ -519,11 +519,10 @@ async function parseImage(file: File, options: ParseOptions): Promise<Extraction
         });
 
         // Configure optimized parameters for email list extraction
-        // PSM 6: Assume a single uniform block of text
-        // Whitelist: common characters for emails and names, excluding complex scripts (e.g. Chinese) to prevent noise
+        // PSM 6: Assume a single uniform block of text - better for lists
+        // Removed whitelist as it was too restrictive and blocked valid email characters
         await worker.setParameters({
             tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-            tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@._-!#$%&\'*+/=?^`{|}~:;,<>()[]{}" ',
         });
 
         const result = await worker.recognize(file);

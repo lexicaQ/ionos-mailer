@@ -185,7 +185,7 @@ export function DraftsModal({
                 open={open}
                 onOpenChange={setOpen}
                 title="My Drafts"
-                className="sm:max-w-[650px] max-h-[85vh] flex flex-col rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
+                className="sm:max-w-[700px] max-h-[90vh] flex flex-col rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
             >
                 {/* Header Content handled by ResponsiveModal title, but we have custom search bar */}
                 <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818] space-y-4">
@@ -203,8 +203,10 @@ export function DraftsModal({
                     </div>
 
                     {/* Filter Tabs */}
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-neutral-500 mr-1">Filter:</span>
                         <Button
+                            type="button"
                             variant={filterType === 'all' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setFilterType('all')}
@@ -213,6 +215,7 @@ export function DraftsModal({
                             All
                         </Button>
                         <Button
+                            type="button"
                             variant={filterType === 'images' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setFilterType('images')}
@@ -222,6 +225,7 @@ export function DraftsModal({
                             Images
                         </Button>
                         <Button
+                            type="button"
                             variant={filterType === 'attachments' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setFilterType('attachments')}
