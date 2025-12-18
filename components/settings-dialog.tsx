@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud } from "lucide-react"
-import { PasskeyManager } from "@/components/passkey-manager"
+
 
 
 
@@ -119,27 +119,27 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 <div className="grid gap-6 py-4">
                     {/* Cloud Sync Status (if logged in) */}
                     {session?.user && (
-                        <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 space-y-3">
+                        <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                    <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400">
                                         <Cloud className="h-4 w-4" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Connected as</p>
-                                        <p className="text-xs text-emerald-700 dark:text-emerald-400">{session.user.email}</p>
+                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-200">Connected as</p>
+                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">{session.user.email}</p>
                                     </div>
                                 </div>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+                                    className="h-8 border-neutral-200 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
                                     onClick={() => signOut()}
                                 >
                                     Disconnect
                                 </Button>
                             </div>
-                            <div className="text-[10px] text-emerald-600/80 dark:text-emerald-500/80 flex gap-4">
+                            <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex gap-4">
                                 <span className="flex items-center gap-1">✓ Drafts Syncing</span>
                                 <span className="flex items-center gap-1">✓ History Syncing</span>
                             </div>
@@ -296,9 +296,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
 
                 {/* Passkey Management */}
-                <div className="space-y-4 pt-6 border-t mt-2">
-                    <PasskeyManager />
-                </div>
+
 
                 {/* Data Management */}
                 <div className="space-y-4 pt-8 border-t mt-4 pb-6">
