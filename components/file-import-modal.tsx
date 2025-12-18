@@ -202,23 +202,27 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
         disabled: stage === 'parsing',
     });
 
-    // Preview content
+    // Preview content - Grouped by File
     const previewContent = useMemo(() => {
         if (!result) return null;
 
+        // Group recipients by source file
+        const groupedMap = new Map<string, DetectedRecipient[]>();
+        result.detectedRecipients.forEach(r => {
+            const key = r.sourceFile || 'Unknown Source';
+            if (!groupedMap.has(key)) groupedMap.set(key, []);
+            groupedMap.get(key)!.push(r);
+        });
+
+        // Sort files largely by name, but put "Unknown" last if any
+        const sortedFiles = Array.from(groupedMap.keys()).sort((a, b) => {
+            if (a === 'Unknown Source') return 1;
+            if (b === 'Unknown Source') return -1;
+            return a.localeCompare(b);
+        });
+
         return (
             <div className="space-y-6">
-                {/* File Info Card (Monochrome) */}
-                <div className="flex items-center gap-4 p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-black">
-                    <div className="p-2 bg-neutral-100 dark:bg-neutral-900 rounded-md">
-                        {getFileIcon(result.fileType)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-neutral-900 dark:text-white break-words">{result.fileName}</p>
-                        <p className="text-xs text-neutral-500 uppercase tracking-wider font-medium">{result.fileType} • {(result.detectedRecipients.length || 0)} Found</p>
-                    </div>
-                </div>
-
                 {/* Warnings (Monochrome) */}
                 {result.warnings.length > 0 && (
                     <div className="space-y-2">
@@ -231,44 +235,58 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                     </div>
                 )}
 
-                {/* Recipients List (Professional Table Look) */}
+                {/* Recipients List (Grouped by File) */}
                 {result.detectedRecipients.length > 0 ? (
-                    <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-                        <div className="bg-neutral-50 dark:bg-neutral-900 px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                                Email Addresses
-                            </span>
-                            <Badge variant="outline" className="bg-white dark:bg-black text-neutral-900 dark:text-white border-neutral-200 dark:border-neutral-700">
-                                {result.detectedRecipients.length}
-                            </Badge>
-                        </div>
-                        <ScrollArea className="h-[250px] bg-white dark:bg-black">
-                            <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {result.detectedRecipients.map((r, i) => (
-                                    <li key={i} className="px-4 py-3 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors">
-                                        <div className="h-2 w-2 rounded-full bg-neutral-300 dark:bg-neutral-700 shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                                                {r.email}
-                                            </p>
-                                            {r.name && (
-                                                <p className="text-xs text-neutral-500 break-words">
-                                                    {r.name}
+                    <div className="space-y-6">
+                        {sortedFiles.map(fileName => {
+                            const recipients = groupedMap.get(fileName) || [];
+                            const extension = fileName.split('.').pop()?.toLowerCase() || '';
+
+                            return (
+                                <div key={fileName} className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
+                                    {/* File Header */}
+                                    <div className="bg-neutral-50 dark:bg-neutral-900 px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-1.5 bg-white dark:bg-black rounded border border-neutral-200 dark:border-neutral-800 text-neutral-500">
+                                                {getFileIcon(extension)}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-sm text-neutral-900 dark:text-white break-all line-clamp-1" title={fileName}>
+                                                    {fileName}
                                                 </p>
-                                            )}
-                                            {r.sourceFile && (
-                                                <p className="text-[10px] text-neutral-400 break-words">
-                                                    from: {r.sourceFile}
-                                                </p>
-                                            )}
+                                            </div>
                                         </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </ScrollArea>
+                                        <Badge variant="outline" className="bg-white dark:bg-black text-neutral-900 dark:text-white border-neutral-200 dark:border-neutral-700">
+                                            {recipients.length}
+                                        </Badge>
+                                    </div>
+
+                                    {/* Emails in this file */}
+                                    <div className="bg-white dark:bg-black">
+                                        <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                            {recipients.map((r, i) => (
+                                                <li key={i} className="px-4 py-2.5 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-neutral-300 dark:bg-neutral-700 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                                                            {r.email}
+                                                        </p>
+                                                        {r.name && (
+                                                            <p className="text-xs text-neutral-500 truncate">
+                                                                {r.name}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 ) : (
-                    <div className="text-center py-8 text-neutral-500 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg">
+                    <div className="text-center py-12 text-neutral-500 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-lg">
                         <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No email addresses found.</p>
                     </div>
@@ -317,20 +335,46 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                 )}
 
                 {/* Stage: Parsing - Progress (Monochrome) */}
+                {/* Stage: Parsing - Modern Radar Scan Animation */}
                 {stage === 'parsing' && progress && (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-6">
-                        <div className="relative">
-                            <Loader2 className="h-10 w-10 animate-spin text-neutral-900 dark:text-white" />
+                    <div className="flex flex-col items-center justify-center py-20">
+                        {/* Radar Animation */}
+                        <div className="relative h-24 w-24 flex items-center justify-center mb-8">
+                            <div className="absolute h-full w-full rounded-full bg-neutral-900/5 dark:bg-white/5 animate-ping duration-1000" />
+                            <div className="absolute h-16 w-16 rounded-full bg-neutral-900/10 dark:bg-white/10 animate-ping delay-150 duration-1000" />
+                            <div className="relative h-12 w-12 rounded-full bg-neutral-900 dark:bg-white flex items-center justify-center shadow-xl z-10">
+                                <Loader2 className="h-6 w-6 text-white dark:text-black animate-spin" />
+                            </div>
                         </div>
-                        <div className="text-center space-y-2 w-full px-8">
-                            <p className="font-medium text-neutral-900 dark:text-white break-words">
-                                {selectedFiles.length > 1 ? `${selectedFiles.length} files` : selectedFiles[0]?.name || 'Processing...'}
+
+                        {/* Minimalist Text */}
+                        <div className="text-center space-y-3 max-w-sm px-6">
+                            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                                Analyzing Files...
+                            </h3>
+
+                            {/* Subtle Progress Bar */}
+                            <div className="w-48 mx-auto h-1 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-neutral-900 dark:bg-white transition-all duration-300 ease-out"
+                                    style={{ width: `${progress.percent}%` }}
+                                />
+                            </div>
+
+                            <p className="text-xs text-neutral-400 font-medium pt-2">
+                                {selectedFiles.length > 1
+                                    ? `Scanning ${currentFileIndex + 1} of ${selectedFiles.length}`
+                                    : 'Extracting data...'}
                             </p>
-                            <p className="text-xs text-neutral-500 font-mono uppercase tracking-widest">{progress.message}</p>
-                            <Progress value={progress.percent} className="h-1 w-full bg-neutral-100 dark:bg-neutral-900" indicatorClassName="bg-neutral-900 dark:bg-white" />
                         </div>
-                        <Button variant="ghost" size="sm" onClick={handleCancel} className="text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
-                            Cancel
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancel}
+                            className="mt-8 text-xs text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                        >
+                            Cancel Operation
                         </Button>
                     </div>
                 )}
