@@ -371,12 +371,23 @@ export function EmailForm() {
                     id: r.id || crypto.randomUUID()
                 }));
 
-                // Merge with existing (avoid duplicates)
-                const existingEmails = new Set(currentRecipients.map(r => r.email.toLowerCase()));
-                const uniqueNew = newRecipients.filter(r => !existingEmails.has(r.email.toLowerCase()));
+                // Deduplicate and Merge Robustly
+                const uniqueMap = new Map();
 
-                if (uniqueNew.length > 0) {
-                    const merged = [...currentRecipients, ...uniqueNew];
+                // 1. Keep existing recipients
+                currentRecipients.forEach(r => uniqueMap.set(r.email.toLowerCase(), r));
+
+                // 2. Add new unique recipients
+                let addedCount = 0;
+                newRecipients.forEach(r => {
+                    if (!uniqueMap.has(r.email.toLowerCase())) {
+                        uniqueMap.set(r.email.toLowerCase(), r);
+                        addedCount++;
+                    }
+                });
+
+                if (addedCount > 0) {
+                    const merged = Array.from(uniqueMap.values());
                     form.setValue('recipients', merged, { shouldValidate: true });
                     setLoadedRecipients(merged);
                 }

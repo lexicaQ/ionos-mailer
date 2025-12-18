@@ -140,9 +140,9 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
             }
         }
 
-        // Deduplicate by email
+        // Deduplicate by email (Case-insensitive)
         const uniqueRecipients = Array.from(
-            new Map(aggregatedRecipients.map(r => [r.email, r])).values()
+            new Map(aggregatedRecipients.map(r => [r.email.toLowerCase(), r])).values()
         );
 
         const finalResult: ExtractionResult = {
