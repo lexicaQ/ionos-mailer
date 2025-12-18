@@ -79,26 +79,35 @@
 }
 
 .dark {
-  --background: oklch(0.1 0 0); /* Blacker */
-  --foreground: oklch(0.985 0 0); /* White */
-  --card: oklch(0.14 0 0); /* Dark Grey */
+  --background: oklch(0.1 0 0);
+  /* Blacker */
+  --foreground: oklch(0.985 0 0);
+  /* White */
+  --card: oklch(0.14 0 0);
+  /* Dark Grey */
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.14 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0); /* White for primary actions in dark mode */
-  --primary-foreground: oklch(0.1 0 0); /* Black text on white primary */
+  --primary: oklch(0.985 0 0);
+  /* White for primary actions in dark mode */
+  --primary-foreground: oklch(0.1 0 0);
+  /* Black text on white primary */
   --secondary: oklch(0.2 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.2 0 0);
   --muted-foreground: oklch(0.7 0 0);
   --accent: oklch(0.2 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.3 0 0); /* Keep destructive slightly distinct or just grey? User said "only black grey or white" but destructive usually needs color. I will make it dark grey for now but typically red is needed for errors. I'll stick to grey as requested. */
-  --destructive: oklch(0.9 0 0); /* Let's keep red but desaturated? No, user said ONLY black grey white. */
-  --destructive: oklch(0.6 0 0); /* Grey error */
+  --destructive: oklch(0.3 0 0);
+  /* Keep destructive slightly distinct or just grey? User said "only black grey or white" but destructive usually needs color. I will make it dark grey for now but typically red is needed for errors. I'll stick to grey as requested. */
+  --destructive: oklch(0.9 0 0);
+  /* Let's keep red but desaturated? No, user said ONLY black grey white. */
+  --destructive: oklch(0.6 0 0);
+  /* Grey error */
   --border: oklch(0.25 0 0);
   --input: oklch(0.25 0 0);
-  --ring: oklch(0.8 0 0); /* Light grey ring */
+  --ring: oklch(0.8 0 0);
+  /* Light grey ring */
   --chart-1: oklch(0.9 0 0);
   --chart-2: oklch(0.7 0 0);
   --chart-3: oklch(0.5 0 0);
@@ -118,6 +127,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -172,7 +182,7 @@
   margin-bottom: 0.25em;
 }
 
-.prose li > p {
+.prose li>p {
   margin: 0;
 }
 
@@ -193,8 +203,9 @@
 }
 
 .prose a {
-  color: #2563eb;
+  color: #000000;
   text-decoration: underline;
+  font-weight: 500;
 }
 
 .prose img {
@@ -213,5 +224,5 @@
 }
 
 .dark .prose a {
-  color: #60a5fa;
+  color: #ffffff;
 }

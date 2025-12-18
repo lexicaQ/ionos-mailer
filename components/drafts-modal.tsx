@@ -237,7 +237,7 @@ export function DraftsModal({
 
                                                 {/* Attachments */}
                                                 {attachmentCount > 0 && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-medium" title={draft.attachments?.map(a => a.name).join(', ')}>
+                                                    <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400 font-medium" title={draft.attachments?.map(a => a.name).join(', ')}>
                                                         <Paperclip className="h-3.5 w-3.5" />
                                                         {attachmentCount} File{attachmentCount !== 1 ? 's' : ''}
                                                     </div>
@@ -280,13 +280,13 @@ export function DraftsModal({
             >
                 <div className="py-4 space-y-4">
                     {selectedDraftId && (
-                        <Badge variant="outline" className="mb-2 bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
+                        <Badge variant="outline" className="mb-2 bg-neutral-50 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700">
                             Overwrite existing draft
                         </Badge>
                     )}
                     {/* Explicit info about attachments - render inside content as well if needed, or rely on description */}
                     {currentAttachments.length > 0 && (
-                        <span className="flex items-center gap-2 mb-2 text-sm text-blue-500">
+                        <span className="flex items-center gap-2 mb-2 text-sm text-neutral-500">
                             <Paperclip className="h-4 w-4" />
                             {currentAttachments.length} Attachments
                         </span>
