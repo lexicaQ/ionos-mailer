@@ -291,7 +291,7 @@ export function DraftsModal({
 
                                                 {/* Images */}
                                                 {imageCount > 0 && (
-                                                    <div className="flex items-center gap-1.5 text-xs text-purple-600 dark:text-purple-400 font-medium">
+                                                    <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400 font-medium">
                                                         <ImageIconLucide className="h-3.5 w-3.5" />
                                                         {imageCount} Image{imageCount !== 1 ? 's' : ''}
                                                     </div>

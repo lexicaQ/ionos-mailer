@@ -38,27 +38,33 @@ export async function extractCompanyFromEmail(email: string): Promise<string | n
             // 2. Try title
             const title = $('title').text();
             if (title) {
-                // Titles often are "Company Name - Slogan" or "Page - Company Name"
-                // Heuristic: Take the part before or after a separator
+                // Titles often are "Company Name - Slogan" or "Company | Description"
+                // Take ONLY the first part before any separator to avoid SEO descriptions
                 const separators = ['|', '-', '–', '—', '•', ':'];
-                for (const sep of separators) {
-                    if (title.includes(sep)) {
-                        const parts = title.split(sep);
-                        // Usually the shortest part is the name, or the first/last
-                        // Let's assume the longest part is the slogan, shortest is name? 
-                        // Or just take the first part? Often "Company - Home"
-                        // Or "Welcome to Company"
+                let cleanedTitle = title.trim();
 
-                        // Heuristic: Valid length (not too long)
-                        const candidates = parts.map(p => p.trim()).filter(p => p.length > 2 && p.length < 50);
-                        if (candidates.length > 0) {
-                            // Prefer the one that doesn't look like "Home" or "Startseite"
-                            const best = candidates.find(c => !['Home', 'Startseite', 'Index', 'Welcome'].includes(c));
-                            if (best) return best;
+                for (const sep of separators) {
+                    if (cleanedTitle.includes(sep)) {
+                        // Take the FIRST part only (usually the company name)
+                        const firstPart = cleanedTitle.split(sep)[0].trim();
+
+                        // Make sure it's valid (not too short, not generic)
+                        const genericParts = ['Home', 'Startseite', 'Index', 'Welcome', 'Start', 'Willkommen'];
+                        if (firstPart.length > 2 && firstPart.length < 60 && !genericParts.includes(firstPart)) {
+                            return firstPart;
                         }
+
+                        // If first part is generic, try second part
+                        const secondPart = cleanedTitle.split(sep)[1]?.trim();
+                        if (secondPart && secondPart.length > 2 && secondPart.length < 60 && !genericParts.includes(secondPart)) {
+                            return secondPart;
+                        }
+                        break; // Stop after finding first separator
                     }
                 }
-                if (title.length < 60) return title.trim();
+
+                // If no separator and title is short enough, use it
+                if (cleanedTitle.length < 40) return cleanedTitle;
             }
 
             // 3. Fallback: Copyright footer?

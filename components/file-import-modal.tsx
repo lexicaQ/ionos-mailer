@@ -196,7 +196,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
             'text/csv': ['.csv'],
             'text/plain': ['.txt'],
             'application/json': ['.json'],
-            'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'],
+            // Image files removed - OCR was unreliable and files should not be uploaded
         },
         maxFiles: 20,
         disabled: stage === 'parsing',
