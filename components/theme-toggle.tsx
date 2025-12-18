@@ -18,7 +18,7 @@ export function ThemeToggle() {
     }
 
     return (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-50 sm:bottom-4 sm:top-auto">
             <Button
                 variant="outline"
                 size="icon"
