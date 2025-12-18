@@ -190,7 +190,7 @@ model EmailJob {
   trackingId   String    @unique @default(uuid())
   openedAt     DateTime?
   openCount    Int       @default(0)
-  clicks       Click[]
+  // clicks       Click[] // Removed
   
   createdAt    DateTime  @default(now())
   
@@ -199,13 +199,7 @@ model EmailJob {
 }
 
 
-model Click {
-  id          String   @id @default(uuid())
-  emailJobId  String
-  emailJob    EmailJob @relation(fields: [emailJobId], references: [id])
-  url         String
-  clickedAt   DateTime @default(now())
-  
-  @@index([emailJobId])
-}
+
+// (Click Model Removed)
+
 

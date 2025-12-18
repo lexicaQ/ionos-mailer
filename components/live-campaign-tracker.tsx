@@ -41,7 +41,6 @@ interface Campaign {
         pending: number
         failed: number
         opened: number
-        clicked: number
     }
 }
 

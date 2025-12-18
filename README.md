@@ -60,8 +60,8 @@ The application is strictly single-tenant logical storage. All data is scoped to
 | **User Identity** | Plain Text (Email) | Application Login |
 | **Authentication** | Bcrypt Hash | **Private** (Irreversible) |
 | **SMTP Credentials** | AES-256 Encrypted | **Strictly Private** (Decrypted only in RAM) |
-| **Recipient Info** | Plain Text | Application Delivery Logs |
-| **Tracking Logs** | Timestamp & IP | Analytics Dashboard |
+| **Recipient Info** | AES-256 Encrypted | **Strictly Private** (Privacy Protection) |
+| **Tracking Logs** | Timestamp & IP | Analytics (Opened Status only) |
 
 ### Accessing Your Data Backend
 Since there is no external vendor, you have direct access to the raw database.

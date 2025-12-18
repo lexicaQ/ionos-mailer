@@ -22,10 +22,7 @@ export async function GET(req: NextRequest) {
             take: 50,
             include: {
                 jobs: {
-                    orderBy: { createdAt: 'desc' },
-                    include: {
-                        clicks: true
-                    }
+                    orderBy: { createdAt: 'desc' }
                 }
             }
         });
@@ -45,20 +42,14 @@ export async function GET(req: NextRequest) {
                 error: job.error,
                 // Tracking data
                 openedAt: job.openedAt?.toISOString() || null,
-                openCount: job.openCount,
-                clickCount: job.clicks.length,
-                clicks: job.clicks.map((c: any) => ({
-                    url: c.url,
-                    clickedAt: c.clickedAt.toISOString()
-                }))
+                openCount: job.openCount
             })),
             stats: {
                 total: campaign.jobs.length,
                 sent: campaign.jobs.filter((j: any) => j.status === 'SENT').length,
                 pending: campaign.jobs.filter((j: any) => j.status === 'PENDING').length,
                 failed: campaign.jobs.filter((j: any) => j.status === 'FAILED').length,
-                opened: campaign.jobs.filter((j: any) => j.openedAt).length,
-                clicked: campaign.jobs.filter((j: any) => j.clicks.length > 0).length,
+                opened: campaign.jobs.filter((j: any) => j.openedAt).length
             }
         }));
 

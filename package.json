@@ -61,7 +61,6 @@
     "papaparse": "^5.5.3",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.4.449",
-    "posthog-js": "^1.304.0",
     "prisma": "^6.19.0",
     "react": "19.2.1",
     "react-dom": "19.2.1",

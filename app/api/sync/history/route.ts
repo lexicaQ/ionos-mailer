@@ -45,42 +45,25 @@ export async function GET(req: Request) {
 
             return {
                 id: job.id,
-                userId: session.user.id,
+                sentAt: (job.sentAt || job.createdAt).toISOString(),
+                total: 1,
+                success: job.status === 'SENT' ? 1 : 0,
+                failed: job.status === 'FAILED' ? 1 : 0,
                 subject: subject,
-                recipients: JSON.stringify([email]), // Front-end expects JSON array string for recipients? Or just plain string? 
-                // Looking at SentEmail model: recipients String @db.Text // JSON array
-                // But the History List UI expects { email, success, error, batchTime ... }
-                // Wait, components/history-modal.tsx iterates `allResults` which has { email, success, batchTime ... }
-                // But `sync/history` returned `SentEmail` objects previously.
-                // Let's look at what `components/history-modal.tsx` expects.
-                // It calls `/api/sync/history`.
-                // It sets `setBatches`.
-                // Then `allResults` is calculated from `batches`.
-                // Previously `SentEmail` had `recipients` as a JSON array string.
-                // Here we return individual jobs.
-                // This means the FRONTEND expects `SentEmail` objects (Groups).
-                // Returning individual jobs as if they were batches of 1 is a valid strategy to avoid complex grouping logic.
-
-                recipient: email, // If UI supports single recipient field?
-                // To keep it compatible with existing UI processing which likely parses `recipients` JSON:
-                body: "Check details",
-                createdAt: job.createdAt,
-                sentAt: job.sentAt || job.createdAt,
-                status: job.status,
-                error: job.error,
-                openedCount: job.openCount,
-                clickedCount: 0 // Fetch clicks if needed
+                body: "Check details", // Placeholder
+                results: [{
+                    email: email,
+                    status: job.status === 'SENT' ? 'success' : 'error',
+                    error: job.error,
+                    trackingId: job.trackingId,
+                    messageId: undefined, // Not stored in EmailJob currently
+                    batchTime: (job.sentAt || job.createdAt).toISOString()
+                }]
             }
         });
 
-        // ADAPTER: The UI likely parses `recipients` from JSON.
-        // Let's make sure we return objects that match what `SentEmail` produced.
-        // `SentEmail` had: id, userId, subject, body, recipients (JSON), sentAt, ...
-
-        return NextResponse.json(history.map(h => ({
-            ...h,
-            recipients: JSON.stringify([h.recipient]) // Wrap single recipient in array
-        })))
+        // Return the batch list directly (it is already an array of HistoryBatch-like objects)
+        return NextResponse.json(history)
 
     } catch (error) {
         console.error("Failed to fetch history:", error)
@@ -119,32 +102,18 @@ export async function POST(req: Request) {
             // Actually, simplest is: Client pushes NEW items.
             // But syncing implies two-way.
 
-            // Strategy: Client sends a list. We upsert each.
-            const record = await prisma.sentEmail.upsert({
-                where: { id: batch.id || "new" },
-                create: {
-                    userId: session.user.id,
-                    subject: batch.subject,
-                    body: batch.body,
-                    recipients: JSON.stringify(batch.recipients),
-                    attachments: undefined, // Attachments might be too heavy?
-                    sentAt: new Date(batch.sentAt),
-                    // If batch has an ID, use it? Prisma relies on CUID usually.
-                    // If we force an ID, it must be unique.
-                    // If batch.id is a local ID (e.g. valid CUID or similar), use it.
-                    // If it's a simple number/string, might fail.
-                    // Let's omit ID to let Prisma gen one, OR trust client ID if it looks like CUID.
-                },
-                update: {
-                    // Generally history doesn't change, but maybe status opens/clicks?
-                    clickedCount: batch.clickedCount,
-                    openedCount: batch.openedCount
-                }
-            })
-            synced.push(record)
-        }
+            // Legacy: Client-side history push is no longer needed as we use server-side EmailJob.
+            // We return success to keep the frontend happy if it still calls this.
+            return NextResponse.json({ synced: 0, message: "History sync is deprecated (Server-side authoritative)" })
 
-        return NextResponse.json({ success: true, synced })
+            /* 
+            Legacy Logic Removed:
+            const { batches } = await req.json()
+            if (Array.isArray(batches)) {
+                 ...
+            }
+            */
+        }
     } catch (error) {
         console.error("Failed to sync history:", error)
         return NextResponse.json({ error: "Failed to sync history" }, { status: 500 })

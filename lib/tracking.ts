@@ -16,24 +16,12 @@ export function getClickTrackingUrl(trackingId: string, originalUrl: string, bas
  * Inject tracking pixel and rewrite links in HTML email body
  */
 export function injectTracking(htmlBody: string, trackingId: string, baseUrl: string): string {
-  // Replace all links with tracking links
-  let trackedHtml = htmlBody.replace(
-    /href=["']([^"']+)["']/gi,
-    (match, url) => {
-      // Skip mailto, tel, and anchor links
-      if (url.startsWith("mailto:") || url.startsWith("tel:") || url.startsWith("#")) {
-        return match
-      }
-      const trackingUrl = getClickTrackingUrl(trackingId, url, baseUrl)
-      return `href="${trackingUrl}"`
-    }
-  )
-
   // Add tracking pixel at the end of the body
   const pixelUrl = getTrackingPixelUrl(trackingId, baseUrl)
   const trackingPixel = `<img src="${pixelUrl}" alt="" width="1" height="1" style="display:none;width:1px;height:1px;border:0;" />`
 
   // Insert before </body> if exists, otherwise append
+  let trackedHtml = htmlBody
   if (trackedHtml.includes("</body>")) {
     trackedHtml = trackedHtml.replace("</body>", `${trackingPixel}</body>`)
   } else {

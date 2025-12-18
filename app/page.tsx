@@ -31,7 +31,6 @@ export default function Home() {
               "Scheduling",
               "Background Mode",
               "Open Tracking",
-              "Click Tracking",
             ].map((item) => (
               <span
                 key={item}
