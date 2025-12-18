@@ -391,7 +391,7 @@ export function EmailForm() {
                 </div>
 
                 {/* Actions Grid for Mobile, Flex for Desktop */}
-                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                <div className="flex flex-wrap justify-end gap-2 w-full sm:w-auto items-center">
                     <DraftsModal
                         currentSubject={form.watch('subject')}
                         currentBody={form.watch('body')}
@@ -406,7 +406,7 @@ export function EmailForm() {
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
-                    <div className="flex items-center gap-2 col-span-1">
+                    <div className="flex items-center gap-2">
                         <AuthDialog />
                         <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     </div>
@@ -442,10 +442,10 @@ export function EmailForm() {
                         customAction={
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="secondary"
                                 size="sm"
                                 onClick={() => setFileImportOpen(true)}
-                                className="gap-2 text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                                className="gap-2"
                                 title="Load email addresses from file"
                             >
                                 <FileUp className="h-4 w-4" />

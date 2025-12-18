@@ -155,22 +155,21 @@ export function DraftsModal({
                     size="sm"
                     onClick={() => openSaveDialog()}
                     disabled={!canSave || isSaving}
-                    className="gap-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-900 dark:text-neutral-100 border-transparent"
                     title="Save current state"
                 >
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save
                 </Button>
                 <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setOpen(true)}
-                    className="gap-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-900 dark:text-neutral-100 border-transparent"
                 >
-                    <FolderOpen className="h-4 w-4" />
+                    <FolderOpen className="h-4 w-4 mr-2" />
                     Drafts
                     {drafts.length > 0 && (
-                        <Badge variant="secondary" className="ml-1 h-5 px-1.5 min-w-[20px] justify-center bg-white dark:bg-black">
+                        <Badge variant="secondary" className="ml-2 h-5 px-1.5 min-w-[20px] justify-center bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100">
                             {drafts.length}
                         </Badge>
                     )}
@@ -293,7 +292,14 @@ export function DraftsModal({
                             Overwrite existing draft
                         </Badge>
                     )}
-                    {/* Explicit info about attachments - render inside content as well if needed, or rely on description */}
+
+                    {/* Warning about limited sync */}
+                    <div className="flex gap-3 p-3 text-xs bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-500 rounded-lg">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        <p>
+                            <strong>Note:</strong> Images and attachments are <span className="underline">not saved</span> with drafts. Only text and recipients will be preserved.
+                        </p>
+                    </div>
                     {/* Explicit info about content */}
                     <div className="flex flex-wrap gap-3 text-xs text-neutral-500 bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800">
                         <div className="flex items-center gap-1.5">
