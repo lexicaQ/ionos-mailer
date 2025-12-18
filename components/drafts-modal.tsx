@@ -178,7 +178,7 @@ export function DraftsModal({
 
             {/* Load Drafts - styled as Full Popup Dialog */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800">
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800">
                     <DialogHeader className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818] space-y-4">
                         <DialogTitle className="text-lg font-semibold">My Drafts</DialogTitle>
                         {/* Search and Filters inside Header */}
