@@ -14,12 +14,17 @@ export async function GET(
   try {
     const { trackingId } = await params
 
+    // Extract IP address from headers
+    const forwardedFor = request.headers.get("x-forwarded-for")
+    const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : "Unknown"
+
     // Update the email job with open tracking
     await prisma.emailJob.update({
       where: { trackingId },
       data: {
         openedAt: new Date(),
         openCount: { increment: 1 },
+        ipAddress: ip,
       },
     })
   } catch (error) {

@@ -456,6 +456,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                         <div className="text-[10px] text-muted-foreground font-mono">
                                             {format(new Date(job.openedAt), "HH:mm")}
                                         </div>
+                                        {/* @ts-ignore: IP added in recent schema update */}
+                                        {job.ipAddress && (
+                                            <div className="text-[9px] text-neutral-400 font-mono mt-0.5" title="IP Address">
+                                                {job.ipAddress}
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
@@ -487,7 +493,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                 )}
 
                                 {/* Cancel Job Button */}
-                                {(job.status === 'PENDING' || job.status === 'WAITING') && (
+                                {job.status === 'PENDING' && (
                                     <Button
                                         variant="ghost"
                                         size="sm"

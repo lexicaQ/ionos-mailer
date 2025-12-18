@@ -190,6 +190,7 @@ model EmailJob {
   trackingId   String    @unique @default(uuid())
   openedAt     DateTime?
   openCount    Int       @default(0)
+  ipAddress    String?   // Store recipient IP on open
   // clicks       Click[] // Removed
   
   createdAt    DateTime  @default(now())
