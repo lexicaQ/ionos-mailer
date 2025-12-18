@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
 import { X, Check, AlertTriangle, UserPlus, Trash2 } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
+import { cn } from "@/lib/utils"
+
+type ExtendedRecipientStatus = RecipientStatus & { duplicate?: boolean };
 
 
 interface RecipientInputProps {
@@ -22,9 +25,43 @@ interface RecipientInputProps {
 
 export function RecipientInput({ onRecipientsChange, disabled, externalRecipients, customAction }: RecipientInputProps) {
     const [rawInput, setRawInput] = useState("")
-    const [parsedRecipients, setParsedRecipients] = useState<RecipientStatus[]>([])
+    const [parsedRecipients, setParsedRecipients] = useState<(RecipientStatus & { duplicate?: boolean })[]>([])
     const [activeTab, setActiveTab] = useState("valid")
+    const [isChecking, setIsChecking] = useState(false)
 
+    // Helper: Check duplicates
+    const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
+        setIsChecking(true);
+        try {
+            const emailList = recipients.map(r => r.email);
+            if (emailList.length === 0) return recipients;
+
+            const res = await fetch('/api/check-duplicates', {
+                method: 'POST',
+                body: JSON.stringify({ recipients: emailList })
+            });
+            const data = await res.json();
+            const duplicates = new Set(data.duplicates || []);
+
+            return recipients.map((r) => {
+                const email = r.email;
+                if (duplicates.has(email) || duplicates.has(email.toLowerCase())) {
+                    return { ...r, valid: true, duplicate: true, reason: "Duplicate: Already sent in previous campaign" };
+                    // Ensure 'valid: true' so they appear in valid tab (but crossed out)
+                    // Wait, if valid: true, they are in onRecipientsChange?
+                    // I filter them out of onRecipientsChange explicitly.
+                }
+                return r;
+            });
+        } catch (e) {
+            console.error("Duplicate check error", e);
+            return recipients;
+        } finally {
+            setIsChecking(false);
+        }
+    };
+
+    // Sync external recipients from parent (e.g., when loading draft)
     // Sync external recipients from parent (e.g., when loading draft)
     useEffect(() => {
         if (externalRecipients && externalRecipients.length > 0) {
@@ -33,26 +70,35 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             setRawInput(emails.join('\n'));
 
             // Create parsed recipients with valid status
-            const parsed: RecipientStatus[] = externalRecipients.map(r => ({
+            const parsed = externalRecipients.map(r => ({
                 email: r.email,
                 id: r.id || crypto.randomUUID(),
                 valid: true, // Assume valid since they were already parsed before
                 reason: undefined
             }));
-            setParsedRecipients(parsed);
+
+            // Check duplicates for loaded drafts too!
+            processDuplicates(parsed).then(processed => {
+                setParsedRecipients(processed);
+                // Even though they come from draft, if they ARE duplicates now, we exclude them from "sending" list initially?
+                // Or do we trust the draft? User said "warn... if he adds".
+                // Safest is to check and warn.
+                onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
+            });
         }
     }, [externalRecipients]);
 
-    const handleParse = () => {
+    const handleParse = async () => {
         const results = parseRecipients(rawInput);
-        setParsedRecipients(results);
-        onRecipientsChange(results.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
+        const processed = await processDuplicates(results);
+        setParsedRecipients(processed);
+        onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
     }
 
     const handleRemove = (id: string) => {
         const updated = parsedRecipients.filter(r => r.id !== id);
         setParsedRecipients(updated);
-        onRecipientsChange(updated.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
+        onRecipientsChange(updated.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
         // Also update raw input
         setRawInput(updated.map(r => r.email).join('\n'));
     }
@@ -63,8 +109,19 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
         setRawInput("");
     }
 
-    const validEmails = parsedRecipients.filter(r => r.valid);
+    const validEmails = parsedRecipients.filter(r => r.valid && !r.duplicate);
+    const duplicateEmails = parsedRecipients.filter(r => r.duplicate);
+    // Invalid are those that are NOT valid AND not duplicates (duplicates are handled separately)
+    // Wait, if I set valid: true for dupes, then invalid filter is just !valid.
+    // If I set valid: false for dupes, invalid filter is !valid && !duplicate.
+    // In previous block I set valid: true for dupes? 
+    // "Ensure 'valid: true' so they appear in valid tab"
+    // So dupes are valid=true, duplicate=true.
+    // Then invalidEmails = !valid. Correct.
     const invalidEmails = parsedRecipients.filter(r => !r.valid);
+
+    // Combine for display in "Valid" tab (Duplicates shown scratched)
+    const displayList = [...validEmails, ...duplicateEmails];
 
     return (
         <div className="space-y-4">
@@ -97,6 +154,11 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                     <TabsTrigger value="valid" className="gap-2">
                                         <Check className="h-4 w-4 text-green-500" />
                                         Valid ({validEmails.length})
+                                        {duplicateEmails.length > 0 && (
+                                            <span className="ml-1 text-xs text-red-500 font-semibold line-through decoration-red-500/50 opacity-80 decoration-2 animate-in fade-in slide-in-from-left-1">
+                                                +{duplicateEmails.length}
+                                            </span>
+                                        )}
                                     </TabsTrigger>
                                     <TabsTrigger value="invalid" className="gap-2" disabled={invalidEmails.length === 0}>
                                         <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -111,19 +173,26 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
                             <TabsContent value="valid" className="mt-4">
                                 <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto">
-                                    {validEmails.map((recipient) => {
+                                    {displayList.map((recipient) => {
                                         const isGeneric = isGenericDomain(recipient.email);
+                                        const isDuplicate = recipient.duplicate;
+
                                         return (
                                             <Badge
                                                 key={recipient.id}
-                                                variant="secondary"
-                                                className={`flex items-center gap-1 px-3 py-1.5 border transition-colors ${isGeneric
-                                                    ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
-                                                    : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
-                                                    }`}
-                                                title={isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address"}
+                                                variant={isDuplicate ? "destructive" : "secondary"}
+                                                className={cn(
+                                                    "flex items-center gap-1 px-3 py-1.5 border transition-all",
+                                                    isDuplicate
+                                                        ? "line-through opacity-70 bg-red-100 text-red-700 hover:bg-red-200 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                                                        : isGeneric
+                                                            ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
+                                                            : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+                                                )}
+                                                title={isDuplicate ? recipient.reason : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address")}
                                             >
-                                                {isGeneric && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                                {isDuplicate && <span className="sr-only">Duplicate: </span>}
+                                                {isGeneric && !isDuplicate && <AlertTriangle className="h-3 w-3 mr-1" />}
                                                 {recipient.email}
                                                 <button
                                                     type="button"
