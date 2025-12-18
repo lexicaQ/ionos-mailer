@@ -363,17 +363,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
             </ScrollArea>
 
-            {/* Footer - Moved OUTSIDE ScrollArea for sticky effect */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 p-4 pt-2 border-t bg-background">
-                <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset
-                </Button>
-                <Button onClick={handleSave}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                </Button>
-            </div>
+
         </ResponsiveModal >
     )
 }
