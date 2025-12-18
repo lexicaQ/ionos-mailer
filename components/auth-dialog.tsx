@@ -14,7 +14,7 @@ export function AuthDialog() {
     const { data: session, status } = useSession()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [passkeyLoading, setPasskeyLoading] = useState(false)
+    const [loading, setLoading] = useState(false)
 
     // Form state
     const [email, setEmail] = useState("")
@@ -46,62 +46,7 @@ export function AuthDialog() {
         }
     }
 
-    const handlePasskeyLogin = async () => {
-        // No email required for discoverable credentials (usernameless)
 
-        setPasskeyLoading(true)
-        try {
-            // 1. Get options - if email is known, standard flow; if not, discoverable
-            const url = email
-                ? `/api/auth/passkey/login?email=${encodeURIComponent(email)}`
-                : `/api/auth/passkey/login`
-
-            const optionsRes = await fetch(url)
-            if (!optionsRes.ok) {
-                const err = await optionsRes.json()
-                throw new Error(err.error || "Passkey login failed")
-            }
-            const { options, userId } = await optionsRes.json()
-
-            // 2. Authenticate with browser
-            const credential = await startAuthentication(options)
-
-            // 3. Verify on server
-            const verifyRes = await fetch("/api/auth/passkey/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ response: credential, userId }), // userId might be undefined here for usernameless, that's fine
-            })
-
-            const verifyData = await verifyRes.json()
-
-            if (!verifyRes.ok) {
-                throw new Error(verifyData.error || "Verification failed")
-            }
-
-            // 4. Secure Handoff: Login with temporary token
-            const result = await signIn("credentials", {
-                email: verifyData.email,
-                loginToken: verifyData.loginToken,
-                redirect: false,
-            })
-
-            if (result?.error) {
-                throw new Error("Login handoff failed")
-            }
-
-            toast.success("Logged in with Passkey!")
-            setOpen(false)
-            setEmail("")
-            setPassword("")
-
-        } catch (error: any) {
-            console.error(error)
-            toast.error(error.message || "Passkey login failed")
-        } finally {
-            setPasskeyLoading(false)
-        }
-    }
 
     const handleLogout = async () => {
         await signOut({ redirect: false })
@@ -183,7 +128,7 @@ export function AuthDialog() {
                     </div>
 
                     <div className="space-y-3">
-                        <Button type="submit" className="w-full" disabled={loading || passkeyLoading}>
+                        <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? (
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
                             ) : (
@@ -192,29 +137,6 @@ export function AuthDialog() {
                             Connect & Sync
                         </Button>
 
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-background px-2 text-muted-foreground">Or</span>
-                            </div>
-                        </div>
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={handlePasskeyLogin}
-                            disabled={loading || passkeyLoading}
-                        >
-                            {passkeyLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                                <Fingerprint className="h-4 w-4 mr-2" />
-                            )}
-                            Sign in with Passkey
-                        </Button>
                     </div>
 
                     <p className="text-center text-[11px] text-muted-foreground">

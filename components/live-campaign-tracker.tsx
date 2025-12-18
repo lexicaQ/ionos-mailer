@@ -58,6 +58,29 @@ export function LiveCampaignTracker() {
         c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    // Data Migration (One-time check for orphaned data)
+    useEffect(() => {
+        const migrateData = async () => {
+            const oldId = localStorage.getItem("ionos-mailer-user-id");
+            if (oldId) {
+                try {
+                    const res = await fetch('/api/migrate', {
+                        method: 'POST',
+                        body: JSON.stringify({ oldUserId: oldId })
+                    });
+                    if (res.ok) {
+                        localStorage.removeItem("ionos-mailer-user-id");
+                        // Delay slighty to allow DB propagation then refresh
+                        setTimeout(() => fetchCampaigns(), 500);
+                    }
+                } catch (e) {
+                    console.error("Migration failed", e);
+                }
+            }
+        };
+        migrateData();
+    }, []); // Run once on mount
+
     // FETCH CAMPAIGNS
     const fetchCampaigns = useCallback(async () => {
         setLoading(true)
