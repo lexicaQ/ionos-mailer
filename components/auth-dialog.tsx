@@ -147,8 +147,8 @@ export function AuthDialog() {
                 className="sm:max-w-[400px]"
             >
                 <form onSubmit={handleConnect} className="space-y-4 py-4">
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                        <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                    <div className="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                        <p className="text-xs text-neutral-700 dark:text-neutral-300 flex items-center gap-2">
                             <Mail className="h-4 w-4" />
                             Use your IONOS SMTP credentials
                         </p>

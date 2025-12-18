@@ -12,6 +12,8 @@ import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react"
 import { PasskeyManager } from "@/components/passkey-manager"
 
+import { AuthDialog } from "@/components/auth-dialog"
+
 interface SettingsDialogProps {
     onSettingsChange: (settings: SmtpConfig) => void;
     currentSettings?: SmtpConfig;
@@ -96,16 +98,19 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     }
 
     const triggerButton = (
-        <Button variant="outline" size="icon" title="SMTP Settings">
-            <Settings className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+            <AuthDialog />
+            <Button variant="outline" size="icon" title="SMTP Settings" onClick={() => setOpen(true)}>
+                <Settings className="h-4 w-4" />
+            </Button>
+        </div>
     )
 
     return (
         <ResponsiveModal
             open={open}
             onOpenChange={setOpen}
-            trigger={triggerButton}
+            trigger={triggerButton} // Now renders BOTH buttons
             title="SMTP Settings"
             description="Configure your IONOS credentials"
             className="sm:max-w-[650px] max-h-[90vh] flex flex-col"
