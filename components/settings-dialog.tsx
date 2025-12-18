@@ -12,7 +12,7 @@ import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react"
 import { PasskeyManager } from "@/components/passkey-manager"
 
-import { AuthDialog } from "@/components/auth-dialog"
+
 
 interface SettingsDialogProps {
     onSettingsChange: (settings: SmtpConfig) => void;
@@ -98,12 +98,9 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     }
 
     const triggerButton = (
-        <div className="flex items-center gap-2">
-            <AuthDialog />
-            <Button variant="outline" size="icon" title="SMTP Settings" onClick={() => setOpen(true)}>
-                <Settings className="h-4 w-4" />
-            </Button>
-        </div>
+        <Button variant="outline" size="icon" title="SMTP Settings">
+            <Settings className="h-4 w-4" />
+        </Button>
     )
 
     return (

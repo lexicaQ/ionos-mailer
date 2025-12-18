@@ -14,6 +14,7 @@ import { RecipientInput } from "@/components/recipient-input"
 import { HistoryModal, HistoryBatch } from "@/components/history-modal"
 import { LiveCampaignTracker } from "@/components/live-campaign-tracker"
 import { SettingsDialog } from "@/components/settings-dialog"
+import { AuthDialog } from "@/components/auth-dialog"
 import { FileImportModal } from "@/components/file-import-modal"
 import { ExtractionResult } from "@/lib/parsers"
 import { SmtpConfig } from "@/lib/mail"
@@ -332,7 +333,10 @@ export function EmailForm() {
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
-                    <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
+                    <div className="flex items-center gap-2">
+                        <AuthDialog />
+                        <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
+                    </div>
                 </div>
             </div>
 

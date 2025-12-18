@@ -134,9 +134,14 @@ export function AuthDialog() {
     // Logged out state
     return (
         <>
-            <Button variant="ghost" size="sm" onClick={() => setOpen(true)} className="gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpen(true)}
+                className="gap-2 bg-white dark:bg-neutral-950"
+            >
                 <Cloud className="h-4 w-4" />
-                <span className="hidden sm:inline">Sync</span>
+                <span className="hidden sm:inline">Sign In</span>
             </Button>
 
             <ResponsiveModal
