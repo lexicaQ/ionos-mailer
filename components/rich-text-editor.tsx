@@ -65,6 +65,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
     const fileInputRef = useRef<HTMLInputElement>(null)
     const attachmentInputRef = useRef<HTMLInputElement>(null)
     const editorRef = useRef<any>(null);
+    const isSettingContentRef = useRef(false); // Guard against infinite loop during content sync
     // Notify parent of attachment changes
     useEffect(() => {
         onAttachmentsChange?.(attachments)
@@ -158,7 +159,9 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
         content: value || '<p></p>',
         immediatelyRender: false,
         onUpdate: ({ editor }) => {
-            onChange(editor.getHTML())
+            // Skip onChange if we're programmatically setting content (prevents infinite loop)
+            if (isSettingContentRef.current) return;
+            onChange(editor.getHTML());
         },
         editorProps: {
             attributes: {
@@ -183,7 +186,11 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
 
                 if (isEmptyValue && isEmptyEditor) return;
 
+                // Guard against infinite loop: set flag before updating
+                isSettingContentRef.current = true;
                 editor.commands.setContent(value);
+                // Reset flag after a microtask to allow rendering to complete
+                setTimeout(() => { isSettingContentRef.current = false; }, 0);
             }
         }
     }, [editor, value]);
