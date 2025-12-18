@@ -288,20 +288,18 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         </Button>
                     </div>
                 </div>
-                <div className="h-6" /> {/* Bottom spacer for scroll */}
+                {/* Footer - Moved inside ScrollArea as requested */}
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 pt-8 pb-2 mt-4 border-t">
+                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reset
+                    </Button>
+                    <Button onClick={handleSave}>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save
+                    </Button>
+                </div>
             </ScrollArea>
-
-            {/* Footer - Outside ScrollArea for sticky behavior */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 pt-6 border-t mt-auto bg-background z-10">
-                <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset
-                </Button>
-                <Button onClick={handleSave}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                </Button>
-            </div>
         </ResponsiveModal>
     )
 }

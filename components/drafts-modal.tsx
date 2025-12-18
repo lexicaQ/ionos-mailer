@@ -40,7 +40,7 @@ export function DraftsModal({
     const [draftName, setDraftName] = useState('')
     const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
-    const [filterType, setFilterType] = useState<'all' | 'images' | 'attachments'>('all')
+
 
     const safeLoadDrafts = async () => {
         setIsLoading(true)
@@ -67,22 +67,24 @@ export function DraftsModal({
 
         setIsSaving(true);
         try {
-            // Restore full media saving!
-            // No stripping of images. Passing attachments as-is.
+            // Strip images and attachments as requested to prevent sync errors
+            // Use aggressive sanitization on body
+            const cleanBody = currentBody.replace(/<img[^>]*>/g, '').replace(/<p><br><\/p>/g, '');
+
             await saveDraft({
                 id: selectedDraftId || undefined,
                 name: draftName.trim(),
                 recipients: currentRecipients,
                 subject: currentSubject,
-                body: currentBody, // Save Full Body with Images
-                attachments: currentAttachments // Save Full Attachments
+                body: cleanBody, // No Images
+                attachments: [] // No Attachments
             })
 
             await safeLoadDrafts()
             setSaveDialogOpen(false)
             setDraftName('')
             setSelectedDraftId(null)
-            toast.success("Draft saved (incl. files)")
+            toast.success("Draft saved (text only)")
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || "Error saving");
@@ -140,12 +142,7 @@ export function DraftsModal({
             (d.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             d.recipients?.some(r => r.email.toLowerCase().includes(searchTerm.toLowerCase()))
 
-        if (!matchesSearch) return false
-
-        if (filterType === 'images') return countImagesInBody(d.body) > 0
-        if (filterType === 'attachments') return (d.attachments?.length || 0) > 0
-
-        return true
+        return matchesSearch
     })
 
     return (
@@ -185,7 +182,7 @@ export function DraftsModal({
                 open={open}
                 onOpenChange={setOpen}
                 title="My Drafts"
-                className="sm:max-w-[700px] max-h-[90vh] flex flex-col rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
+                className="sm:max-w-[850px] max-h-[90vh] flex flex-col rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
             >
                 {/* Header Content handled by ResponsiveModal title, but we have custom search bar */}
                 <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818] space-y-4">
@@ -200,40 +197,6 @@ export function DraftsModal({
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                    </div>
-
-                    {/* Filter Tabs */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-neutral-500 mr-1">Filter:</span>
-                        <Button
-                            type="button"
-                            variant={filterType === 'all' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setFilterType('all')}
-                            className="h-7 text-xs rounded-full"
-                        >
-                            All
-                        </Button>
-                        <Button
-                            type="button"
-                            variant={filterType === 'images' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setFilterType('images')}
-                            className="h-7 text-xs rounded-full gap-1.5"
-                        >
-                            <ImageIconLucide className="h-3 w-3" />
-                            Images
-                        </Button>
-                        <Button
-                            type="button"
-                            variant={filterType === 'attachments' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setFilterType('attachments')}
-                            className="h-7 text-xs rounded-full gap-1.5"
-                        >
-                            <Paperclip className="h-3 w-3" />
-                            Files
-                        </Button>
                     </div>
                 </div>
 
