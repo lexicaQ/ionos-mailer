@@ -55,7 +55,7 @@ export function LiveCampaignTracker() {
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
         c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.id.includes(searchTerm)
+        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     // FETCH CAMPAIGNS
@@ -70,6 +70,14 @@ export function LiveCampaignTracker() {
                 const data = await res.json()
                 // Sort by date DESCENDING (Newest First -> #1)
                 data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                // Sort jobs chronologically (Ascending: First scheduled -> Last scheduled)
+                data.forEach((c: any) => {
+                    if (c.jobs) {
+                        c.jobs.sort((a: any, b: any) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+                    }
+                });
+
                 setCampaigns(data)
             }
         } catch (error) {
@@ -263,7 +271,7 @@ export function LiveCampaignTracker() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search campaign (name, ID)..."
+                                placeholder="Search campaign, recipients..."
                                 className="pl-9 bg-neutral-50 dark:bg-neutral-800 border-none"
                                 value={searchTerm}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
@@ -331,7 +339,13 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                     </div>
                     <div>
                         <div className="text-base font-semibold flex items-center gap-2">
-                            {campaign.name || <span>Campaign <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "yyyy-MM-dd")}</span></span>}
+                            {campaign.name ? (
+                                <span>
+                                    {campaign.name} <span className="text-muted-foreground font-normal text-sm">({format(new Date(campaign.createdAt), "yyyy-MM-dd HH:mm")})</span>
+                                </span>
+                            ) : (
+                                <span>Campaign <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "yyyy-MM-dd HH:mm")}</span></span>
+                            )}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
                             <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Finished</span>
