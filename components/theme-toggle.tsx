@@ -1,0 +1,34 @@
+"use client"
+
+import * as React from "react"
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+
+import { Button } from "@/components/ui/button"
+
+const MANUAL_OVERRIDE_KEY = "ionos-mailer-theme-manual-override"
+
+export function ThemeToggle() {
+    const { setTheme, theme } = useTheme()
+
+    const handleToggle = () => {
+        // Mark as manually overridden for this session
+        sessionStorage.setItem(MANUAL_OVERRIDE_KEY, Date.now().toString())
+        setTheme(theme === 'dark' ? 'light' : 'dark')
+    }
+
+    return (
+        <div className="fixed bottom-4 right-4 z-50">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={handleToggle}
+                className="h-10 w-10 rounded-full bg-white dark:bg-neutral-900 border shadow-lg"
+            >
+                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+        </div>
+    )
+}

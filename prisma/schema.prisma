@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_DATABASE_URL")
+  directUrl = env("POSTGRES_URL")
+}
+
+model Campaign {
+  id        String     @id @default(uuid())
+  createdAt DateTime   @default(now())
+  
+  // Encrypted SMTP Settings
+  host      String
+  port      Int
+  user      String
+  pass      String     // Encrypted
+  secure    Boolean
+  fromName  String?    // Optional sender display name
+  name      String?    // Optional campaign name for UI organization
+  
+  // Privacy
+  userId    String     @default("anonymous")
+  
+  jobs      EmailJob[]
+  attachments CampaignAttachment[] // Relation to attachments
+}
+
+model CampaignAttachment {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  filename    String
+  content     String   // Base64 encoded content
+  contentType String
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([campaignId])
+}
+
+
+model EmailJob {
+  id           String    @id @default(uuid())
+  campaignId   String
+  campaign     Campaign  @relation(fields: [campaignId], references: [id])
+  
+  recipient    String
+  subject      String
+  body         String
+  
+  status       String    @default("PENDING") // PENDING, SENT, FAILED
+  error        String?
+  
+  scheduledFor DateTime
+  sentAt       DateTime?
+  
+  // Tracking
+  trackingId   String    @unique @default(uuid())
+  openedAt     DateTime?
+  openCount    Int       @default(0)
+  clicks       Click[]
+  
+  createdAt    DateTime  @default(now())
+  
+  @@index([status, scheduledFor])
+  @@index([trackingId])
+}
+
+model Click {
+  id          String   @id @default(uuid())
+  emailJobId  String
+  emailJob    EmailJob @relation(fields: [emailJobId], references: [id])
+  url         String
+  clickedAt   DateTime @default(now())
+  
+  @@index([emailJobId])
+}

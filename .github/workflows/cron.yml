@@ -1,0 +1,70 @@
+name: Process Email Queue
+
+on:
+  schedule:
+    # Run every minute (GitHub's minimum granularity)
+    - cron: '* * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Email Processing
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          node -e "
+            const https = require('https');
+            const urlStr = process.env.APP_URL;
+            const cronSecret = process.env.CRON_SECRET;
+            
+            if (!urlStr) {
+              console.error('❌ Error: APP_URL is not set in GitHub Actions secrets.');
+              process.exit(1);
+            }
+            if (!cronSecret) {
+              console.error('❌ Error: CRON_SECRET is not set in GitHub Actions secrets.');
+              console.error('   Please go to Settings > Secrets and variables > Actions and add CRON_SECRET');
+              process.exit(1);
+            }
+            
+            const target = urlStr.trim() + '/api/cron/process';
+            console.log('Triggering cron at ' + target);
+            
+            const options = {
+              method: 'POST',
+              headers: { 
+                'x-manual-trigger': 'true',
+                'User-Agent': 'vercel-cron/1.0',
+                'Authorization': 'Bearer ' + process.env.CRON_SECRET
+              },
+              timeout: 30000
+            };
+
+            const req = https.request(target, options, (res) => {
+              console.log('Response status:', res.statusCode);
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                console.log('✅ Cron triggered successfully');
+                process.exit(0);
+              } else {
+                console.error('⚠️ Cron failed with status', res.statusCode);
+                res.on('data', d => process.stderr.write(d));
+                res.on('end', () => process.exit(1));
+              }
+            });
+            
+            req.on('error', (e) => {
+              console.error('Request error:', e);
+              process.exit(1);
+            });
+            
+            req.on('timeout', () => {
+              req.destroy();
+              console.error('Request timed out');
+              process.exit(1);
+            });
+            
+            req.end();
+          "
