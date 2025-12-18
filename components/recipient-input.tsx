@@ -25,7 +25,7 @@ interface RecipientInputProps {
 
 export function RecipientInput({ onRecipientsChange, disabled, externalRecipients, customAction }: RecipientInputProps) {
     const [rawInput, setRawInput] = useState("")
-    const [parsedRecipients, setParsedRecipients] = useState<(RecipientStatus & { duplicate?: boolean })[]>([])
+    const [parsedRecipients, setParsedRecipients] = useState<ExtendedRecipientStatus[]>([])
     const [activeTab, setActiveTab] = useState("valid")
     const [isChecking, setIsChecking] = useState(false)
 
