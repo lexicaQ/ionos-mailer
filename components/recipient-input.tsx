@@ -11,7 +11,7 @@ import { X, Check, AlertTriangle, UserPlus, Trash2 } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 
-type ExtendedRecipientStatus = RecipientStatus & { duplicate?: boolean };
+type ExtendedRecipientStatus = RecipientStatus & { duplicate?: boolean; reason?: string };
 
 
 interface RecipientInputProps {
