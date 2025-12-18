@@ -165,6 +165,29 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const headerActions = null // Removed
 
 
+    const syncIndicator = (
+        <div className="flex items-center text-xs text-muted-foreground mr-8">
+            {syncStatus === 'saving' && (
+                <span className="flex items-center animate-pulse text-blue-500">
+                    <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                    Saving...
+                </span>
+            )}
+            {syncStatus === 'saved' && (
+                <span className="flex items-center text-green-600 dark:text-green-500 transition-all duration-500">
+                    <Cloud className="h-3 w-3 mr-1.5" />
+                    Saved
+                </span>
+            )}
+            {syncStatus === 'error' && (
+                <span className="flex items-center text-red-500">
+                    <XCircle className="h-3 w-3 mr-1.5" />
+                    Failed
+                </span>
+            )}
+        </div>
+    )
+
     return (
         <ResponsiveModal
             open={open}
@@ -173,10 +196,11 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             title="SMTP Settings"
             description="Configure your IONOS credentials"
             className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
+            headerActions={syncIndicator}
         >
             <ScrollArea className="flex-1 h-full pr-4">
 
-                <div className="grid gap-6 pt-4 pb-20">
+                <div className="grid gap-6 pt-4 pb-4">
 
 
                     {/* Server Settings */}
@@ -254,26 +278,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
 
                 {/* Sync Indicator */}
-                <div className="flex items-center justify-end py-2 text-xs text-muted-foreground min-h-[24px]">
-                    {syncStatus === 'saving' && (
-                        <span className="flex items-center animate-pulse text-blue-500">
-                            <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
-                            Saving changes to cloud...
-                        </span>
-                    )}
-                    {syncStatus === 'saved' && (
-                        <span className="flex items-center text-green-600 dark:text-green-500 transition-all duration-500">
-                            <Cloud className="h-3 w-3 mr-1.5" />
-                            All changes saved
-                        </span>
-                    )}
-                    {syncStatus === 'error' && (
-                        <span className="flex items-center text-red-500">
-                            <XCircle className="h-3 w-3 mr-1.5" />
-                            Sync failed
-                        </span>
-                    )}
-                </div>
+
 
                 {/* Debug / Test */}
                 <div className="space-y-4 pt-1">
