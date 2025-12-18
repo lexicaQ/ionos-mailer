@@ -14,7 +14,7 @@ export function AuthDialog() {
     const { data: session, status } = useSession()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [loading, setLoading] = useState(false)
+
 
     // Form state
     const [email, setEmail] = useState("")
