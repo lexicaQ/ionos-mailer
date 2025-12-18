@@ -22,20 +22,16 @@ This documentation serves as the comprehensive technical specification and opera
 
 ## 2. Feature Implementation
 
-### 2.1 Background Processing Engine (Recursive Workflows)
-To overcome the execution time limits inherent in serverless environments (e.g., Vercel Functions), the application utilizes a **Recursive Cron Architecture**.
+### 2.1 Smart Cloud Sync & Background Architecture
+IONOS Mailer utilizes a modern, serverless-compatible architecture that ensures reliability even when the application frontend is closed.
 
--   **Workflow Mechanism**:
-    1.  **Job Queueing**: When a campaign starts, individual email tasks are generated in the `Job` table with a `PENDING` status.
-    2.  **Trigger Execution**: A **GitHub Actions Workflow** (`.github/workflows/cron.yml`) periodically triggers the `/api/cron/process` endpoint.
-    3.  **Batch Processing**: The endpoint spawns a worker that retrieves a batch of pending jobs (default: 20).
-    4.  **Recursive Handoff**: Upon completing a batch, the worker checks for remaining jobs. If pending tasks exist, it self-initates a new asynchronous request to continue processing.
--   **Reliability**: This architecture guarantees that massive campaigns (10,000+ emails) are processed reliably without hitting server timeouts or memory limits.
+*   **GitHub Background Workflow**: The sending engine is powered by a **GitHub Actions Workflow** (`.github/workflows/cron.yml`) that acts as a robust heartbeat. It triggers the processing engine every 10 minutes, ensuring pending emails are sent reliably in the background without requiring the browser tab to remain open.
+*   **Draft Cloud Sync**: Seamlessly synchronize your drafts across devices. Start writing on your desktop and finish on your mobile device. Changes are intelligently merged using a server-side resolution strategy.
 
 ### 2.2 Enterprise-Grade Security
 Security is architected on a "Zero-Trust" model, assuming that the database layer could be theoretically compromised.
 
--   **Credential Encryption**: SMTP passwords are **never** stored in plain text.
+-   **Credential Encryption**: SMTP passwords and sensitive **Recipient Information** are **never** stored in plain text.
     -   **Algorithm**: **AES-256-GCM** (Galois/Counter Mode).
     -   **Key Management**: The `ENCRYPTION_KEY` resides strictly in the runtime environment variables and is never persisted to the database.
     -   **Storage Format**: `salt:iv:authTag:ciphertext`. This ensures that even with database access, decryption is mathematically impossible without the separate environment key.

@@ -33,9 +33,7 @@ export async function DELETE(
         });
         const jobIds = jobs.map((j: { id: string }) => j.id);
 
-        await prisma.click.deleteMany({
-            where: { emailJobId: { in: jobIds } }
-        });
+
 
         // 2. Delete jobs
         await prisma.emailJob.deleteMany({
