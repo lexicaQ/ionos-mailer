@@ -201,20 +201,21 @@ export function EmailForm() {
         try {
             // console.log('[EmailForm] Loading draft:', draft.name);
 
-            // Sanitization Helper: Fixes "blob:null" errors from old drafts
+            // Sanitization Helper: AGGRESSIVELY remove all images to prevent blob/data URL issues
             const sanitizeContent = (html: string) => {
                 if (!html) return "";
-                // Replace blob: URLs with placeholder or remove them
-                // Also handles the "strip media" requirement for old drafts that might still have them
-                let clean = html.replace(/src="blob:[^"]*"/g, 'src="" data-removed="blob-url"');
-                // Optional: We can also strip huge base64 strings if we want to enforce text-only strongly
-                // clean = clean.replace(/src="data:image\/[^;]+;base64,[^"]*"/g, 'src="" data-removed="base64"');
 
-                // Add visual placeholder for removed images if needed, or just leave broken
-                if (clean.includes('data-removed="blob-url"')) {
-                    clean = clean.replace(/<img[^>]*data-removed="blob-url"[^>]*>/g, '<span class="text-xs text-muted-foreground italic">[Image removed: Invalid source]</span>');
-                }
-                return clean;
+                // Step 1: Remove ALL img tags completely (images should be attachments, not inline)
+                let clean = html.replace(/<img[^>]*>/gi, '');
+
+                // Step 2: Remove any remaining blob: or data: URLs that might be elsewhere
+                clean = clean.replace(/blob:[^\s"']*/gi, '');
+                clean = clean.replace(/data:image\/[^;]+;base64,[^\s"']*/gi, '');
+
+                // Step 3: Clean up any empty paragraphs that might result
+                clean = clean.replace(/<p>\s*<\/p>/gi, '');
+
+                return clean || '<p></p>'; // Ensure non-empty for Tiptap
             };
 
             const safeBody = sanitizeContent(draft.body);
