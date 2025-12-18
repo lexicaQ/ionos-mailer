@@ -204,9 +204,9 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
 
                         <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground uppercase tracking-wider">Message (Text Only Preview)</Label>
-                            <div className="p-4 rounded-md bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm whitespace-pre-wrap min-h-[80px] max-h-[200px] overflow-y-auto">
+                            <div className="p-3 rounded-md bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm whitespace-pre-wrap min-h-[60px] max-h-[200px] overflow-y-auto">
                                 {/* Use getPreviewContent directly on text-only version or strip tags primarily */}
-                                <div className="text-sm font-mono leading-relaxed">
+                                <div className="text-sm font-mono leading-snug">
                                     {getPreviewContent(body
                                         .replace(/<br\s*\/?>/gi, '\n')
                                         .replace(/<\/p>/gi, '\n\n')
