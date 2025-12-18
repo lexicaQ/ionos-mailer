@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { ResponsiveModal } from '@/components/responsive-modal'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-    Save, FolderOpen, Trash2, FileText, Clock, Users, Paperclip, Mail, ImageIcon, AlertCircle, Search, Loader2, Image as ImageIconLucide
+    Save, FolderOpen, Trash2, FileText, Clock, Users, Paperclip, Mail, ImageIcon, AlertCircle, Search, Loader2, Image as ImageIconLucide, AlertTriangle
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { EmailDraft, loadDrafts, saveDraft, deleteDraft } from '@/lib/drafts'

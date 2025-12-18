@@ -326,7 +326,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                         </p>
                         <div className="flex flex-wrap justify-center gap-2 opacity-60">
                             {['JSON', 'PDF', 'EXCEL', 'CSV', 'WORD', 'TXT'].map((type) => (
-                                <Badge key={type} variant="secondary" className="text-[10px] bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 border-none">
+                                <Badge key={type} variant="secondary" className="text-[10px] bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-bold hover:bg-neutral-200 dark:hover:bg-neutral-800 border-none">
                                     {type}
                                 </Badge>
                             ))}

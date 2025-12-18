@@ -68,6 +68,10 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-icon",
   },
+  alternates: {
+    canonical: "https://ionos-mailer.vercel.app",
+  },
+  applicationName: "IONOS Mailer Pro",
 };
 
 export const viewport: Viewport = {
@@ -84,12 +88,34 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "IONOS Mailer Pro",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "Secure email marketing solution for IONOS users with background delivery and analytics.",
+    "author": {
+      "@type": "Person",
+      "name": "Maxim Keibel"
+    }
+  };
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black`}
       >
-
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
