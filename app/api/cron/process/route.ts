@@ -117,26 +117,36 @@ async function handleCronRequest(req: NextRequest) {
 
                 // Company Name Extraction & Replacement
                 // Check for placeholders
-                const placeholderRegex = /(XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\])/gi;
+                const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
 
-                if (placeholderRegex.test(finalBody) || placeholderRegex.test(finalSubject)) {
+                if (PLACEHOLDER_REGEX.test(finalBody) || PLACEHOLDER_REGEX.test(finalSubject)) {
                     try {
                         const companyName = await extractCompanyFromEmail(job.recipient);
-                        if (companyName) {
-                            finalBody = finalBody.replace(placeholderRegex, companyName);
-                            finalSubject = finalSubject.replace(placeholderRegex, companyName);
 
-                            // RE-ENCRYPT updated content before saving
-                            await prisma.emailJob.update({
-                                where: { id: job.id },
-                                data: {
-                                    body: encrypt(finalBody, secretKey),
-                                    subject: encrypt(finalSubject, secretKey)
-                                }
-                            });
-                        }
+                        // Use centralized logic for both Subject and Body
+                        // Note: If companyName is null (not found/generic), it will remove "at XXX" entirely
+                        finalBody = replacePlaceholders(finalBody, companyName);
+                        finalSubject = replacePlaceholders(finalSubject, companyName);
+
+                        // Only update DB if we actually found a company to maintain "Smart" data?
+                        // Actually, we should probably save the *processed* version so we know what was sent.
+                        // But wait, if we remove it, we are changing the content significantly.
+                        // Saving the processed version is correct for audit trail.
+
+                        // RE-ENCRYPT updated content before saving history/job
+                        await prisma.emailJob.update({
+                            where: { id: job.id },
+                            data: {
+                                body: encrypt(finalBody, secretKey),
+                                subject: encrypt(finalSubject, secretKey)
+                            }
+                        });
+
                     } catch (e) {
                         console.error("Failed to extract company info", e);
+                        // Safe fallback: Remove placeholders
+                        finalBody = replacePlaceholders(finalBody, null);
+                        finalSubject = replacePlaceholders(finalSubject, null);
                     }
                 }
 

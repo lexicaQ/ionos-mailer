@@ -68,8 +68,9 @@ export async function POST(req: Request) {
         const delayMs = Math.max(explicitDelay, 5000); // Minimum 5s for IONOS rate limit
 
         // Check if placeholders exist in the template
-        const placeholderRegex = /(XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\])/gi;
-        const hasPlaceholders = placeholderRegex.test(body) || placeholderRegex.test(subject);
+        // We use the util regex for detection too
+        const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
+        const hasPlaceholders = PLACEHOLDER_REGEX.test(body) || PLACEHOLDER_REGEX.test(subject);
 
         for (const recipient of recipients) {
             // Always wait before sending (rate limit protection)
@@ -82,16 +83,14 @@ export async function POST(req: Request) {
             if (hasPlaceholders) {
                 try {
                     const companyName = await extractCompanyFromEmail(recipient.email);
-                    // Use company name if found, otherwise empty string to remove placeholder
-                    const replacement = companyName || "";
-
-                    finalSubject = finalSubject.replace(placeholderRegex, replacement);
-                    finalBody = finalBody.replace(placeholderRegex, replacement);
+                    // Use centralized logic
+                    finalSubject = replacePlaceholders(finalSubject, companyName);
+                    finalBody = replacePlaceholders(finalBody, companyName);
                 } catch (e) {
                     console.error(`Failed to extract company for ${recipient.email}`, e);
-                    // In case of error, also remove placeholder to be safe
-                    finalSubject = finalSubject.replace(placeholderRegex, "");
-                    finalBody = finalBody.replace(placeholderRegex, "");
+                    // In error case, treat as generic (remove placeholder)
+                    finalSubject = replacePlaceholders(finalSubject, null);
+                    finalBody = replacePlaceholders(finalBody, null);
                 }
             }
 

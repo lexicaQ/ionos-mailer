@@ -59,7 +59,9 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
 
     // Helper to replace and highlight
     const getPreviewContent = (text: string) => {
-        const placeholderRegex = /(XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\])/gi;
+        // We replicate regex here to avoid importing server util in client component if needed
+        // But better to copy const:
+        const placeholderRegex = /((?:at\s+|bei\s+)?(?:XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\]))/gi;
 
         if (!text) return <span className="text-neutral-400 italic">Empty</span>;
 
@@ -72,11 +74,23 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
             <span>
                 {parts.map((part, i) => {
                     if (part.match(placeholderRegex)) {
-                        return (
-                            <span key={i} className={`font-bold px-1 rounded ${companyName ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"}`}>
-                                {companyName || part}
-                            </span>
-                        )
+                        if (companyName) {
+                            // Replace just the token part
+                            const tokenRegex = /(XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\])/i;
+                            const replaced = part.replace(tokenRegex, companyName);
+                            return (
+                                <span key={i} className="font-bold px-1 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                    {replaced}
+                                </span>
+                            )
+                        } else {
+                            // Generic -> Show as removed
+                            return (
+                                <span key={i} className="font-bold px-1 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 line-through opacity-60" title="Will be removed">
+                                    {part}
+                                </span>
+                            )
+                        }
                     }
                     return <span key={i}>{part}</span>
                 })}
@@ -154,7 +168,7 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
                                         ) : (
                                             <div className="text-yellow-800 dark:text-yellow-300">
                                                 <p className="font-medium">No company recognized.</p>
-                                                <p className="text-xs opacity-90 mt-0.5">Placeholders will not be replaced.</p>
+                                                <p className="text-xs opacity-90 mt-0.5">Placeholders will be removed/hidden.</p>
                                             </div>
                                         )}
                                     </div>
@@ -189,30 +203,11 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
                         </div>
 
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Message</Label>
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Message (Text Only Preview)</Label>
                             <div className="p-4 rounded-md bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm whitespace-pre-wrap min-h-[80px] max-h-[200px] overflow-y-auto">
-                                {/* Using a div + dangerouslySetInnerHTML is risky for preview if we don't sanitize, 
-                                    but here we want to show text mainly. Since RichTextEditor produces HTML, we should strip tags or render carefully.
-                                    For now, let's just show text content if possible, or render it safest way.
-                                    Actually, reusing getPreviewContent on HTML string is tricky because it might replace inside tags.
-                                    
-                                    Better approach: Just strip HTML tags for the preview text to keep it simple and safe?
-                                    Or: Use a parser. 
-                                    
-                                    Let's try a simple approach: Render html but replace carefully? 
-                                    Actually, for now, let's just strip HTML to show the TEXT logic, as that's what matters for placeholders.
-                                    Or better: Show the raw HTML if it's simple, or strip tags.
-                                 */}
+                                {/* Use getPreviewContent directly on text-only version or strip tags primarily */}
                                 <div className="prose dark:prose-invert max-w-none text-sm">
-                                    {/* Simple replace on the HTML string. It's visual only. */}
-                                    <div dangerouslySetInnerHTML={{
-                                        // User requested to hide inline images in preview, so we strip <img> tags
-                                        __html: body
-                                            .replace(/<img[^>]*>/gi, '') // Remove images
-                                            .replace(/(XXX|xxx|{{Company}}|{{Firma}}|\[Company\]|\[Firma\])/gi, (match) => {
-                                                return `<span class="font-bold px-1 rounded ${companyName ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"}">${companyName || match}</span>`
-                                            })
-                                    }} />
+                                    {getPreviewContent(body.replace(/<[^>]*>/g, ' '))}
                                 </div>
                             </div>
                         </div>
@@ -222,3 +217,4 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
         </Dialog>
     )
 }
+
