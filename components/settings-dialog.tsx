@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
-import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud } from "lucide-react"
+import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud, Check } from "lucide-react"
 import { toast } from "sonner"
 
 
@@ -34,6 +34,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [fromName, setFromName] = useState("")
     const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [testing, setTesting] = useState(false)
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+    const [hasLoaded, setHasLoaded] = useState(false)
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -69,22 +71,11 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 }
             }
 
-            // 2. Load Local (if not loaded from cloud OR if we want to check for upload)
             if (typeof window !== 'undefined' && localStorage) {
                 const saved = localStorage.getItem("smtp-config-full");
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
-
-                        // If cloud was empty but we have local, Upload it (First Sync)
-                        if (session?.user && !loadedFromCloud && parsed.user) {
-                            fetch('/api/sync/settings', {
-                                method: 'POST',
-                                body: JSON.stringify(parsed)
-                            }).then(() => toast.success("Local settings synced to cloud"));
-                        }
-
-                        // Use local if cloud didn't load
                         if (!loadedFromCloud) {
                             setHost(parsed.host || "smtp.ionos.de");
                             setPort(parsed.port || "587");
@@ -94,6 +85,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             setFromName(parsed.fromName || "");
                             setSavePassword(parsed.savePassword !== false);
 
+                            // Propagate initially
                             if (parsed.pass && parsed.user) {
                                 onSettingsChange({
                                     host: parsed.host || "smtp.ionos.de",
@@ -106,65 +98,63 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                 });
                             }
                         }
-                    } catch (e) {
-                        console.error("Failed to parse saved settings", e);
-                    }
+                    } catch (e) { console.error(e) }
                 }
             }
+            setHasLoaded(true);
         };
 
         loadSettings();
-    }, [session]); // Re-run when session changes (login/logout)
+    }, [session]);
 
-    const handleSave = async () => {
-        const config: SmtpConfig = {
-            host,
-            port: parseInt(port),
-            user,
-            pass,
-            secure: parseInt(port) === 465,
-            delay,
-            fromName,
-        }
+    // Auto-Save Effect
+    useEffect(() => {
+        if (!hasLoaded) return; // Don't save empty states while loading
 
-        onSettingsChange(config);
+        const timer = setTimeout(async () => {
+            setSyncStatus('saving');
 
-        // Save to Local
-        const dataToSave = savePassword
-            ? { host, port, user, pass, delay, fromName, savePassword }
-            : { host, port, user, delay, fromName, savePassword };
+            const config: SmtpConfig = {
+                host,
+                port: parseInt(port) || 587,
+                user,
+                pass,
+                secure: parseInt(port) === 465,
+                delay,
+                fromName,
+            };
 
-        localStorage.setItem("smtp-config-full", JSON.stringify(dataToSave));
+            // 1. Propagate to parent
+            onSettingsChange(config);
 
-        // Save to Cloud
-        if (session?.user) {
-            try {
-                // Ensure port is number in payload
-                await fetch('/api/sync/settings', {
-                    method: 'POST',
-                    body: JSON.stringify({ ...dataToSave, port: parseInt(port) })
-                });
-                toast.success("Settings saved to cloud");
-            } catch (e) {
-                console.error(e);
-                toast.error("Saved locally, but cloud sync failed");
+            // 2. Save Local
+            const dataToSave = savePassword
+                ? { host, port, user, pass, delay, fromName, savePassword }
+                : { host, port, user, delay, fromName, savePassword };
+
+            localStorage.setItem("smtp-config-full", JSON.stringify(dataToSave));
+
+            // 3. Save Cloud
+            if (session?.user) {
+                try {
+                    await fetch('/api/sync/settings', {
+                        method: 'POST',
+                        body: JSON.stringify({ ...dataToSave, port: parseInt(port) })
+                    });
+                    setSyncStatus('saved');
+                } catch (e) {
+                    console.error("Cloud save failed", e);
+                    setSyncStatus('error');
+                }
+            } else {
+                setSyncStatus('saved');
             }
-        } else {
-            toast.success("Settings saved locally");
-        }
+        }, 800); // 800ms debounce
 
-        setOpen(false)
-    }
+        return () => clearTimeout(timer);
+    }, [host, port, user, pass, delay, fromName, savePassword, hasLoaded, session]);
 
-    const handleReset = () => {
-        setHost("smtp.ionos.de");
-        setPort("587");
-        setUser("");
-        setPass("");
-        setDelay(500);
-        setFromName("");
-        localStorage.removeItem("smtp-config-full");
-    }
+
 
     const triggerButton = (
         <Button variant="outline" size="icon" title="SMTP Settings">
@@ -263,16 +253,26 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     </div>
                 </div>
 
-                {/* Actions (Save / Reset) - Middle */}
-                <div className="flex items-center justify-between py-2 border-t border-neutral-100 dark:border-neutral-800 my-2">
-                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600 h-9 px-2">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset
-                    </Button>
-                    <Button onClick={handleSave} className="px-6">
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Configuration
-                    </Button>
+                {/* Sync Indicator */}
+                <div className="flex items-center justify-end py-2 text-xs text-muted-foreground min-h-[24px]">
+                    {syncStatus === 'saving' && (
+                        <span className="flex items-center animate-pulse text-blue-500">
+                            <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                            Saving changes to cloud...
+                        </span>
+                    )}
+                    {syncStatus === 'saved' && (
+                        <span className="flex items-center text-green-600 dark:text-green-500 transition-all duration-500">
+                            <Cloud className="h-3 w-3 mr-1.5" />
+                            All changes saved
+                        </span>
+                    )}
+                    {syncStatus === 'error' && (
+                        <span className="flex items-center text-red-500">
+                            <XCircle className="h-3 w-3 mr-1.5" />
+                            Sync failed
+                        </span>
+                    )}
                 </div>
 
                 {/* Debug / Test */}
