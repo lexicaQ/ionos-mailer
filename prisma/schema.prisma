@@ -26,6 +26,7 @@ model User {
   
   // User Data
   drafts        Draft[]
+  sentEmails    SentEmail[]
   smtpSettings  SmtpSettings?
   
   createdAt     DateTime  @default(now())
@@ -105,6 +106,24 @@ model Draft {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([userId])
+}
+
+model SentEmail {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  subject     String
+  body        String   @db.Text
+  recipients  String   @db.Text // JSON array (list of emails)
+  attachments String?  @db.Text // JSON array (filenames or references)
+  
+  clickedCount Int @default(0)
+  openedCount  Int @default(0)
+  
+  sentAt      DateTime @default(now())
+  
   @@index([userId])
 }
 

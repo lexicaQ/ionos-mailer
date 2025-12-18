@@ -47,15 +47,16 @@ export function AuthDialog() {
     }
 
     const handlePasskeyLogin = async () => {
-        if (!email) {
-            toast.error("Please enter your email to find your passkey")
-            return
-        }
+        // No email required for discoverable credentials (usernameless)
 
         setPasskeyLoading(true)
         try {
-            // 1. Get options
-            const optionsRes = await fetch(`/api/auth/passkey/login?email=${encodeURIComponent(email)}`)
+            // 1. Get options - if email is known, standard flow; if not, discoverable
+            const url = email
+                ? `/api/auth/passkey/login?email=${encodeURIComponent(email)}`
+                : `/api/auth/passkey/login`
+
+            const optionsRes = await fetch(url)
             if (!optionsRes.ok) {
                 const err = await optionsRes.json()
                 throw new Error(err.error || "Passkey login failed")
@@ -69,7 +70,7 @@ export function AuthDialog() {
             const verifyRes = await fetch("/api/auth/passkey/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ response: credential, userId }),
+                body: JSON.stringify({ response: credential, userId }), // userId might be undefined here for usernameless, that's fine
             })
 
             const verifyData = await verifyRes.json()
@@ -116,18 +117,12 @@ export function AuthDialog() {
         )
     }
 
-    // Logged in state
+    // Logged in state - Minimalist (Just Logout Icon)
     if (session?.user) {
         return (
-            <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                    <Cloud className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">{session.user.email?.split("@")[0]}</span>
-                </div>
-                <Button variant="ghost" size="sm" onClick={handleLogout} title="Disconnect">
-                    <LogOut className="h-4 w-4" />
-                </Button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={handleLogout} title="Disconnect" className="h-9 w-9 p-0 rounded-full text-neutral-500 hover:text-black dark:text-neutral-400 dark:hover:text-white">
+                <LogOut className="h-4 w-4" />
+            </Button>
         )
     }
 

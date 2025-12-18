@@ -31,7 +31,12 @@ import { Attachment } from "@/lib/schemas"
 
 const HISTORY_STORAGE_KEY = "ionos-mailer-history"
 
+import { useSession } from "next-auth/react"
+// ...
+
 export function EmailForm() {
+    const { data: session } = useSession()
+
     const [isSending, setIsSending] = useState(false)
     const [sendProgress, setSendProgress] = useState(0)
     const [currentResults, setCurrentResults] = useState<SendResult[]>([])
@@ -45,7 +50,6 @@ export function EmailForm() {
     const [editorKey, setEditorKey] = useState(0) // Logic to force-reset editor on draft load
     const [fileImportOpen, setFileImportOpen] = useState(false)
 
-
     // Load history from localStorage on mount
     useEffect(() => {
         try {
@@ -57,6 +61,58 @@ export function EmailForm() {
             console.error("Failed to load history:", e)
         }
     }, [])
+
+    // Sync history from cloud when logged in
+    useEffect(() => {
+        if (!session?.user) return
+
+        const syncHistory = async () => {
+            try {
+                // 1. Fetch server history
+                const res = await fetch("/api/sync/history")
+                if (!res.ok) return
+                const serverData: HistoryBatch[] = await res.json()
+
+                // 2. Merge with local history (prefer local if conflict? or server? History is append-only mostly)
+                setHistory(prev => {
+                    // Create map by ID
+                    const map = new Map<string, HistoryBatch>()
+
+                    // Add local first
+                    prev.forEach(b => map.set(b.id, b))
+
+                    // Add server (overwriting if ID match? Usually harmless for history)
+                    // Server might have more up-to-date stats (clickedCount) if we implemented that.
+                    // Let's assume server is truth for properties, but we want union of items.
+                    serverData.forEach(b => map.set(b.id, { ...map.get(b.id), ...b }))
+
+                    const merged = Array.from(map.values()).sort((a, b) =>
+                        new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
+                    )
+
+                    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(merged))
+                    return merged
+                })
+            } catch (error) {
+                console.error("History sync failed", error)
+            }
+        }
+
+        syncHistory()
+    }, [session])
+
+    const saveHistoryToServer = async (batch: HistoryBatch) => {
+        if (!session?.user) return
+        try {
+            await fetch("/api/sync/history", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ batches: [batch] }),
+            })
+        } catch (e) {
+            console.error("Failed to push history batch", e)
+        }
+    }
 
     const form = useForm<EmailFormValues>({
         resolver: zodResolver(emailFormSchema),
@@ -120,15 +176,29 @@ export function EmailForm() {
                 setSendProgress(100);
 
                 const successCount = results.filter(r => r.success).length;
+
                 const newBatch: HistoryBatch = {
                     id: crypto.randomUUID(),
-                    timestamp: new Date().toISOString(),
-                    results: results,
+                    sentAt: new Date().toISOString(),
                     total: results.length,
+                    results: results, // Include results for details
                     success: successCount,
                     failed: results.length - successCount,
+                    subject: data.subject,
+                    status: 'completed',
+                    body: data.body, // Use passed data
+                    recipientList: data.recipients // Use passed data
                 };
-                setHistory(prev => [...prev, newBatch]);
+
+                // Update local state and storage
+                setHistory(prev => {
+                    const updated = [newBatch, ...prev];
+                    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
+                    return updated;
+                });
+
+                // Push to cloud if logged in
+                saveHistoryToServer(newBatch);
 
                 toast.success("Delivery completed");
             }
@@ -139,7 +209,7 @@ export function EmailForm() {
         } finally {
             setIsSending(false);
         }
-    }, [smtpSettings, useBackground, durationMinutes, setIsSending, setSendProgress, setCurrentResults, setHistory])
+    }, [smtpSettings, useBackground, durationMinutes, session])
 
     // Keyboard shortcut: Cmd+S or Ctrl+S to send
     useEffect(() => {
@@ -308,9 +378,10 @@ export function EmailForm() {
     return (
         <div className="p-6 md:p-8 space-y-8">
             {/* Header Bar */}
-            <div className="flex items-center justify-between">
+            {/* Header Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-black dark:bg-white flex items-center justify-center shadow-lg">
+                    <div className="h-10 w-10 rounded-xl bg-black dark:bg-white flex items-center justify-center shadow-lg shrink-0">
                         <Sparkles className="h-5 w-5 text-white dark:text-black" />
                     </div>
                     <div>
@@ -318,7 +389,9 @@ export function EmailForm() {
                         <p className="text-sm text-neutral-500">Send emails to multiple recipients</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Actions Grid for Mobile, Flex for Desktop */}
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                     <DraftsModal
                         currentSubject={form.watch('subject')}
                         currentBody={form.watch('body')}
@@ -333,7 +406,7 @@ export function EmailForm() {
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 col-span-1">
                         <AuthDialog />
                         <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     </div>

@@ -21,8 +21,6 @@ export function PasskeyManager() {
     const [passkeys, setPasskeys] = useState<Passkey[]>([])
     const [loading, setLoading] = useState(true)
     const [registering, setRegistering] = useState(false)
-    const [deviceName, setDeviceName] = useState("")
-    const [showNameInput, setShowNameInput] = useState(false)
 
     // Fetch existing passkeys
     useEffect(() => {
@@ -69,7 +67,7 @@ export function PasskeyManager() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     response: credential,
-                    deviceName: deviceName || undefined,
+                    // No manual device name, server will detect or default
                 }),
             })
 
@@ -79,9 +77,7 @@ export function PasskeyManager() {
             }
 
             toast.success("Passkey registered successfully!")
-            setDeviceName("")
-            setShowNameInput(false)
-            fetchPasskeys()
+            await fetchPasskeys() // Refresh list immediately
         } catch (error: any) {
             console.error("Passkey registration error:", error)
             if (error.name === "NotAllowedError") {
@@ -122,8 +118,12 @@ export function PasskeyManager() {
             <div className="p-4 rounded-lg bg-neutral-100 dark:bg-neutral-900 text-center">
                 <KeyRound className="h-8 w-8 mx-auto mb-2 text-neutral-400" />
                 <p className="text-sm text-muted-foreground">
-                    Sign in to manage passkeys
+                    Connect your account to manage passkeys
                 </p>
+                <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
+                    <Fingerprint className="h-3 w-3" />
+                    <span>Auto-sync enabled</span>
+                </div>
             </div>
         )
     }
@@ -135,64 +135,20 @@ export function PasskeyManager() {
                     <Fingerprint className="h-5 w-5" />
                     <h3 className="font-medium">Passkeys</h3>
                 </div>
-                {!showNameInput && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowNameInput(true)}
-                        disabled={registering}
-                    >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add
-                    </Button>
-                )}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRegisterPasskey}
+                    disabled={registering}
+                >
+                    {registering ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+                    Add Passkey
+                </Button>
             </div>
 
             <p className="text-xs text-muted-foreground">
-                Use Face ID, Touch ID, or Windows Hello to sign in without a password
+                Sign in with Face ID, Touch ID, or Windows Hello.
             </p>
-
-            {/* Add passkey form */}
-            {showNameInput && (
-                <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border space-y-3">
-                    <div>
-                        <Label htmlFor="device-name" className="text-xs">Device Name (optional)</Label>
-                        <Input
-                            id="device-name"
-                            value={deviceName}
-                            onChange={(e) => setDeviceName(e.target.value)}
-                            placeholder="e.g., MacBook Pro"
-                            disabled={registering}
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            onClick={handleRegisterPasskey}
-                            disabled={registering}
-                            size="sm"
-                            className="flex-1"
-                        >
-                            {registering ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                            ) : (
-                                <Fingerprint className="h-4 w-4 mr-1" />
-                            )}
-                            Register Passkey
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                                setShowNameInput(false)
-                                setDeviceName("")
-                            }}
-                            disabled={registering}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </div>
-            )}
 
             {/* Existing passkeys list */}
             {loading ? (
@@ -207,29 +163,34 @@ export function PasskeyManager() {
                             className="flex items-center justify-between p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border"
                         >
                             <div className="flex items-center gap-3">
-                                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                                <div className="h-8 w-8 rounded-full bg-white dark:bg-neutral-800 flex items-center justify-center border shadow-sm">
+                                    <Smartphone className="h-4 w-4 text-neutral-500" />
+                                </div>
                                 <div>
                                     <p className="text-sm font-medium">
-                                        {passkey.deviceName || "Passkey"}
+                                        {passkey.deviceName || "Unspecified Device"}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Added {format(new Date(passkey.createdAt), "MMM d, yyyy")}
-                                    </p>
+                                    <div className="text-xs text-muted-foreground flex gap-2">
+                                        <span>{format(new Date(passkey.createdAt), "MMM d, yyyy")}</span>
+                                        <span className="text-neutral-300 dark:text-neutral-700">•</span>
+                                        <span>{format(new Date(passkey.createdAt), "HH:mm")}</span>
+                                    </div>
                                 </div>
                             </div>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeletePasskey(passkey.id)}
+                                title="Remove"
                             >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Trash2 className="h-4 w-4 text-neutral-400 hover:text-red-500 transition-colors" />
                             </Button>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-4 text-sm text-muted-foreground">
-                    No passkeys registered yet
+                <div className="text-center py-6 text-sm text-muted-foreground border border-dashed rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20">
+                    No passkeys found. Add one for easier login.
                 </div>
             )}
         </div>

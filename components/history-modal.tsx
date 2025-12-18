@@ -33,11 +33,15 @@ import {
 
 export interface HistoryBatch {
     id: string
-    timestamp: string
+    sentAt: string
     results: SendResult[]
     total: number
     success: number
     failed: number
+    body?: string
+    recipientList?: any
+    subject?: string
+    status?: string
 }
 
 interface HistoryModalProps {
@@ -111,7 +115,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
     ]
 
     const areaData = batches.slice(-10).map(b => ({
-        name: format(new Date(b.timestamp), "MMM dd HH:mm"),
+        name: format(new Date(b.sentAt), "MMM dd HH:mm"),
         Successful: b.success,
         Failed: b.failed,
     }))
@@ -120,7 +124,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
         let results: (SendResult & { batchId: string; batchTime: string })[] = []
         batches.forEach(batch => {
             batch.results.forEach(r => {
-                results.push({ ...r, batchId: batch.id, batchTime: batch.timestamp })
+                results.push({ ...r, batchId: batch.id, batchTime: batch.sentAt })
             })
         })
 

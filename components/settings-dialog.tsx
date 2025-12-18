@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { signIn, signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { ResponsiveModal } from "@/components/responsive-modal"
 import { Input } from "@/components/ui/input"
@@ -9,7 +10,7 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
-import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react"
+import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud } from "lucide-react"
 import { PasskeyManager } from "@/components/passkey-manager"
 
 
@@ -20,6 +21,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDialogProps) {
+    const { data: session } = useSession()
     const [open, setOpen] = useState(false)
     const [host, setHost] = useState("smtp.ionos.de")
     const [port, setPort] = useState("587")
@@ -110,10 +112,40 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             trigger={triggerButton} // Now renders BOTH buttons
             title="SMTP Settings"
             description="Configure your IONOS credentials"
-            className="sm:max-w-[650px] max-h-[90vh] flex flex-col"
+            className="sm:max-w-[650px] flex flex-col h-[85vh] sm:h-auto"
         >
-            <ScrollArea className="flex-1 max-h-[70vh] pr-4">
+            <ScrollArea className="flex-1 h-full pr-4">
+
                 <div className="grid gap-6 py-4">
+                    {/* Cloud Sync Status (if logged in) */}
+                    {session?.user && (
+                        <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                        <Cloud className="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Connected as</p>
+                                        <p className="text-xs text-emerald-700 dark:text-emerald-400">{session.user.email}</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+                                    onClick={() => signOut()}
+                                >
+                                    Disconnect
+                                </Button>
+                            </div>
+                            <div className="text-[10px] text-emerald-600/80 dark:text-emerald-500/80 flex gap-4">
+                                <span className="flex items-center gap-1">✓ Drafts Syncing</span>
+                                <span className="flex items-center gap-1">✓ History Syncing</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Server Settings */}
                     <div className="space-y-3">
                         <h4 className="text-sm font-medium text-muted-foreground">Server</h4>
