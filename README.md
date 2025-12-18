@@ -1,146 +1,149 @@
 # IONOS Mailer
 
-A professional, high-performance email marketing application designed for privacy, security, and ease of use. Built with **Next.js 16**, **TypeScript**, and **PostgreSQL**, it offers a robust alternative to expensive SaaS platforms by leveraging your own SMTP credentials (IONOS or any other provider) while maintaining strict data isolation and privacy.
+A production-grade, privacy-focused email marketing platform designed for high-performance self-hosting. Built on the modern Next.js 16 stack, it provides a secure, fully controlled alternative to commercial SaaS newsletter tools by leveraging your own SMTP infrastructure (IONOS, AWS SES, SendGrid, etc.).
+
+This documentation details the system architecture, security implementation, data flow, and operational procedures for developers and system administrators.
 
 ---
 
-## Features
+## 1. System Overview
 
-### Advanced Sending Engine
-- **SMTP Integration**: Connects directly to your mail server (e.g., `smtp.ionos.de`).
-- **Background Processing**: Uses a sophisticated **Serverless Cron** architecture to process campaigns in the background. Once a campaign is initiated, the server handles the queue independently of the client session.
-- **Rate Limiting**: Implementation of intelligent throttling (e.g., 500ms delay between emails) to prevent spam flagging by SMTP providers.
-- **Smart Queue**: Automatically handles job failures and retries without manual intervention.
+**IONOS Mailer** acts as a secure middleware between your browser and your email service provider. Unlike traditional desktop clients, it offloads the delivery process to a background server queue, allowing for reliable bulk sending without requiring an active browser session.
 
-### Smart Drafts & Editor
-- **Rich Text Editor**: Full support for formatting including Bold, Italic, Underline, and Links.
-- **Context-Aware Placeholders**: 
-  - Supports dynamic injection such as `{{Company}}` or `at XXX`. 
-  - The system automatically detects user domains/companies. If no company is found for a recipient, generic "at XXX" text is automatically stripped to maintain professional appearance.
-- **Cloud Sync**: Drafts are automatically synchronized to the PostgreSQL database, ensuring data persistence across devices.
-- **Preview Mode**: Real-time rendering of email content with specific recipient data to verify placeholder resolution before sending.
-
-### Live Tracking & Analytics
-- **Real-Time Dashboard**: WebSocket-like updates for campaign status (Pending, Sent, Failed, Opened).
-- **Open Tracking**: Privacy-compliant 1x1 pixel tracking detects open rates.
-- **Link Tracking**: Automatic URL rewriting tracks click engagement before redirecting to the destination.
-- **Historical Logs**: Comprehensive, searchable history of all sent emails.
-- **Export Capabilities**: Generate detailed reports in **Excel (.xlsx)** or **PDF** (Black & White professional format) for offline analysis.
-
-### Privacy & Security
-We prioritize data sovereignty and transparency.
-- **Encryption**: SMTP passwords are encrypted at rest using **AES-256-GCM** before storage in the database.
-- **Isolation**: strict multi-tenancy architecture. Every user has a unique ID, and all data queries are scoped to the authenticated user.
-- **Bot Protection**: Custom Middleware proactively blocks known scrapers (GPTBot, Ahrefs, Semrush, etc.) to protect tracking links from false positives.
-- **No Third-Party Tracking**: The application is self-contained. No data is sent to third-party analytics services.
+### Core Technologies
+- **Application Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript (Strict Mode)
+- **Database**: PostgreSQL (Prisma ORM)
+- **Authentication**: NextAuth.js v5 (Auth.js) with JWT Sessions
+- **UI/UX**: React Server Components, Tailwind CSS v4, Shadcn/UI
+- **Cryptography**: Node.js Crypto Module (AES-256-GCM)
 
 ---
 
-## System Architecture
+## 2. Feature Specification
 
-### Backend
-- **Framework**: Next.js 16 (App Router) utilizing Server Actions for mutations.
-- **Database**: PostgreSQL (managed via Prisma ORM). Relational schema includes `User`, `Campaign`, `Job`, `Draft`, and `SmtpSettings`.
-- **Authentication**: NextAuth.js v5 (Auth.js) utilizing secure, HTTP-only sessions with CSRF protection.
-- **Cron System**: Implemented via a recursive self-calling API pattern (`/api/cron/process`). This design allows long-running campaigns (thousands of emails) to bypass Vercel's standard execution time limits by processing in discrete batches.
+### 2.1 Advanced Sending Engine
+The application implements a robust sending architecture designed to bypass serverless execution limits (e.g., Vercel's 10-second timeout).
+- **Architecture**: A recursive, self-sustaining cron loop.
+- **Process**:
+    1.  User initiates campaign -> Jobs are created in DB (`PENDING` state).
+    2.  Cron endpoint (`/api/cron/process`) is triggered.
+    3.  Worker fetches a batch of `N` pending jobs.
+    4.  Worker processes jobs sequentially with defined delays (Rate Limiting).
+    5.  If more jobs exist, the worker calls itself recursively via HTTP fetch.
+- **Reliability**: This ensures campaigns of arbitrary size (100 or 10,000 emails) complete reliable, regardless of host timeout policies.
 
-### Frontend
-- **UI Architecture**: Built with React Server Components (RSC) for performance and Client Components for interactivity.
-- **Component Library**: Custom implementation using Shadcn/UI and Radix Primitives for accessibility.
-- **Styling**: Tailwind CSS v4 with a strict monochrome design system to minimize visual distraction.
+### 2.2 Security & Encryption
+Security is the primary design constraint. We assume the database could be compromised and design accordingly.
+- **SMTP Credentials**: Your SMTP password is **never** stored in plain text.
+    - **Algorithm**: AES-256-GCM (Galois/Counter Mode).
+    - **Key Derivation**: PBKDF2 (100,000 iterations) with random 64-byte salt.
+    - **Mechanism**: A unique Interaction Vector (IV) and Authentication Tag are generated for every encryption operation.
+    - **Storage**: The `SmtpSettings` table stores the encrypted string (containing Salt, IV, Tag, and Ciphertext). The `ENCRYPTION_KEY` is stored only in environment variables, never in the DB.
+- **User Passwords**: Hashed using `bcrypt` (Salted, 10 rounds).
 
-### Data Flow
-1.  **Authentication**: User logs in via Email/Password. A secure session cookie is established.
-2.  **Job Submission**: When a campaign is started, the frontend submits the job payload. The backend encrypts the SMTP credentials using the `ENCRYPTION_KEY` and persists the job to the `Campaign` and `Job` tables in PostgreSQL.
-3.  **Background Processing**: A background worker (triggered via Vercel Cron or manual API call) wakes up, fetches a batch of pending jobs, decrypts the credentials in ephemeral memory, dispatches emails via Nodemailer, and updates the database status.
-4.  **Synchronization**: The client uses polling intervals to fetch the latest status from `/api/campaigns/status`, ensuring the UI reflects the real-time state of the server-side queue.
+### 2.3 Analytics & Tracking
+Privacy-compliant tracking mechanisms provide campaign insights without invasive data collection.
+- **Open Tracking**: An invisible 1x1 pixel is injected into the email body. When loaded, it hits the tracking endpoint, logging the timestamp and user agent.
+- **Link Tracking**: All links in the email body are parsed and replaced with unique redirect URLs (`/api/track/click/...`). This captures the click event before 302 redirecting the user to the destination.
+- **Data Model**: Tracking events are stored in the `Job` table (`openedAt`) and `Click` table (timestamp, url).
+
+### 2.4 Smart Drafts & Placeholders
+Content management utilizes a JSON-based storage format.
+- **Context-Awareness**: The editor supports dynamic placeholders like `{{Company}}`.
+- **Intelligent Fallback**: The sending engine inspects recipient data at runtime. If a placeholder value (e.g., Company Name) is missing, surrounding context words (like "at {{Company}}") are automatically stripped to prevent grammatical errors in the final email.
+- **Logic**: Implemented via RegEx tokenization during the render phase of the sending pipeline.
 
 ---
 
-## Installation & Local Usage
+## 3. Data Architecture (PostgreSQL)
 
-This guide details the steps to deploy the application on a local machine for development or testing.
+The database schema is designed for strict multi-tenancy. Every record is scoped to a specific `User`.
 
-### Prerequisites
-- **Node.js**: Version 18.0.0 or higher.
-- **PostgreSQL**: A running PostgreSQL instance (Local or Cloud-hosted like Neon, Supabase, or AWS RDS).
-- **Git**: For version control.
+### Key Tables
+1.  **User**: Accounts and authentication data.
+2.  **SmtpSettings**: (`userId` foreign key) Stores host, port, user, and encrypted password.
+3.  **Draft**: (`userId` foreign key) Saved email templates with JSON-structured content.
+4.  **Campaign**: (`userId` foreign key) Meta-container for a bulk send operation.
+5.  **Job**: (`campaignId` foreign key) Individual email task. Stores recipient, personalized subject, status (`SENT`, `FAILED`, `PENDING`), and tracking data (`openedAt`).
+6.  **SentEmail**: A historical archive table optimized for querying past activity.
 
-### Step-by-Step Guide
+**Data Sovereignty**: The database is yours. You can view it directly using any PostgreSQL client (e.g., TablePlus, DBeaver) by connecting to the `POSTGRES_PRISMA_DATABASE_URL`.
 
-1.  **Clone the Repository**
+---
+
+## 4. Installation & Deployment
+
+### 4.1 Prerequisites
+-   **Node.js**: v18.17.0 or newer.
+-   **PostgreSQL**: v14+ (Local or Managed).
+-   **Git**: For version control.
+-   **SMTP Account**: Access to an SMTP server (Host, Port, User, Password).
+
+### 4.2 Local Development Setup
+1.  **Clone Source**:
     ```bash
-    git clone https://github.com/yourusername/ionos-mailer.git
+    git clone https://github.com/your-org/ionos-mailer.git
     cd ionos-mailer
     ```
-
-2.  **Install Dependencies**
+2.  **Install Dependencies**:
     ```bash
-    npm install
-    # or
-    yarn install
+    npm ci
     ```
-
-3.  **Configure Environment Variables**
-    Create a `.env` file in the root directory. You must define the following variables:
+3.  **Environment Configuration**:
+    Create `.env` in the root (do not commit this file).
     ```env
-    # Database Connection
-    # Direct connection string to your PostgreSQL database
-    POSTGRES_PRISMA_DATABASE_URL="postgresql://user:password@host:port/db?sslmode=require"
-    POSTGRES_URL="postgresql://user:password@host:port/db?sslmode=require"
+    # Database (Connection Pooling recommended for Serverless)
+    POSTGRES_PRISMA_DATABASE_URL="postgresql://usr:pwd@host:5432/db?pgbouncer=true"
+    POSTGRES_URL="postgresql://usr:pwd@host:5432/db"
 
-    # Security Keys
-    # Use `openssl rand -base64 32` to generate secure keys
-    AUTH_SECRET="your-random-auth-secret-32-chars"
-    ENCRYPTION_KEY="your-random-32-char-string-for-aes" 
-    CRON_SECRET="your-random-secret-for-cron-protection"
+    # Security Secrets (Must be random & kept secure)
+    # Generate with: openssl rand -base64 32
+    AUTH_SECRET="long_random_string_for_nextauth"
+    ENCRYPTION_KEY="32_char_random_string_perfect_length"
+    CRON_SECRET="random_token_for_api_protection"
 
-    # Application URL
-    # Used for generating tracking links. Set to localhost for dev.
+    # App Config
     NEXT_PUBLIC_BASE_URL="http://localhost:3000"
     ```
-
-4.  **Initialize Database Schema**
-    Run the Prisma migration to create the necessary tables.
+4.  **Database Migration**:
     ```bash
     npx prisma generate
     npx prisma db push
     ```
-
-5.  **Run Development Server**
-    Start the local development server.
+5.  **Start Application**:
     ```bash
     npm run dev
     ```
+    Access via `http://localhost:3000`.
 
-6.  **Access the Application**
-    Open your web browser and navigate to `http://localhost:3000`.
-
-### Production Deployment (Vercel)
-This application is optimized for deployment on Vercel.
-1.  Push your code to a GitHub repository.
-2.  Import the project into Vercel.
-3.  Navigate to **Settings > Environment Variables** and add all variables from Step 3.
-4.  Deploy the project.
-5.  **Critical Configuration**: Set up a Vercel Cron Job to hit the `/api/cron/process` endpoint every minute. This ensures background processing continues reliably even when no users are active.
+### 4.3 Production Deployment (Vercel)
+1.  Push repository to GitHub.
+2.  Import project into Vercel.
+3.  Configure **Environment Variables** (copy from `.env`) in the Vercel Dashboard.
+4.  **Critical**: Configure Cron Jobs.
+    -   Vercel creates a `cron.json` automatically if present, or you can use a third-party cron service (e.g., GitHub Actions, EasyCron) to GET request `YOUR_DOMAIN/api/cron/process` every minute with the header `Authorization: Bearer YOUR_CRON_SECRET`.
 
 ---
 
-## Data Privacy Statement
+## 5. Security Audit & Compliance
 
-**Data Storage Policy:**
-- **User Credentials**: Email addresses are stored. Passwords are hashed using bcrypt.
-- **SMTP Credentials**: Stored encrypted using AES-256. The encryption key is never stored in the database.
-- **Campaign Data**: Recipient email addresses and subject lines are stored to provide historical logs and analytics.
+### What is stored?
+| Data Point | Storage Method | Purpose |
+| :--- | :--- | :--- |
+| **Email Address** | Plain Text | User Identification (Login) |
+| **Login Password** | Bcrypt Hash | Authentication |
+| **SMTP Password** | AES-256 Encrypted | Sending emails on your behalf |
+| **Recipient Data** | Plain Text | Delivery & History logs |
+| **Tracking Data** | Timestamp & IP | Analytics reports |
 
-**Data Usage Policy:**
-- **Inbox Access**: The application *does not* read your inbox. Its scope is strictly limited to *sending* emails via the provided SMTP credentials.
-- **Tracking**: No personal browsing history is tracked. Open tracking provides only a timestamp and basic user agent string.
-- **Third Parties**: No data is shared with third-party tracking services or ad networks.
-
-**Self-Hosted Sovereignty:**
-This application is designed for self-hosting. You retain full ownership and control mechanisms over your data.
+### Verification
+You can audit the backend logic by inspecting:
+-   `auth.ts`: Authentication flows.
+-   `lib/encryption.ts`: Cryptographic implementation.
+-   `app/api/send-emails`: The core sending logic.
+-   `middleware.ts`: Traffic filtering and bot protection rules.
 
 ---
 
-*Documentation Updated - Dec 2025*
+*Verified Documentation - Dec 2025*
