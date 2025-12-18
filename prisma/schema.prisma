@@ -8,6 +8,122 @@ datasource db {
   directUrl = env("POSTGRES_URL")
 }
 
+// ============================================================================
+// NextAuth.js Models
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?   // For email/password auth
+  image         String?
+  
+  accounts      Account[]
+  sessions      Session[]
+  passkeys      Passkey[]
+  
+  // User Data
+  drafts        Draft[]
+  smtpSettings  SmtpSettings?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Passkey {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId  String   @unique
+  publicKey     String
+  counter       BigInt
+  deviceName    String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ============================================================================
+// User Data Models (Synced)
+// ============================================================================
+
+model Draft {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  subject     String?
+  body        String   @db.Text
+  recipients  String   @db.Text // JSON array
+  attachments String?  @db.Text // JSON array
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model SmtpSettings {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  host      String
+  port      Int
+  email     String
+  password  String  // Encrypted
+  fromName  String?
+  delay     Int     @default(500)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================================
+// Existing Models (Email Campaigns)
+// ============================================================================
+
 model Campaign {
   id        String     @id @default(uuid())
   createdAt DateTime   @default(now())
@@ -79,3 +195,4 @@ model Click {
   
   @@index([emailJobId])
 }
+

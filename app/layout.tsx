@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { AutoThemeSwitcher } from "@/components/auto-theme-switcher"
 import { Analytics } from "@vercel/analytics/next";
 import { CSPostHogProvider } from "@/components/posthog-provider"
+import { AuthProvider } from "@/components/auth-provider"
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -95,13 +96,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <CSPostHogProvider>
-            <AutoThemeSwitcher />
-            <ThemeToggle />
-            {children}
-            <Toaster />
-            <Analytics />
-          </CSPostHogProvider>
+          <AuthProvider>
+            <CSPostHogProvider>
+              <AutoThemeSwitcher />
+              <ThemeToggle />
+              {children}
+              <Toaster />
+              <Analytics />
+            </CSPostHogProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
