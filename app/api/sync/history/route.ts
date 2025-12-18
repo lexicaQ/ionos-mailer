@@ -17,7 +17,10 @@ export async function GET(req: Request) {
         // Fetch jobs via campaigns owned by user
         const jobs = await prisma.emailJob.findMany({
             where: {
-                campaign: { userId: session.user.id },
+                campaign: {
+                    userId: session.user.id,
+                    host: "DIRECT" // Only show "Direct Send" emails in the history popup
+                },
                 status: { in: ['SENT', 'FAILED'] }
             },
             take: 1000,

@@ -435,8 +435,13 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                             {/* Opened Status - SECOND */}
                             <div className="w-[110px] flex-shrink-0">
                                 {job.openedAt ? (
-                                    <div className="text-green-600 dark:text-green-500 font-bold text-sm tracking-wide">
-                                        {format(new Date(job.openedAt), "dd.MM HH:mm")}
+                                    <div className="flex flex-col">
+                                        <div className="text-green-600 dark:text-green-500 font-bold text-sm tracking-wide">
+                                            Yes
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                            {format(new Date(job.openedAt), "dd.MM HH:mm")}
+                                        </div>
                                     </div>
                                 ) : (
                                     <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
