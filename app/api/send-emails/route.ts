@@ -5,7 +5,7 @@ import { extractCompanyFromEmail } from '@/lib/company-scraper';
 import { processBodyWithTracking } from '@/lib/tracking';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { encrypt } from '@/lib/encryption';
+import { encrypt, decrypt } from '@/lib/encryption';
 
 export async function POST(req: Request) {
     try {
@@ -119,12 +119,20 @@ export async function POST(req: Request) {
             let msgId: string | undefined = undefined;
 
             try {
+                // Ensure we use the raw password, not the encrypted blob
+                // If it's plain text, decrypt() returns it as-is (thanks to our fallback)
+                // If it's encrypted (from saved settings), this unwraps it
+                const decrypedConfig = {
+                    ...smtpSettings,
+                    pass: decrypt(smtpSettings.pass, encryptionKey)
+                };
+
                 const sendResponse = await sendEmail({
                     to: recipient.email,
                     subject: finalSubject,
                     text: finalBody,
                     html: htmlWithTracking,
-                    config: smtpSettings,
+                    config: decrypedConfig,
                     attachments,
                 });
                 success = sendResponse.success;

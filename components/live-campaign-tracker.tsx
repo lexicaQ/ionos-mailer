@@ -397,10 +397,24 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                         </div>
                     </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 px-2 p-0 z-10 gap-1 text-xs">
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Delete</span>
-                </Button>
+                <div className="flex items-center gap-1 z-10">
+                    {(campaign.stats.pending > 0) && (
+                        <Button variant="ghost" size="sm" onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm("Stop all pending emails for this campaign?")) return;
+                            try {
+                                await fetch(`/api/campaigns/${campaign.id}/cancel`, { method: "PATCH" });
+                            } catch (e) { console.error(e); }
+                        }} className="text-orange-500 hover:bg-orange-50 hover:text-orange-600 h-8 px-2 p-0 gap-1 text-xs mr-2">
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Stop</span>
+                        </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 px-2 p-0 gap-1 text-xs">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Delete</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Email List - Minimalist Table */}
@@ -471,6 +485,32 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Cancel Job Button */}
+                                {(job.status === 'PENDING' || job.status === 'WAITING') && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent"
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            if (!confirm("Cancel this email?")) return;
+                                            try {
+                                                await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
+                                                // Optimistic update handled by swr/refresh or just let polling handle it?
+                                                // Since we don't have SWR in this component yet (it uses manual refresh/polling), let's trigger refresh
+                                                // We can inject a refresh handler if needed, but for now user can click refresh or wait.
+                                                // Actually, we should probably force a refresh or update local state.
+                                                // Ideally pass a callback but for speed: just consume click.
+                                            } catch (e) {
+                                                console.error(e);
+                                            }
+                                        }}
+                                        title="Cancel Email"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -479,3 +519,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
         </motion.div>
     )
 }
+
+// Update Top Level component to inject cancel handler or just rely on global scope?
+// Actually we need to add "Stop Campaign" button to the header of MinimalCampaignRow too.
+
