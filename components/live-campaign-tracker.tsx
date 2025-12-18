@@ -231,6 +231,8 @@ export function LiveCampaignTracker() {
             head: [["Campaign", "Recipient", "Status", "Opened", "Sent", "Error"]],
             body: rows,
             startY: 40,
+            headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: [245, 245, 245] }
         })
 
         doc.save(`ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`)

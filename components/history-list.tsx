@@ -101,7 +101,7 @@ export function HistoryList({ batches }: HistoryListProps) {
                                             <TableHead className="w-[50px]">Status</TableHead>
                                             <TableHead>Email Address</TableHead>
                                             <TableHead>Message-ID</TableHead>
-                                            <TableHead>Error Details</TableHead>
+                                            <TableHead>Opened</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -120,17 +120,9 @@ export function HistoryList({ batches }: HistoryListProps) {
                                                 <TableCell className="font-mono text-xs text-muted-foreground">
                                                     {result.messageId || '—'}
                                                 </TableCell>
-                                                <TableCell>
-                                                    {result.error ? (
-                                                        <div className="flex items-start gap-2 max-w-md">
-                                                            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                                                            <span className="text-sm text-red-600 dark:text-red-400 break-words">
-                                                                {result.error}
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-muted-foreground text-sm">—</span>
-                                                    )}
+                                                <TableCell className="w-[120px]">
+                                                    {/* Placeholder for Opened Status - Live data requires Tracker */}
+                                                    <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
