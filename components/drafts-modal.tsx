@@ -40,6 +40,7 @@ export function DraftsModal({
     const [draftName, setDraftName] = useState('')
     const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [filterType, setFilterType] = useState<'all' | 'images' | 'attachments'>('all')
 
     const safeLoadDrafts = async () => {
         setIsLoading(true)
@@ -128,10 +129,19 @@ export function DraftsModal({
 
     const canSave = (currentSubject?.trim() || '') !== '' || (currentBody?.trim() || '') !== '' || (currentRecipients?.length || 0) > 0
 
-    const filteredDrafts = drafts.filter(d =>
-        d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (d.subject || '').toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredDrafts = drafts.filter(d => {
+        const matchesSearch =
+            d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (d.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            d.recipients?.some(r => r.email.toLowerCase().includes(searchTerm.toLowerCase()))
+
+        if (!matchesSearch) return false
+
+        if (filterType === 'images') return countImagesInBody(d.body) > 0
+        if (filterType === 'attachments') return (d.attachments?.length || 0) > 0
+
+        return true
+    })
 
     // Helper to count images in body (simple regex)
     const countImagesInBody = (body: string) => {
@@ -178,20 +188,52 @@ export function DraftsModal({
                 className="sm:max-w-[650px] max-h-[85vh] flex flex-col rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
             >
                 {/* Header Content handled by ResponsiveModal title, but we have custom search bar */}
-                <div className="px-6 py-6 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818]">
-                    {/* Search integrated in header for cleaner look */}
-                    <div className="mt-0 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search drafts..."
-                            className="pl-9 h-9 text-sm bg-neutral-100 dark:bg-[#252525] border-transparent focus:bg-white dark:focus:bg-[#252525] transition-colors"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818] space-y-4">
+                    {/* Search and Filters */}
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search subject, name or recipient..."
+                                className="pl-9 h-9 text-sm bg-neutral-100 dark:bg-[#252525] border-transparent focus:bg-white dark:focus:bg-[#252525] transition-colors w-full"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Filter Tabs */}
+                    <div className="flex gap-2">
+                        <Button
+                            variant={filterType === 'all' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setFilterType('all')}
+                            className="h-7 text-xs rounded-full"
+                        >
+                            All
+                        </Button>
+                        <Button
+                            variant={filterType === 'images' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setFilterType('images')}
+                            className="h-7 text-xs rounded-full gap-1.5"
+                        >
+                            <ImageIconLucide className="h-3 w-3" />
+                            Images
+                        </Button>
+                        <Button
+                            variant={filterType === 'attachments' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setFilterType('attachments')}
+                            className="h-7 text-xs rounded-full gap-1.5"
+                        >
+                            <Paperclip className="h-3 w-3" />
+                            Files
+                        </Button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden flex flex-col bg-neutral-50 dark:bg-[#0f0f0f]">
+                <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0f0f0f]">
                     <ScrollArea className="flex-1 h-full">
                         {isLoading && drafts.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 space-y-3">
@@ -275,7 +317,7 @@ export function DraftsModal({
                 open={saveDialogOpen}
                 onOpenChange={setSaveDialogOpen}
                 title={selectedDraftId ? "Update Draft" : "Save Draft"}
-                description={currentAttachments.length > 0 ? "Attachments will be saved." : "Choose a name for your draft."}
+                description="Save your current progress to resume later."
                 className="sm:max-w-[425px] bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800"
             >
                 <div className="py-6 space-y-6">
@@ -285,12 +327,31 @@ export function DraftsModal({
                         </Badge>
                     )}
                     {/* Explicit info about attachments - render inside content as well if needed, or rely on description */}
-                    {currentAttachments.length > 0 && (
-                        <span className="flex items-center gap-2 mb-2 text-sm text-neutral-500">
-                            <Paperclip className="h-4 w-4" />
-                            {currentAttachments.length} Attachments
-                        </span>
-                    )}
+                    {/* Explicit info about content */}
+                    <div className="flex flex-wrap gap-3 text-xs text-neutral-500 bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800">
+                        <div className="flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5" />
+                            <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                                {currentRecipients.length}
+                            </span> Recipient{currentRecipients.length !== 1 ? 's' : ''}
+                        </div>
+                        {countImagesInBody(currentBody) > 0 && (
+                            <div className="flex items-center gap-1.5">
+                                <ImageIconLucide className="h-3.5 w-3.5" />
+                                <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                                    {countImagesInBody(currentBody)}
+                                </span> Image{countImagesInBody(currentBody) !== 1 ? 's' : ''}
+                            </div>
+                        )}
+                        {currentAttachments.length > 0 && (
+                            <div className="flex items-center gap-1.5">
+                                <Paperclip className="h-3.5 w-3.5" />
+                                <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                                    {currentAttachments.length}
+                                </span> File{currentAttachments.length !== 1 ? 's' : ''}
+                            </div>
+                        )}
+                    </div>
                     <div className="space-y-2">
                         <Input
                             placeholder="Enter name..."

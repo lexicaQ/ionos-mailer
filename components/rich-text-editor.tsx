@@ -279,6 +279,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-1 p-2 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 sticky top-0 z-10">
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleBold().run()}
@@ -288,6 +289,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <Bold className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -297,6 +299,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <Italic className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -306,6 +309,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <UnderlineIcon className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -318,6 +322,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                 <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800 mx-1" />
 
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -327,6 +332,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <Heading1 className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -336,6 +342,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <Heading2 className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -375,6 +382,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                 <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
 
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -384,6 +392,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <List className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -398,6 +407,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                 <Dialog open={linkDialogOpen} onOpenChange={handleOpenLinkDialog}>
                     <DialogTrigger asChild>
                         <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
                             className={editor.isActive('link') ? 'bg-neutral-200 dark:bg-neutral-800' : ''}
@@ -438,6 +448,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                 <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
                     <DialogTrigger asChild>
                         <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
                             className={editor.isActive('image') ? 'bg-neutral-200 dark:bg-neutral-800' : ''}
@@ -504,6 +515,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                 <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
 
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     className="h-8 gap-2 text-neutral-600 dark:text-neutral-400"
@@ -523,6 +535,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                 <div className="flex-1" />
 
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().undo().run()}
@@ -532,6 +545,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     <Undo className="h-4 w-4" />
                 </Button>
                 <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => editor.chain().focus().redo().run()}
