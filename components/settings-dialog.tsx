@@ -236,7 +236,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         </Button>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pb-4">
                         <div className="text-xs text-muted-foreground">
                             <p>Manual Cron Start</p>
                             <p>(Processes pending emails)</p>
@@ -267,12 +267,12 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
 
                 {/* Passkey Management */}
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-6 border-t mt-2">
                     <PasskeyManager />
                 </div>
 
                 {/* Data Management */}
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-8 border-t mt-4">
                     <h4 className="text-sm font-medium text-muted-foreground">Data Management</h4>
                     <div className="flex items-center justify-between">
                         <div className="text-xs text-muted-foreground">
@@ -291,18 +291,20 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         </Button>
                     </div>
                 </div>
-
-                <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 mt-6">
-                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset
-                    </Button>
-                    <Button onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
-                    </Button>
-                </div>
+                <div className="h-6" /> {/* Bottom spacer for scroll */}
             </ScrollArea>
+
+            {/* Footer - Outside ScrollArea for sticky behavior */}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 pt-6 border-t mt-auto bg-background z-10">
+                <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset
+                </Button>
+                <Button onClick={handleSave}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                </Button>
+            </div>
         </ResponsiveModal>
     )
 }
