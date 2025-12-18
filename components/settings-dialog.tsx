@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2 } from "lucide-react"
+import { PasskeyManager } from "@/components/passkey-manager"
 
 interface SettingsDialogProps {
     onSettingsChange: (settings: SmtpConfig) => void;
@@ -258,6 +259,11 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             Start Cron
                         </Button>
                     </div>
+                </div>
+
+                {/* Passkey Management */}
+                <div className="space-y-4 pt-4 border-t">
+                    <PasskeyManager />
                 </div>
 
                 {/* Data Management */}
