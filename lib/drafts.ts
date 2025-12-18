@@ -62,6 +62,44 @@ export async function loadDrafts(): Promise<EmailDraft[]> {
         await migrateFromLocalStorage();
     }
 
+    // 1. Sync Down from Cloud (if logged in)
+    try {
+        const res = await fetch('/api/sync/drafts');
+        if (res.ok) {
+            const { drafts } = await res.json();
+            if (Array.isArray(drafts)) {
+                // console.log(`[Drafts] Cloud sync: found ${drafts.length} drafts`);
+                for (const d of drafts) {
+                    // Encrypt Cloud Data for Local Storage
+                    const payload = {
+                        subject: d.subject || "",
+                        body: d.body || "",
+                        recipients: d.recipients || [],
+                        attachments: d.attachments || []
+                    };
+                    const encrypted = await encryptData(payload);
+
+                    // Upsert to Local DB
+                    await saveDraftDB({
+                        id: d.id,
+                        name: d.name,
+                        createdAt: d.createdAt,
+                        updatedAt: d.updatedAt,
+                        encryptedData: encrypted,
+                        // Clear plaintext fields from DB object
+                        subject: undefined,
+                        body: undefined,
+                        recipients: undefined,
+                        attachments: undefined
+                    } as any);
+                }
+            }
+        }
+    } catch (e) {
+        // console.log("Cloud sync skipped (offline or not logged in)");
+    }
+
+    // 2. Load from Local DB
     const drafts = await getAllDraftsDB();
     const decryptedDrafts: EmailDraft[] = [];
 
@@ -76,7 +114,6 @@ export async function loadDrafts(): Promise<EmailDraft[]> {
                 });
             } catch (e) {
                 console.error(`Failed to decrypt draft ${draft.id}`, e);
-                // Skip or return error-state draft? Returning partial might be better than nothing.
                 decryptedDrafts.push({
                     ...draft,
                     subject: '(Decryption Failed)',
@@ -180,6 +217,19 @@ export async function saveDraft(draft: Omit<EmailDraft, 'id' | 'createdAt' | 'up
 
     await saveDraftDB(finalDraftForDB as any);
 
+    // Sync to Cloud (Background)
+    const cloudPayload = {
+        id: baseDraft.id,
+        name: baseDraft.name,
+        ...payload // Decrypted content
+    };
+
+    fetch('/api/sync/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cloudPayload)
+    }).catch(e => console.error("Cloud upload failed", e));
+
     // Return the full decrypted version for UI usage immediately
     return {
         ...baseDraft as EmailDraft,
@@ -192,6 +242,12 @@ export async function saveDraft(draft: Omit<EmailDraft, 'id' | 'createdAt' | 'up
  */
 export async function deleteDraft(id: string): Promise<void> {
     await deleteDraftDB(id);
+    // Cloud Delete
+    fetch('/api/sync/drafts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    }).catch(e => console.error("Cloud delete failed", e));
 }
 
 /**
