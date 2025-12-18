@@ -15,6 +15,7 @@ export async function GET(req: Request) {
         if (!secretKey) throw new Error("Encryption key missing");
 
         // Fetch jobs via campaigns owned by user
+        // We strict filter for campaigns created by the 'Direct Send' flow
         const jobs = await prisma.emailJob.findMany({
             where: {
                 campaign: {
