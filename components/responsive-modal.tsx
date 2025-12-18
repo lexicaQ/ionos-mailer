@@ -67,7 +67,7 @@ export function ResponsiveModal({
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
             {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
-            <DrawerContent className="max-h-[96vh]">
+            <DrawerContent className="max-h-[90vh]">
                 <div className="absolute right-4 top-4 z-50">
                     <DrawerClose asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-black dark:hover:text-white">

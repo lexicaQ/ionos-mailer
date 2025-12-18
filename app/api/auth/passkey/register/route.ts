@@ -3,18 +3,8 @@ import { auth } from "@/auth"
 import { generatePasskeyRegistrationOptions, verifyPasskeyRegistration } from "@/lib/webauthn"
 import { prisma } from "@/lib/prisma"
 
-// In-memory challenge store (use Redis in production)
-const challengeStore = new Map<string, { challenge: string; timestamp: number }>()
-
-// Clean up old challenges (older than 5 minutes)
-function cleanupChallenges() {
-    const now = Date.now()
-    for (const [key, value] of challengeStore.entries()) {
-        if (now - value.timestamp > 5 * 60 * 1000) {
-            challengeStore.delete(key)
-        }
-    }
-}
+// Database-backed challenge store
+// DELETE: InMemory store
 
 // GET: Generate registration options
 export async function GET() {
@@ -25,17 +15,22 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
-        cleanupChallenges()
-
         const options = await generatePasskeyRegistrationOptions(
             session.user.id,
             session.user.email
         )
 
-        // Store challenge for verification
-        challengeStore.set(session.user.id, {
-            challenge: options.challenge,
-            timestamp: Date.now(),
+        // Store challenge for verification in DB
+        await prisma.passkeyChallenge.upsert({
+            where: { userId: session.user.id },
+            create: {
+                userId: session.user.id,
+                challenge: options.challenge,
+            },
+            update: {
+                challenge: options.challenge,
+                createdAt: new Date(), // Refresh timestamp
+            }
         })
 
         return NextResponse.json({ options })
@@ -56,22 +51,27 @@ export async function POST(request: Request) {
 
         const { response, deviceName } = await request.json()
 
-        // Get stored challenge
-        const storedData = challengeStore.get(session.user.id)
-        if (!storedData) {
-            return NextResponse.json({ error: "Challenge expired" }, { status: 400 })
+        // Get stored challenge from DB
+        const storedChallenge = await prisma.passkeyChallenge.findUnique({
+            where: { userId: session.user.id }
+        })
+
+        if (!storedChallenge) {
+            return NextResponse.json({ error: "Challenge expired or not found" }, { status: 400 })
         }
 
         // Verify registration
         const result = await verifyPasskeyRegistration(
             session.user.id,
             response,
-            storedData.challenge,
+            storedChallenge.challenge,
             deviceName
         )
 
         // Clean up challenge
-        challengeStore.delete(session.user.id)
+        await prisma.passkeyChallenge.delete({
+            where: { userId: session.user.id }
+        })
 
         if (!result.verified) {
             return NextResponse.json({ error: "Verification failed" }, { status: 400 })
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         })
     } catch (error: any) {
         console.error("Error verifying passkey:", error)
-        return NextResponse.json({ error: "Verification failed" }, { status: 500 })
+        return NextResponse.json({ error: error.message || "Verification failed" }, { status: 500 })
     }
 }
 

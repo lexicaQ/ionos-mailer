@@ -23,6 +23,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   passkeys      Passkey[]
+  passkeyChallenge PasskeyChallenge?
   
   // User Data
   drafts        Draft[]
@@ -86,6 +87,15 @@ model Passkey {
   createdAt     DateTime @default(now())
 
   @@index([userId])
+}
+
+model PasskeyChallenge {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  challenge String
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================================

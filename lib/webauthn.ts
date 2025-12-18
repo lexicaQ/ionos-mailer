@@ -16,9 +16,11 @@ const rpName = "IONOS Mailer"
 const rpID = process.env.NODE_ENV === "production"
     ? "ionos-mailer.vercel.app"
     : "localhost"
-const origin = process.env.NODE_ENV === "production"
+
+// Dynamic origin based on environment
+const origin = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === "production"
     ? "https://ionos-mailer.vercel.app"
-    : "http://localhost:3000"
+    : "http://localhost:3000")
 
 // Generate registration options for a new passkey
 export async function generatePasskeyRegistrationOptions(

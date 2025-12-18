@@ -112,7 +112,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             trigger={triggerButton} // Now renders BOTH buttons
             title="SMTP Settings"
             description="Configure your IONOS credentials"
-            className="sm:max-w-[650px] flex flex-col h-[85vh] sm:h-auto"
+            className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
         >
             <ScrollArea className="flex-1 h-full pr-4">
 
