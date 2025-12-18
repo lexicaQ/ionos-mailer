@@ -238,7 +238,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
             onOpenChange={handleOpenChange}
             title="Import Email Addresses"
             description="Import recipients from files. Only email addresses will be extracted."
-            className="sm:max-w-[500px] max-h-[85vh] flex flex-col bg-white dark:bg-black border-neutral-200 dark:border-neutral-800"
+            className="sm:max-w-4xl max-h-[85vh] flex flex-col bg-white dark:bg-black border-neutral-200 dark:border-neutral-800"
         >
             <div className="flex-1 overflow-hidden p-1">
                 {/* Stage: Idle - Dropzone (Monochrome) */}

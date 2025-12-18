@@ -54,8 +54,9 @@ const DEFAULT_OPTIONS: Required<Omit<ParseOptions, 'onProgress' | 'abortSignal'>
     timeoutMs: 300000, // Increased from 60s to 5 mins
 };
 
-// Robust email regex - handles most real-world cases
-const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+// Robust email regex - handles most real-world cases (local-part@domain)
+// Now case-insensitive and permissive of dots/dashes
+const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 
 // Common email column names (case-insensitive)
 const EMAIL_COLUMN_NAMES = ['email', 'e-mail', 'mail', 'emailaddress', 'email_address', 'e_mail'];
@@ -177,7 +178,8 @@ async function parsePDF(file: File, options: ParseOptions): Promise<ExtractionRe
 
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(' ');
+            // Improved text joining: ensure spaces between items if distinct
+            const pageText = textContent.items.map((item: any) => item.str + (item.hasEOL ? '\n' : ' ')).join('');
             fullText += pageText + '\n';
 
             options.onProgress?.({
@@ -189,7 +191,15 @@ async function parsePDF(file: File, options: ParseOptions): Promise<ExtractionRe
 
         options.onProgress?.({ stage: 'extracting', percent: 85, message: 'Extracting emails...' });
 
-        const detectedRecipients = extractEmailsFromText(fullText);
+        // normalize text before extraction
+        const cleanText = normalizeText(fullText);
+
+        // Smart Scan Detection: If text is extremely short relative to page count or empty
+        if (cleanText.length < 50 && numPages > 0) {
+            return createErrorResult(fileName, fileType, 'No readable text found. This PDF appears to be a scanned image. Please convert it to an image file (PNG/JPG) or use a searchable PDF.');
+        }
+
+        const detectedRecipients = extractEmailsFromText(cleanText);
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
 
@@ -201,7 +211,7 @@ async function parsePDF(file: File, options: ParseOptions): Promise<ExtractionRe
             rawText: '',
             structuredFields: {},
             warnings: numPages > MAX_PAGES ? [`Only the first ${MAX_PAGES} pages were analyzed.`] : [],
-            errors: [],
+            errors: detectedRecipients.length === 0 ? ['No email addresses found.'] : [],
             fileType,
             fileName,
         };
