@@ -640,14 +640,7 @@ export function EmailForm() {
                 </form>
             </Form>
 
-            {/* Status View */}
-            {(isSending || currentResults.length > 0) && (
-                <StatusView
-                    isSending={isSending}
-                    progress={sendProgress}
-                    results={currentResults}
-                />
-            )}
+
 
             {/* File Import Modal */}
             <FileImportModal
