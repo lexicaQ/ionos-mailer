@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ResponsiveModal } from "@/components/responsive-modal"
+import { startAuthentication } from "@simplewebauthn/browser"
 import { toast } from "sonner"
-import { User, LogOut, Loader2, Cloud, Mail } from "lucide-react"
+import { LogOut, Loader2, Cloud, Mail, Fingerprint } from "lucide-react"
 
 export function AuthDialog() {
     const { data: session, status } = useSession()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [passkeyLoading, setPasskeyLoading] = useState(false)
 
     // Form state
     const [email, setEmail] = useState("")
@@ -41,6 +43,62 @@ export function AuthDialog() {
             toast.error("Connection failed")
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handlePasskeyLogin = async () => {
+        if (!email) {
+            toast.error("Please enter your email to find your passkey")
+            return
+        }
+
+        setPasskeyLoading(true)
+        try {
+            // 1. Get options
+            const optionsRes = await fetch(`/api/auth/passkey/login?email=${encodeURIComponent(email)}`)
+            if (!optionsRes.ok) {
+                const err = await optionsRes.json()
+                throw new Error(err.error || "Passkey login failed")
+            }
+            const { options, userId } = await optionsRes.json()
+
+            // 2. Authenticate with browser
+            const credential = await startAuthentication(options)
+
+            // 3. Verify on server
+            const verifyRes = await fetch("/api/auth/passkey/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ response: credential, userId }),
+            })
+
+            const verifyData = await verifyRes.json()
+
+            if (!verifyRes.ok) {
+                throw new Error(verifyData.error || "Verification failed")
+            }
+
+            // 4. Secure Handoff: Login with temporary token
+            const result = await signIn("credentials", {
+                email: verifyData.email,
+                loginToken: verifyData.loginToken,
+                redirect: false,
+            })
+
+            if (result?.error) {
+                throw new Error("Login handoff failed")
+            }
+
+            toast.success("Logged in with Passkey!")
+            setOpen(false)
+            setEmail("")
+            setPassword("")
+
+        } catch (error: any) {
+            console.error(error)
+            toast.error(error.message || "Passkey login failed")
+        } finally {
+            setPasskeyLoading(false)
         }
     }
 
@@ -124,14 +182,40 @@ export function AuthDialog() {
                         />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                            <Cloud className="h-4 w-4 mr-2" />
-                        )}
-                        Connect & Sync
-                    </Button>
+                    <div className="space-y-3">
+                        <Button type="submit" className="w-full" disabled={loading || passkeyLoading}>
+                            {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                <Cloud className="h-4 w-4 mr-2" />
+                            )}
+                            Connect & Sync
+                        </Button>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                                <span className="bg-background px-2 text-muted-foreground">Or</span>
+                            </div>
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={handlePasskeyLogin}
+                            disabled={loading || passkeyLoading}
+                        >
+                            {passkeyLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                <Fingerprint className="h-4 w-4 mr-2" />
+                            )}
+                            Sign in with Passkey
+                        </Button>
+                    </div>
 
                     <p className="text-center text-[11px] text-muted-foreground">
                         Same credentials = same account on all devices

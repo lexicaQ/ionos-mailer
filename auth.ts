@@ -20,17 +20,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
-                    return null
-                }
-
-                const email = (credentials.email as string).toLowerCase().trim()
+                const email = (credentials.email as string)?.toLowerCase().trim()
                 const password = credentials.password as string
+                const loginToken = (credentials as any).loginToken as string | undefined
+
+                if (!email) return null
 
                 // Find existing user
                 let user = await prisma.user.findUnique({
                     where: { email },
                 })
+
+                // Case 1: Passkey Login (using loginToken)
+                if (loginToken && user) {
+                    if (user.loginToken === loginToken &&
+                        user.loginTokenExpires &&
+                        user.loginTokenExpires > new Date()) {
+
+                        // Clear token after use (single use)
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { loginToken: null, loginTokenExpires: null }
+                        })
+
+                        return {
+                            id: user.id,
+                            email: user.email,
+                            name: user.name,
+                            image: user.image,
+                        }
+                    }
+                    return null // Invalid token
+                }
+
+                // Case 2: Standard Password Login
+                if (!password) return null
 
                 if (user) {
                     // User exists - verify password
