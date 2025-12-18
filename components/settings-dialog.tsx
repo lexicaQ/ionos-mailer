@@ -301,7 +301,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 </div>
 
                 {/* Data Management */}
-                <div className="space-y-4 pt-8 border-t mt-4">
+                <div className="space-y-4 pt-8 border-t mt-4 pb-6">
                     <h4 className="text-sm font-medium text-muted-foreground">Data Management</h4>
                     <div className="flex items-center justify-between">
                         <div className="text-xs text-muted-foreground">
@@ -320,18 +320,19 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                         </Button>
                     </div>
                 </div>
-                {/* Footer - Moved inside ScrollArea as requested */}
-                <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 pt-8 pb-2 mt-4 border-t">
-                    <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset
-                    </Button>
-                    <Button onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
-                    </Button>
-                </div>
             </ScrollArea>
-        </ResponsiveModal>
+
+            {/* Footer - Moved OUTSIDE ScrollArea for sticky effect */}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 p-4 pt-2 border-t bg-background">
+                <Button variant="ghost" onClick={handleReset} className="text-red-500 hover:text-red-600">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset
+                </Button>
+                <Button onClick={handleSave}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save
+                </Button>
+            </div>
+        </ResponsiveModal >
     )
 }

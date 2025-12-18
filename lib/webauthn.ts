@@ -13,19 +13,12 @@ import { prisma } from "@/lib/prisma"
 
 // Relying Party configuration
 const rpName = "IONOS Mailer"
-const rpID = process.env.NODE_ENV === "production"
-    ? "ionos-mailer.vercel.app"
-    : "localhost"
-
-// Dynamic origin based on environment
-const origin = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === "production"
-    ? "https://ionos-mailer.vercel.app"
-    : "http://localhost:3000")
 
 // Generate registration options for a new passkey
 export async function generatePasskeyRegistrationOptions(
     userId: string,
-    userEmail: string
+    userEmail: string,
+    rpID: string
 ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     const options = await generateRegistrationOptions({
         rpName,
@@ -49,6 +42,8 @@ export async function verifyPasskeyRegistration(
     userId: string,
     response: RegistrationResponseJSON,
     expectedChallenge: string,
+    rpID: string,
+    origin: string,
     deviceName?: string
 ): Promise<{ verified: boolean; passkeyId?: string }> {
     try {
@@ -91,7 +86,7 @@ export async function verifyPasskeyRegistration(
 }
 
 // Generate authentication options for passkey login
-export async function generatePasskeyAuthenticationOptions(userEmail?: string) {
+export async function generatePasskeyAuthenticationOptions(userEmail: string | undefined, rpID: string) {
     let allowCredentials: any[] | undefined = undefined
 
     // If email provided, finding specific user's passkeys (Non-resident key flow)
@@ -136,7 +131,9 @@ export async function generatePasskeyAuthenticationOptions(userEmail?: string) {
 // Verify authentication response for passkey login
 export async function verifyPasskeyAuthentication(
     response: AuthenticationResponseJSON,
-    expectedChallenge: string
+    expectedChallenge: string,
+    rpID: string,
+    origin: string
 ): Promise<{ verified: boolean; userId?: string; email?: string }> {
     try {
         const credentialIdBase64 = response.id

@@ -26,10 +26,11 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { PlaceholderPreviewDialog } from "@/components/placeholder-preview-dialog"
 import { DraftsModal } from "@/components/drafts-modal"
-import { EmailDraft } from "@/lib/drafts"
+import { EmailDraft, loadDrafts as loadLocalDrafts, saveDraft as saveLocalDraft } from "@/lib/drafts"
 import { Attachment } from "@/lib/schemas"
 
 const HISTORY_STORAGE_KEY = "ionos-mailer-history"
+const DRAFTS_SYNC_KEY = "ionos-mailer-drafts-synced"
 
 import { useSession } from "next-auth/react"
 // ...
@@ -98,7 +99,36 @@ export function EmailForm() {
             }
         }
 
+        const syncDrafts = async () => {
+            try {
+                // 1. Load local drafts
+                const localDrafts = await loadLocalDrafts()
+
+                // 2. Push to server to merge
+                const res = await fetch("/api/sync/drafts", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ drafts: localDrafts })
+                })
+
+                if (res.ok) {
+                    const data = await res.json()
+                    if (data.merged) {
+                        // 3. Update local with merged data
+                        // This ensures we get drafts from other devices
+                        for (const draft of data.merged) {
+                            await saveLocalDraft(draft)
+                        }
+                        // console.log("Drafts synced:", data.merged.length)
+                    }
+                }
+            } catch (e) {
+                console.error("Drafts sync failed", e)
+            }
+        }
+
         syncHistory()
+        syncDrafts()
     }, [session])
 
     const saveHistoryToServer = async (batch: HistoryBatch) => {

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma"
 // DELETE: InMemory store
 
 // GET: Generate registration options
-export async function GET() {
+export async function GET(request: Request) {
     try {
         const session = await auth()
 
@@ -15,9 +15,14 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const url = new URL(request.url)
+        // RpID is the hostname (without port)
+        const rpID = url.hostname
+
         const options = await generatePasskeyRegistrationOptions(
             session.user.id,
-            session.user.email
+            session.user.email,
+            rpID
         )
 
         // Store challenge for verification in DB
@@ -60,11 +65,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Challenge expired or not found" }, { status: 400 })
         }
 
+        const origin = request.headers.get("origin") || request.headers.get("referer") || ""
+        const url = new URL(request.url)
+        const rpID = url.hostname
+
         // Verify registration
         const result = await verifyPasskeyRegistration(
             session.user.id,
             response,
             storedChallenge.challenge,
+            rpID,
+            origin,
             deviceName
         )
 
