@@ -382,9 +382,9 @@ async function parseSpreadsheet(file: File, options: ParseOptions): Promise<Extr
             options.onProgress?.({ stage: 'parsing', percent: 40, message: 'Analyzing CSV...' });
 
             // Limit CSV preview/text
+            // Limit CSV preview/text
             const result = Papa.default.parse<string[]>(text, {
                 skipEmptyLines: true,
-                preview: 5000 // Limit rows to prevent hang
             });
             rows = result.data;
         } else {
@@ -395,7 +395,6 @@ async function parseSpreadsheet(file: File, options: ParseOptions): Promise<Extr
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            // Limit range if possible? strict sheet_to_json is safer
             rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
         }
 
@@ -427,9 +426,14 @@ async function parseSpreadsheet(file: File, options: ParseOptions): Promise<Extr
                 }
             }
         } else {
-            // Fallback: Scan full content
-            const allText = rows.slice(0, 1000).flat().join(' '); // Limit scan to first 1000 rows for speed
-            detectedRecipients.push(...extractEmailsFromText(allText, fileName));
+            // Fallback: Scan full content row by row to ensure all data is checked without memory limits
+            // This replaces the previous 1000 row limit
+            for (const row of rows) {
+                const rowText = row.join(' ');
+                if (rowText && rowText.trim().length > 0) {
+                    detectedRecipients.push(...extractEmailsFromText(rowText, fileName));
+                }
+            }
         }
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
@@ -501,7 +505,7 @@ async function parseImage(file: File, options: ParseOptions): Promise<Extraction
     options.onProgress?.({ stage: 'loading', percent: 5, message: 'Initialising OCR...' });
 
     try {
-        const { createWorker } = await import('tesseract.js');
+        const { createWorker, PSM } = await import('tesseract.js');
         const worker = await createWorker(options.ocrLanguages?.join('+') || 'eng+deu', 1, {
             logger: m => {
                 if (m.status === 'recognizing text') {
@@ -512,6 +516,14 @@ async function parseImage(file: File, options: ParseOptions): Promise<Extraction
                     });
                 }
             }
+        });
+
+        // Configure optimized parameters for email list extraction
+        // PSM 6: Assume a single uniform block of text
+        // Whitelist: common characters for emails and names, excluding complex scripts (e.g. Chinese) to prevent noise
+        await worker.setParameters({
+            tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+            tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@._-!#$%&\'*+/=?^`{|}~:;,<>()[]{}" ',
         });
 
         const result = await worker.recognize(file);
