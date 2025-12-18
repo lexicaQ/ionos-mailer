@@ -49,7 +49,7 @@ async function handleCronRequest(req: NextRequest) {
                 scheduledFor: { lte: now }
             },
             include: { campaign: { include: { attachments: true } } },
-            take: 2 // Increased from 1 to 2 to speed up processing
+            take: 20 // Increased batch size for background processing
         });
 
         if (pendingJobs.length === 0) {

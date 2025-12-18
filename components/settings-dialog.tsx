@@ -198,63 +198,32 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             <ScrollArea className="flex-1 h-full pr-4">
 
                 <div className="grid gap-6 pt-4 pb-20">
-                    {/* Cloud Sync Status (if logged in) */}
-                    {session?.user && (
-                        <div className="space-y-4 px-2">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-400">
-                                        <Cloud className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-200">Connected as</p>
-                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">{session.user.email}</p>
-                                    </div>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 border-neutral-200 text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-                                    onClick={() => signOut()}
-                                >
-                                    Disconnect
-                                </Button>
-                            </div>
-                            <div className="text-[10px] text-neutral-500 dark:text-neutral-400 flex gap-4 pl-1">
-                                <span className="flex items-center gap-1.5">
-                                    <CheckCircle className="h-3 w-3 text-green-500" /> Drafts Syncing
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <CheckCircle className="h-3 w-3 text-green-500" /> History Syncing
-                                </span>
-                            </div>
-                        </div>
-                    )}
+
 
                     {/* Server Settings */}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         <h4 className="text-sm font-medium text-muted-foreground">Server</h4>
                         <div className="grid grid-cols-3 gap-3">
                             <div className="col-span-2">
-                                <Label htmlFor="host" className="text-xs">Host</Label>
+                                <Label htmlFor="host" className="text-xs mb-2 block">Host</Label>
                                 <Input id="host" value={host} onChange={e => setHost(e.target.value)} placeholder="smtp.ionos.de" />
                             </div>
                             <div>
-                                <Label htmlFor="port" className="text-xs">Port</Label>
+                                <Label htmlFor="port" className="text-xs mb-2 block">Port</Label>
                                 <Input id="port" value={port} onChange={e => setPort(e.target.value)} />
                             </div>
                         </div>
                     </div>
 
                     {/* Authentication */}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         <h4 className="text-sm font-medium text-muted-foreground">Authentication</h4>
                         <div>
-                            <Label htmlFor="user" className="text-xs">Email / User</Label>
+                            <Label htmlFor="user" className="text-xs mb-2 block">Email / User</Label>
                             <Input id="user" value={user} onChange={e => setUser(e.target.value)} placeholder="email@ionos.com" />
                         </div>
                         <div>
-                            <Label htmlFor="pass" className="text-xs">Password</Label>
+                            <Label htmlFor="pass" className="text-xs mb-2 block">Password</Label>
                             <div className="relative">
                                 <Input
                                     id="pass"
@@ -281,14 +250,14 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     </div>
 
                     {/* Sending Settings */}
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         <h4 className="text-sm font-medium text-muted-foreground">Sending</h4>
                         <div>
-                            <Label htmlFor="fromName" className="text-xs">Sender Name (optional)</Label>
+                            <Label htmlFor="fromName" className="text-xs mb-2 block">Sender Name (optional)</Label>
                             <Input id="fromName" value={fromName} onChange={e => setFromName(e.target.value)} placeholder="My Company" />
                         </div>
                         <div>
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-3">
                                 <Label className="text-xs">Delay between emails</Label>
                                 <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded">{(delay / 1000).toFixed(1)}s</span>
                             </div>
