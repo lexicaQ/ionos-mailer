@@ -62,10 +62,8 @@ export function LiveCampaignTracker() {
     const fetchCampaigns = useCallback(async () => {
         setLoading(true)
         try {
-            const userId = localStorage.getItem("ionos-mailer-user-id");
-            const res = await fetch("/api/campaigns/status", {
-                headers: { 'x-user-id': userId || '' }
-            })
+            // Server now uses authenticated session for userId
+            const res = await fetch("/api/campaigns/status")
             if (res.ok) {
                 const data = await res.json()
                 // Sort by date DESCENDING (Newest First -> #1)

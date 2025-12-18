@@ -1,17 +1,19 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
+import { auth } from '@/auth';
 
 export async function GET(req: NextRequest) {
     try {
-        const userId = req.headers.get('x-user-id');
+        // CRITICAL: Use authenticated session instead of spoofable header
+        const session = await auth();
 
-        // If no userId, return empty or unauthorized?
-        // User said "locally stored... not visible to others"
-        // Return empty if no ID provided to prevent leaking all data
-        if (!userId) {
+        if (!session?.user?.id) {
+            // Return empty array for unauthenticated requests (no data leak)
             return NextResponse.json([]);
         }
+
+        const userId = session.user.id;
 
         // Get all campaigns with their jobs and tracking info
         const campaigns = await prisma.campaign.findMany({

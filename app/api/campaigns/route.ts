@@ -2,9 +2,19 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
 import { emailFormSchema } from '@/lib/schemas';
+import { auth } from '@/auth';
 
 export async function POST(req: Request) {
     try {
+        // CRITICAL: Use authenticated session for userId
+        const session = await auth();
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+        }
+
+        const userId = session.user.id;
+
         const json = await req.json();
 
         const { recipients, subject, body, smtpSettings, durationMinutes, name } = json;
@@ -30,7 +40,7 @@ export async function POST(req: Request) {
                 secure: smtpSettings.secure,
                 fromName: smtpSettings.fromName || null,
                 name: json.name || null,
-                userId: json.userId || "anonymous",
+                userId: userId, // SECURE: Use authenticated user ID
                 attachments: attachments && attachments.length > 0 ? {
                     create: attachments.map((att: any) => ({
                         filename: att.filename,

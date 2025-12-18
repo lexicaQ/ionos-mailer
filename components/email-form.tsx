@@ -167,18 +167,12 @@ export function EmailForm() {
         setSendProgress(0);
         setCurrentResults([]);
 
-        // Get or create pseudo-anonymous User ID for data isolation
-        let userId = localStorage.getItem("ionos-mailer-user-id");
-        if (!userId) {
-            userId = crypto.randomUUID();
-            localStorage.setItem("ionos-mailer-user-id", userId);
-        }
+        // User ID is now handled server-side via session authentication
 
         const payload = {
             ...data,
             smtpSettings,
             durationMinutes: useBackground ? durationMinutes : 0,
-            userId // Send ID for privacy isolation
         };
 
         try {
