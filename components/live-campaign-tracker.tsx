@@ -179,28 +179,44 @@ export function LiveCampaignTracker() {
 
     // EXPORT FUNCTIONS
     const exportToExcel = async () => {
-        const XLSX = await import("xlsx")
-        const data: any[] = []
+        const ExcelJS = await import("exceljs")
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet("Campaign Export");
+
+        sheet.columns = [
+            { header: "Campaign", key: "campaign", width: 25 },
+            { header: "Created at", key: "created", width: 20 },
+            { header: "Recipient", key: "recipient", width: 30 },
+            { header: "Subject", key: "subject", width: 40 },
+            { header: "Status", key: "status", width: 15 },
+            { header: "Opened", key: "opened", width: 25 },
+            { header: "Sent at", key: "sentAt", width: 20 },
+            { header: "Error", key: "error", width: 30 },
+        ];
 
         campaigns.forEach(c => {
             c.jobs.forEach(j => {
-                data.push({
-                    "Campaign": c.name || "Untitled",
-                    "Created at": format(new Date(c.createdAt), "yyyy-MM-dd HH:mm"),
-                    "Recipient": j.recipient,
-                    "Subject": j.subject,
-                    "Status": j.status,
-                    "Opened": j.openedAt ? `Yes (${format(new Date(j.openedAt), "MMM dd HH:mm")})` : "No",
-                    "Sent at": j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm:ss") : "-",
-                    "Error": j.error || ""
-                })
-            })
-        })
+                sheet.addRow({
+                    campaign: c.name || "Untitled",
+                    created: format(new Date(c.createdAt), "yyyy-MM-dd HH:mm"),
+                    recipient: j.recipient,
+                    subject: j.subject,
+                    status: j.status,
+                    opened: j.openedAt ? `Yes (${format(new Date(j.openedAt), "MMM dd HH:mm")})` : "No",
+                    sentAt: j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm:ss") : "-",
+                    error: j.error || ""
+                });
+            });
+        });
 
-        const ws = XLSX.utils.json_to_sheet(data)
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, "Campaign Export")
-        XLSX.writeFile(wb, `ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`)
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
     }
 
     const exportToPDF = async () => {

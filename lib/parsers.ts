@@ -388,14 +388,28 @@ async function parseSpreadsheet(file: File, options: ParseOptions): Promise<Extr
             });
             rows = result.data;
         } else {
-            const XLSX = await import('xlsx');
+            // Updated to use exceljs instead of xlsx (security fix)
+            const ExcelJS = await import('exceljs');
             const arrayBuffer = await readFileAsArrayBuffer(file);
             options.onProgress?.({ stage: 'parsing', percent: 40, message: 'Analyzing Excel...' });
 
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(arrayBuffer);
+
+            const worksheet = workbook.worksheets[0];
+            if (worksheet) {
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    // row.values is typically [undefined, val1, val2] because it's 1-indexed
+                    const rowValues = row.values;
+                    if (Array.isArray(rowValues)) {
+                        // Slice 1 to remove the 0-index undefined, then map to string
+                        rows.push(rowValues.slice(1).map(val => val ? String(val) : ""));
+                    } else if (typeof rowValues === 'object') {
+                        // Fallback if it returns distinct objects (less common in simple contact lists)
+                        rows.push(Object.values(rowValues).map(val => val ? String(val) : ""));
+                    }
+                });
+            }
         }
 
         options.onProgress?.({ stage: 'extracting', percent: 70, message: 'Extracting emails...' });

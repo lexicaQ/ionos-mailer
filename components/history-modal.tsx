@@ -141,31 +141,49 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
     }, [batches, searchTerm, statusFilter])
 
     const exportToExcel = async () => {
-        const XLSX = await import("xlsx")
-        const data = allResults.map((r, idx) => ({
-            "No.": idx + 1,
-            "Email Address": r.email,
-            "Status": r.success ? "Successful" : "Failed",
-            "Time": format(new Date(r.batchTime), "yyyy-MM-dd HH:mm:ss"),
-            "Error Message": r.error || "—",
-        }))
+        const ExcelJS = await import("exceljs")
+        const workbook = new ExcelJS.Workbook();
 
-        const ws = XLSX.utils.json_to_sheet(data)
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, "Email History")
+        // Sheet 1: Email History
+        const itemSheet = workbook.addWorksheet("Email History");
+        itemSheet.columns = [
+            { header: "No.", key: "no", width: 10 },
+            { header: "Email Address", key: "email", width: 35 },
+            { header: "Status", key: "status", width: 15 },
+            { header: "Time", key: "time", width: 25 },
+            { header: "Error Message", key: "error", width: 40 },
+        ];
+        allResults.forEach((r, idx) => {
+            itemSheet.addRow({
+                no: idx + 1,
+                email: r.email,
+                status: r.success ? "Successful" : "Failed",
+                time: format(new Date(r.batchTime), "yyyy-MM-dd HH:mm:ss"),
+                error: r.error || "—"
+            });
+        });
 
-        const summary = [
-            { "Metric": "Total Emails", "Wert": stats.totalEmails.toString() },
-            { "Metric": "Successfully Sent", "Wert": stats.totalSuccess.toString() },
-            { "Metric": "Failed", "Wert": stats.totalFailed.toString() },
-            { "Metric": "Success Rate", "Wert": `${stats.totalEmails > 0 ? ((stats.totalSuccess / stats.totalEmails) * 100).toFixed(1) : 0}%` },
-            { "Metric": "Number of Sessions", "Wert": stats.totalBatches.toString() },
-            { "Metric": "Export created on", "Wert": format(new Date(), "yyyy-MM-dd HH:mm:ss") },
-        ]
-        const wsSummary = XLSX.utils.json_to_sheet(summary)
-        XLSX.utils.book_append_sheet(wb, wsSummary, "Summary")
+        // Sheet 2: Summary
+        const summarySheet = workbook.addWorksheet("Summary");
+        summarySheet.columns = [
+            { header: "Metric", key: "metric", width: 30 },
+            { header: "Value", key: "value", width: 30 },
+        ];
+        summarySheet.addRow({ metric: "Total Emails", value: stats.totalEmails.toString() });
+        summarySheet.addRow({ metric: "Successfully Sent", value: stats.totalSuccess.toString() });
+        summarySheet.addRow({ metric: "Failed", value: stats.totalFailed.toString() });
+        summarySheet.addRow({ metric: "Success Rate", value: `${stats.totalEmails > 0 ? ((stats.totalSuccess / stats.totalEmails) * 100).toFixed(1) : 0}%` });
+        summarySheet.addRow({ metric: "Number of Sessions", value: stats.totalBatches.toString() });
+        summarySheet.addRow({ metric: "Export created on", value: format(new Date(), "yyyy-MM-dd HH:mm:ss") });
 
-        XLSX.writeFile(wb, `ionos-mailer-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`)
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ionos-mailer-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
     }
 
     const exportToPDF = async () => {
