@@ -22,8 +22,6 @@ model User {
   
   accounts      Account[]
   sessions      Session[]
-  passkeys      Passkey[]
-  passkeyChallenge PasskeyChallenge?
   
   // User Data
   drafts        Draft[]
@@ -76,27 +74,6 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Passkey {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credentialId  String   @unique
-  publicKey     String
-  counter       BigInt
-  deviceName    String?
-  createdAt     DateTime @default(now())
-
-  @@index([userId])
-}
-
-model PasskeyChallenge {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  challenge String
-  createdAt DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 
 // ============================================================================
 // User Data Models (Synced)
@@ -220,6 +197,7 @@ model EmailJob {
   @@index([status, scheduledFor])
   @@index([trackingId])
 }
+
 
 model Click {
   id          String   @id @default(uuid())

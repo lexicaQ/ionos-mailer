@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { encrypt, decrypt } from "@/lib/encryption"
 
 // GET: Fetch settings
 export async function GET() {
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
                 host,
                 port: Number(port),
                 email: user, // Map API user -> DB email
-                password: pass, // Map API pass -> DB password
+                password: encrypt(pass, process.env.ENCRYPTION_KEY!), // Map API pass -> DB password
                 fromEmail,
                 fromName,
                 replyTo
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
                 host: host || "",
                 port: Number(port) || 587,
                 email: user || "",
-                password: pass || "",
+                password: encrypt(pass || "", process.env.ENCRYPTION_KEY!),
                 fromEmail: fromEmail || "",
                 fromName: fromName || "",
                 replyTo: replyTo || ""

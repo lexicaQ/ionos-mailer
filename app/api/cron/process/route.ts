@@ -150,13 +150,15 @@ async function handleCronRequest(req: NextRequest) {
                     }
                 }
 
+                const decryptedRecipient = decrypt(job.recipient, secretKey);
+
                 // Create HTML with tracking for open/click detection
                 const htmlWithTracking = processBodyWithTracking(finalBody, job.trackingId, baseUrl);
 
                 try {
                     // Send with tracking
                     const response = await sendEmail({
-                        to: job.recipient,
+                        to: decryptedRecipient,
                         subject: finalSubject,
                         text: finalBody,
                         html: htmlWithTracking,

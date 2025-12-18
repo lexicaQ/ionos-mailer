@@ -1,8 +1,9 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { encrypt, decrypt } from "@/lib/encryption"
 import { NextResponse } from "next/server"
 
-// GET: List all history
+// GET: List all history (Fetch from EmailJob)
 export async function GET(req: Request) {
     const session = await auth()
     if (!session?.user?.id) {
@@ -10,17 +11,77 @@ export async function GET(req: Request) {
     }
 
     try {
-        const history = await prisma.sentEmail.findMany({
-            where: { userId: session.user.id },
-            orderBy: { sentAt: 'desc' }
+        const secretKey = process.env.ENCRYPTION_KEY;
+        if (!secretKey) throw new Error("Encryption key missing");
+
+        // Fetch jobs via campaigns owned by user
+        const jobs = await prisma.emailJob.findMany({
+            where: {
+                campaign: { userId: session.user.id },
+                status: { in: ['SENT', 'FAILED'] }
+            },
+            take: 1000,
+            orderBy: { createdAt: 'desc' },
+            include: { campaign: true } // Need campaign to verify ownership context if needed
         })
 
-        // Decrypt if we decide to encrypt. For now let's assume raw storage to match schema (text fields).
-        // If we want encryption, we'd need to change schema to store 'encryptedData' blob like drafts?
-        // Or encrypt each field.
-        // Let's stick to plain text for V1 of history sync to ensure it works, unless I see encryptionutils.
+        // Map to expected history format (SentEmail-like structure)
+        const history = jobs.map(job => {
+            let email = "Encrypted";
+            let subject = "Encrypted";
+            try {
+                email = decrypt(job.recipient, secretKey);
+                // Try decrypt subject (it might be plain text in old legacy data, but assume encrypted for new)
+                // Actually subject IS encrypted in creation logic.
+                subject = decrypt(job.subject, secretKey);
+            } catch (e) {
+                // Determine if it was legacy plain text?
+                // For now, if decrypt fails, return raw or error. 
+                // Since this is a hard cutover, legacy data might break. 
+                // We'll return raw if decrypt fails, assuming legacy plain text.
+                email = job.recipient;
+                subject = job.subject;
+            }
 
-        return NextResponse.json(history)
+            return {
+                id: job.id,
+                userId: session.user.id,
+                subject: subject,
+                recipients: JSON.stringify([email]), // Front-end expects JSON array string for recipients? Or just plain string? 
+                // Looking at SentEmail model: recipients String @db.Text // JSON array
+                // But the History List UI expects { email, success, error, batchTime ... }
+                // Wait, components/history-modal.tsx iterates `allResults` which has { email, success, batchTime ... }
+                // But `sync/history` returned `SentEmail` objects previously.
+                // Let's look at what `components/history-modal.tsx` expects.
+                // It calls `/api/sync/history`.
+                // It sets `setBatches`.
+                // Then `allResults` is calculated from `batches`.
+                // Previously `SentEmail` had `recipients` as a JSON array string.
+                // Here we return individual jobs.
+                // This means the FRONTEND expects `SentEmail` objects (Groups).
+                // Returning individual jobs as if they were batches of 1 is a valid strategy to avoid complex grouping logic.
+
+                recipient: email, // If UI supports single recipient field?
+                // To keep it compatible with existing UI processing which likely parses `recipients` JSON:
+                body: "Check details",
+                createdAt: job.createdAt,
+                sentAt: job.sentAt || job.createdAt,
+                status: job.status,
+                error: job.error,
+                openedCount: job.openCount,
+                clickedCount: 0 // Fetch clicks if needed
+            }
+        });
+
+        // ADAPTER: The UI likely parses `recipients` from JSON.
+        // Let's make sure we return objects that match what `SentEmail` produced.
+        // `SentEmail` had: id, userId, subject, body, recipients (JSON), sentAt, ...
+
+        return NextResponse.json(history.map(h => ({
+            ...h,
+            recipients: JSON.stringify([h.recipient]) // Wrap single recipient in array
+        })))
+
     } catch (error) {
         console.error("Failed to fetch history:", error)
         return NextResponse.json({ error: "Failed to fetch history" }, { status: 500 })

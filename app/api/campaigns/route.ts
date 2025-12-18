@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
             return {
                 campaignId: campaign.id,
-                recipient: r.email,
+                recipient: encrypt(r.email, secretKey), // Encrypt recipient email
                 subject: encrypt(subject, secretKey), // Encrypt subject
                 body: encrypt(body, secretKey),       // Encrypt body
                 scheduledFor: new Date(scheduleTime),
