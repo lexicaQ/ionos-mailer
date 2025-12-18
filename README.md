@@ -22,128 +22,131 @@ This documentation details the system architecture, security implementation, dat
 
 ## 2. Feature Specification
 
-### 2.1 Advanced Sending Engine
-The application implements a robust sending architecture designed to bypass serverless execution limits (e.g., Vercel's 10-second timeout).
-- **Architecture**: A recursive, self-sustaining cron loop.
-- **Process**:
-    1.  User initiates campaign -> Jobs are created in DB (`PENDING` state).
-    2.  Cron endpoint (`/api/cron/process`) is triggered.
-    3.  Worker fetches a batch of `N` pending jobs.
-    4.  Worker processes jobs sequentially with defined delays (Rate Limiting).
-    5.  If more jobs exist, the worker calls itself recursively via HTTP fetch.
-- **Reliability**: This ensures campaigns of arbitrary size (100 or 10,000 emails) complete reliable, regardless of host timeout policies.
+### 2.1 Advanced Sending Engine & Cron Architecture
+The application implements a creative work-around to bypass serverless execution limits (like Vercel's 10s or 60s timeout).
+- **The Problem**: Sending 1000 emails takes time (e.g., 10 minutes). Serverless functions die after 10-60 seconds.
+- **The Solution**: **Recursive Self-Calling API**.
+    1.  User starts campaign -> Jobs saved as `PENDING`.
+    2.  Cron hits `/api/cron/process`.
+    3.  Worker wakes up, grabs 20 jobs, sends them.
+    4.  Worker checks: "Are there more jobs?"
+    5.  **Yes**: Worker sends a fetch request to *itself* (spawning a fresh worker) and then dies strictly before the timeout.
+    6.  **No**: Worker retires.
+- **Benefit**: Unlimited sending duration on free-tier serverless infrastructure.
 
-### 2.2 Security & Encryption
-Security is the primary design constraint. We assume the database could be compromised and design accordingly.
+### 2.2 Security & Encryption: "Zero-Trust" Storage
+We assume the database could be compromised and design accordingly.
 - **SMTP Credentials**: Your SMTP password is **never** stored in plain text.
-    - **Algorithm**: AES-256-GCM (Galois/Counter Mode).
-    - **Key Derivation**: PBKDF2 (100,000 iterations) with random 64-byte salt.
-    - **Mechanism**: A unique Interaction Vector (IV) and Authentication Tag are generated for every encryption operation.
-    - **Storage**: The `SmtpSettings` table stores the encrypted string (containing Salt, IV, Tag, and Ciphertext). The `ENCRYPTION_KEY` is stored only in environment variables, never in the DB.
+    - **Algorithm**: AES-256-GCM (Galois/Counter Mode) - the gold standard.
+    - **Key Derivation**: We use PBKDF2 to derive a key from your secret + a random salt.
+    - **Storage**: We store `salt:iv:authTag:encryptedCiphertext`. If hackers steal the DB, they cannot decrypt it without the `ENCRYPTION_KEY` (which lives in Vercel/Env, not the DB).
 - **User Passwords**: Hashed using `bcrypt` (Salted, 10 rounds).
 
-### 2.3 Analytics & Tracking
-Privacy-compliant tracking mechanisms provide campaign insights without invasive data collection.
-- **Open Tracking**: An invisible 1x1 pixel is injected into the email body. When loaded, it hits the tracking endpoint, logging the timestamp and user agent.
-- **Link Tracking**: All links in the email body are parsed and replaced with unique redirect URLs (`/api/track/click/...`). This captures the click event before 302 redirecting the user to the destination.
-- **Data Model**: Tracking events are stored in the `Job` table (`openedAt`) and `Click` table (timestamp, url).
-
-### 2.4 Smart Drafts & Placeholders
-Content management utilizes a JSON-based storage format.
-- **Context-Awareness**: The editor supports dynamic placeholders like `{{Company}}`.
-- **Intelligent Fallback**: The sending engine inspects recipient data at runtime. If a placeholder value (e.g., Company Name) is missing, surrounding context words (like "at {{Company}}") are automatically stripped to prevent grammatical errors in the final email.
-- **Logic**: Implemented via RegEx tokenization during the render phase of the sending pipeline.
+### 2.3 Analytics: Privacy-First
+- **Open Tracking**: An invisible 1x1 pixel is injected. Loading it triggers a DB update: `openedAt = NOW()`.
+- **Link Tracking**: Links are rewritten to `yourdomain.com/api/track/click?url=...`. We log the click, then instantly redirect (302) the user.
 
 ---
 
-## 3. Data Architecture (PostgreSQL)
+## 3. Data Architecture & Transparency
 
 The database schema is designed for strict multi-tenancy. Every record is scoped to a specific `User`.
 
-### Key Tables
-1.  **User**: Accounts and authentication data.
-2.  **SmtpSettings**: (`userId` foreign key) Stores host, port, user, and encrypted password.
-3.  **Draft**: (`userId` foreign key) Saved email templates with JSON-structured content.
-4.  **Campaign**: (`userId` foreign key) Meta-container for a bulk send operation.
-5.  **Job**: (`campaignId` foreign key) Individual email task. Stores recipient, personalized subject, status (`SENT`, `FAILED`, `PENDING`), and tracking data (`openedAt`).
-6.  **SentEmail**: A historical archive table optimized for querying past activity.
+### Transparency Report: What We Store
+| Data Point | Storage Method | Purpose |
+| :--- | :--- | :--- |
+| **Email Address** | Plain Text | User Identification (Login). |
+| **Login Password** | Bcrypt Hash | Secure Authentication. We cannot see your password. |
+| **SMTP Password** | AES-256 Encrypted | Sending emails. Decrypted *only* in ephemeral RAM during sending. |
+| **Recipient Data** | Plain Text | Required for delivery and history logs. |
+| **Tracking Data** | Timestamp & IP | Analytics (Who opened, when). |
 
-**Data Sovereignty**: The database is yours. You can view it directly using any PostgreSQL client (e.g., TablePlus, DBeaver) by connecting to the `POSTGRES_PRISMA_DATABASE_URL`.
+### **How to Verify This Yourself**
+Don't trust us? Verify the data security yourself.
+1.  **Open Database Studio**:
+    Run the following command in your terminal:
+    ```bash
+    npx prisma studio
+    ```
+2.  **Inspect Tables**:
+    -   Go to the **User** model: Look at `passwordHash` field. It will look like `$2b$10$XyZ...`. This is unintelligible.
+    -   Go to the **SmtpSettings** model: Look at `password`. It will be a distinct, encrypted string. It is NOT your real password.
+    -   This proves your secrets are cryptographically secured at rest.
 
 ---
 
-## 4. Installation & Deployment
+## 4. Installation & Deployment (Beginner Friendly)
+
+This guide assumes you have basic familiarity with the terminal.
 
 ### 4.1 Prerequisites
--   **Node.js**: v18.17.0 or newer.
--   **PostgreSQL**: v14+ (Local or Managed).
--   **Git**: For version control.
--   **SMTP Account**: Access to an SMTP server (Host, Port, User, Password).
+1.  **Node.js**: Install [Node.js](https://nodejs.org/) (Version 18 or higher).
+2.  **Git**: Install [Git](https://git-scm.com/).
+3.  **PostgreSQL**: You need a database.
+    -   **Easiest (Cloud)**: Create a free project on [Neon.tech](https://neon.tech) or [Supabase](https://supabase.com). Copy the "Connection String".
+    -   **Local**: Install PostgreSQL locally.
 
-### 4.2 Local Development Setup
-1.  **Clone Source**:
+### 4.2 Step-by-Step Setup
+
+1.  **Download the Code**
+    Open your terminal/command prompt.
     ```bash
     git clone https://github.com/your-org/ionos-mailer.git
     cd ionos-mailer
     ```
-2.  **Install Dependencies**:
+
+2.  **Install Libraries**
+    This downloads all the toolsets (Next.js, React, Cryptography tools).
     ```bash
-    npm ci
+    npm install
     ```
-3.  **Environment Configuration**:
-    Create `.env` in the root (do not commit this file).
+
+3.  **Configure Secrets (.env)**
+    -   Create a new file named `.env` in the folder.
+    -   Copy the text below into it. Fill in your details.
     ```env
-    # Database (Connection Pooling recommended for Serverless)
-    POSTGRES_PRISMA_DATABASE_URL="postgresql://usr:pwd@host:5432/db?pgbouncer=true"
-    POSTGRES_URL="postgresql://usr:pwd@host:5432/db"
+    # 1. Database Connection (From Neon/Supabase/Local)
+    POSTGRES_PRISMA_DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
+    POSTGRES_URL="postgresql://user:password@host:port/database?sslmode=require"
 
-    # Security Secrets (Must be random & kept secure)
-    # Generate with: openssl rand -base64 32
-    AUTH_SECRET="long_random_string_for_nextauth"
-    ENCRYPTION_KEY="32_char_random_string_perfect_length"
-    CRON_SECRET="random_token_for_api_protection"
+    # 2. Security Keys (mash your keyboard to make these unique)
+    AUTH_SECRET="random-string-at-least-32-chars-long"
+    ENCRYPTION_KEY="random-string-at-least-32-chars-long" 
+    CRON_SECRET="another-random-password-for-cron"
 
-    # App Config
+    # 3. App URL (Use localhost for now)
     NEXT_PUBLIC_BASE_URL="http://localhost:3000"
     ```
-4.  **Database Migration**:
+
+4.  **Setup Database**
+    This command connects to your DB and creates the tables (User, Campaign, etc.).
     ```bash
-    npx prisma generate
     npx prisma db push
     ```
-5.  **Start Application**:
+
+5.  **Run the App**
     ```bash
     npm run dev
     ```
-    Access via `http://localhost:3000`.
-
-### 4.3 Production Deployment (Vercel)
-1.  Push repository to GitHub.
-2.  Import project into Vercel.
-3.  Configure **Environment Variables** (copy from `.env`) in the Vercel Dashboard.
-4.  **Critical**: Configure Cron Jobs.
-    -   Vercel creates a `cron.json` automatically if present, or you can use a third-party cron service (e.g., GitHub Actions, EasyCron) to GET request `YOUR_DOMAIN/api/cron/process` every minute with the header `Authorization: Bearer YOUR_CRON_SECRET`.
+    -   Open `http://localhost:3000` in your browser.
+    -   Log in with *any* email/password (the first time you login, it creates your account).
 
 ---
 
-## 5. Security Audit & Compliance
+## 5. Deployment to Production (Vercel)
 
-### What is stored?
-| Data Point | Storage Method | Purpose |
-| :--- | :--- | :--- |
-| **Email Address** | Plain Text | User Identification (Login) |
-| **Login Password** | Bcrypt Hash | Authentication |
-| **SMTP Password** | AES-256 Encrypted | Sending emails on your behalf |
-| **Recipient Data** | Plain Text | Delivery & History logs |
-| **Tracking Data** | Timestamp & IP | Analytics reports |
-
-### Verification
-You can audit the backend logic by inspecting:
--   `auth.ts`: Authentication flows.
--   `lib/encryption.ts`: Cryptographic implementation.
--   `app/api/send-emails`: The core sending logic.
--   `middleware.ts`: Traffic filtering and bot protection rules.
+1.  Push your code to [GitHub](https://github.com).
+2.  Go to [Vercel.com](https://vercel.com) -> "Add New Project" -> Import your repo.
+3.  **Environment Variables**:
+    -   Vercel will ask for Environment Variables.
+    -   Copy-paste the contents of your `.env` file into the Vercel fields.
+4.  **Deploy**: Click "Deploy".
+5.  **Final Step (CRITICAL): Setup Cron Job**
+    -   For the app to send emails in the background, you need to "poke" it every minute.
+    -   Use a service like **GitHub Actions**, **EasyCron**, or **Vercel Cron**.
+    -   Target URL: `https://your-site.vercel.app/api/cron/process`
+    -   Header: `Authorization: Bearer YOUR_CRON_SECRET`
 
 ---
 
-*Verified Documentation - Dec 2025*
+*Documentation Verified: Dec 2025 | Security Patch Level: Latest*
