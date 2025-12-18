@@ -14,6 +14,7 @@ export interface DetectedRecipient {
     email: string;
     name?: string;
     id?: string;
+    sourceFile?: string;
 }
 
 export interface ExtractionResult {
@@ -82,11 +83,46 @@ export function normalizeText(text: string): string {
 
 /**
  * Extract all email addresses from text
+ * Handles OCR artifacts like spaces in emails, common character substitutions
  */
-export function extractEmailsFromText(text: string): DetectedRecipient[] {
-    const matches = text.match(EMAIL_REGEX) || [];
-    const uniqueEmails = [...new Set(matches.map(e => e.toLowerCase()))];
-    return uniqueEmails.map(email => ({ email, id: crypto.randomUUID() }));
+export function extractEmailsFromText(text: string, sourceFile?: string): DetectedRecipient[] {
+    if (!text) return [];
+
+    // Pre-process text to fix common OCR errors
+    let cleanedText = text
+        // Remove spaces around @ symbol (common OCR error)
+        .replace(/\s*@\s*/g, '@')
+        // Fix common OCR substitutions
+        .replace(/\[at\]/gi, '@')
+        .replace(/\(at\)/gi, '@')
+        .replace(/\s*\.\s*/g, '.') // Remove spaces around dots
+        // Normalize whitespace
+        .replace(/[\r\n\t]+/g, ' ');
+
+    const matches = cleanedText.match(EMAIL_REGEX) || [];
+
+    // Also try to find emails in original text in case cleaning broke something
+    const originalMatches = text.match(EMAIL_REGEX) || [];
+
+    // Combine and deduplicate
+    const allMatches = [...matches, ...originalMatches];
+    const uniqueEmails = [...new Set(allMatches.map(e => e.toLowerCase().trim()))];
+
+    // Filter out obvious non-emails (too short, no valid TLD)
+    const validEmails = uniqueEmails.filter(email => {
+        const parts = email.split('@');
+        if (parts.length !== 2) return false;
+        const [local, domain] = parts;
+        if (local.length < 1 || domain.length < 3) return false;
+        if (!domain.includes('.')) return false;
+        return true;
+    });
+
+    return validEmails.map(email => ({
+        email,
+        id: crypto.randomUUID(),
+        sourceFile: sourceFile || undefined
+    }));
 }
 
 /**
@@ -199,7 +235,7 @@ async function parsePDF(file: File, options: ParseOptions): Promise<ExtractionRe
             return createErrorResult(fileName, fileType, 'No readable text found. This PDF appears to be a scanned image. Please convert it to an image file (PNG/JPG) or use a searchable PDF.');
         }
 
-        const detectedRecipients = extractEmailsFromText(cleanText);
+        const detectedRecipients = extractEmailsFromText(cleanText, fileName);
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
 
@@ -304,7 +340,7 @@ async function parseDOCX(file: File, options: ParseOptions): Promise<ExtractionR
         options.onProgress?.({ stage: 'parsing', percent: 40, message: 'Analyzing...' });
 
         const result = await mammoth.extractRawText({ arrayBuffer });
-        const detectedRecipients = extractEmailsFromText(result.value);
+        const detectedRecipients = extractEmailsFromText(result.value, fileName);
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
 
@@ -382,6 +418,7 @@ async function parseSpreadsheet(file: File, options: ParseOptions): Promise<Extr
                     const recipient: DetectedRecipient = {
                         email,
                         id: crypto.randomUUID(),
+                        sourceFile: fileName,
                     };
                     if (nameColIndex >= 0 && row[nameColIndex]) {
                         recipient.name = row[nameColIndex].toString().trim();
@@ -392,7 +429,7 @@ async function parseSpreadsheet(file: File, options: ParseOptions): Promise<Extr
         } else {
             // Fallback: Scan full content
             const allText = rows.slice(0, 1000).flat().join(' '); // Limit scan to first 1000 rows for speed
-            detectedRecipients.push(...extractEmailsFromText(allText));
+            detectedRecipients.push(...extractEmailsFromText(allText, fileName));
         }
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
@@ -431,7 +468,7 @@ async function parseText(file: File, options: ParseOptions): Promise<ExtractionR
 
         // Limit text length to prevent regex hang
         const safeText = text.substring(0, 500000);
-        const detectedRecipients = extractEmailsFromText(safeText);
+        const detectedRecipients = extractEmailsFromText(safeText, fileName);
 
         options.onProgress?.({ stage: 'done', percent: 100, message: 'Done' });
 
@@ -478,7 +515,7 @@ async function parseImage(file: File, options: ParseOptions): Promise<Extraction
         });
 
         const result = await worker.recognize(file);
-        const detectedRecipients = extractEmailsFromText(result.data.text);
+        const detectedRecipients = extractEmailsFromText(result.data.text, fileName);
 
         await worker.terminate();
 

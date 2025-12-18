@@ -70,7 +70,8 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
     const [stage, setStage] = useState<ImportStage>('idle');
     const [progress, setProgress] = useState<ParseProgress | null>(null);
     const [result, setResult] = useState<ExtractionResult | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [currentFileIndex, setCurrentFileIndex] = useState(0);
     const abortControllerRef = useRef<AbortController | null>(null);
 
     // Reset state when modal closes
@@ -80,47 +81,85 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
             setStage('idle');
             setProgress(null);
             setResult(null);
-            setSelectedFile(null);
+            setSelectedFiles([]);
+            setCurrentFileIndex(0);
         }
         onOpenChange(newOpen);
     }, [onOpenChange]);
 
-    // Handle file drop/selection
-    const handleFile = useCallback(async (file: File) => {
-        setSelectedFile(file);
+    // Handle multiple files - process sequentially and aggregate results
+    const handleFiles = useCallback(async (files: File[]) => {
+        if (files.length === 0) return;
+
+        setSelectedFiles(files);
         setStage('parsing');
-        setProgress({ stage: 'loading', percent: 0, message: 'Starting...' });
+        setCurrentFileIndex(0);
 
         abortControllerRef.current = new AbortController();
 
-        try {
-            const extractionResult = await parseFile(file, {
-                onProgress: setProgress,
-                abortSignal: abortControllerRef.current.signal,
+        const aggregatedRecipients: DetectedRecipient[] = [];
+        const allWarnings: string[] = [];
+        const allErrors: string[] = [];
+        let lastFileName = '';
+        let lastFileType = '';
+
+        for (let i = 0; i < files.length; i++) {
+            if (abortControllerRef.current?.signal.aborted) break;
+
+            const file = files[i];
+            setCurrentFileIndex(i);
+            setProgress({
+                stage: 'loading',
+                percent: Math.round((i / files.length) * 100),
+                message: `Processing ${file.name} (${i + 1}/${files.length})...`
             });
 
-            if (extractionResult.success) {
-                setResult(extractionResult);
-                setStage('preview');
-            } else {
-                setResult(extractionResult);
-                setStage('error');
+            try {
+                const extractionResult = await parseFile(file, {
+                    onProgress: (p) => {
+                        const basePercent = Math.round((i / files.length) * 100);
+                        const filePercent = Math.round(p.percent / files.length);
+                        setProgress({
+                            ...p,
+                            percent: basePercent + filePercent,
+                            message: `${file.name}: ${p.message}`
+                        });
+                    },
+                    abortSignal: abortControllerRef.current?.signal,
+                });
+
+                aggregatedRecipients.push(...extractionResult.detectedRecipients);
+                allWarnings.push(...extractionResult.warnings);
+                if (extractionResult.errors.length > 0) {
+                    allErrors.push(`${file.name}: ${extractionResult.errors.join(', ')}`);
+                }
+                lastFileName = file.name;
+                lastFileType = extractionResult.fileType;
+            } catch (error: any) {
+                allErrors.push(`${file.name}: ${error.message || 'Unknown error'}`);
             }
-        } catch (error: any) {
-            setResult({
-                success: false,
-                detectedRecipients: [],
-                subjectSuggestion: '',
-                bodySuggestion: '',
-                rawText: '',
-                structuredFields: {},
-                warnings: [],
-                errors: [error.message || 'Unknown error'],
-                fileType: 'unknown',
-                fileName: file.name,
-            });
-            setStage('error');
         }
+
+        // Deduplicate by email
+        const uniqueRecipients = Array.from(
+            new Map(aggregatedRecipients.map(r => [r.email, r])).values()
+        );
+
+        const finalResult: ExtractionResult = {
+            success: uniqueRecipients.length > 0 || allErrors.length === 0,
+            detectedRecipients: uniqueRecipients,
+            subjectSuggestion: '',
+            bodySuggestion: '',
+            rawText: '',
+            structuredFields: {},
+            warnings: allWarnings,
+            errors: allErrors,
+            fileType: files.length > 1 ? 'multiple' : lastFileType,
+            fileName: files.length > 1 ? `${files.length} files` : lastFileName,
+        };
+
+        setResult(finalResult);
+        setStage(finalResult.success ? 'preview' : 'error');
     }, []);
 
     // Cancel parsing
@@ -129,7 +168,8 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
         setStage('idle');
         setProgress(null);
         setResult(null);
-        setSelectedFile(null);
+        setSelectedFiles([]);
+        setCurrentFileIndex(0);
     }, []);
 
     // Apply import
@@ -141,11 +181,11 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
         }
     }, [result, onImport, handleOpenChange]);
 
-    // Dropzone configuration
+    // Dropzone configuration - now supports multiple files
     const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
         onDrop: (acceptedFiles) => {
             if (acceptedFiles.length > 0) {
-                handleFile(acceptedFiles[0]);
+                handleFiles(acceptedFiles);
             }
         },
         accept: {
@@ -158,7 +198,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
             'application/json': ['.json'],
             'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'],
         },
-        maxFiles: 1,
+        maxFiles: 20,
         disabled: stage === 'parsing',
     });
 
@@ -174,7 +214,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                         {getFileIcon(result.fileType)}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-neutral-900 dark:text-white truncate">{result.fileName}</p>
+                        <p className="font-semibold text-sm text-neutral-900 dark:text-white break-words">{result.fileName}</p>
                         <p className="text-xs text-neutral-500 uppercase tracking-wider font-medium">{result.fileType} • {(result.detectedRecipients.length || 0)} Found</p>
                     </div>
                 </div>
@@ -212,8 +252,13 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                                                 {r.email}
                                             </p>
                                             {r.name && (
-                                                <p className="text-xs text-neutral-500 truncate">
+                                                <p className="text-xs text-neutral-500 break-words">
                                                     {r.name}
+                                                </p>
+                                            )}
+                                            {r.sourceFile && (
+                                                <p className="text-[10px] text-neutral-400 break-words">
+                                                    from: {r.sourceFile}
                                                 </p>
                                             )}
                                         </div>
@@ -278,7 +323,9 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
                             <Loader2 className="h-10 w-10 animate-spin text-neutral-900 dark:text-white" />
                         </div>
                         <div className="text-center space-y-2 w-full px-8">
-                            <p className="font-medium text-neutral-900 dark:text-white truncate">{selectedFile?.name}</p>
+                            <p className="font-medium text-neutral-900 dark:text-white break-words">
+                                {selectedFiles.length > 1 ? `${selectedFiles.length} files` : selectedFiles[0]?.name || 'Processing...'}
+                            </p>
                             <p className="text-xs text-neutral-500 font-mono uppercase tracking-widest">{progress.message}</p>
                             <Progress value={progress.percent} className="h-1 w-full bg-neutral-100 dark:bg-neutral-900" indicatorClassName="bg-neutral-900 dark:bg-white" />
                         </div>
