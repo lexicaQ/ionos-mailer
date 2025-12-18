@@ -14,9 +14,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     providers: [
         Credentials({
-            name: "credentials",
+            name: "ionos",
             credentials: {
-                email: { label: "Email", type: "email" },
+                email: { label: "IONOS Email", type: "email" },
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
@@ -24,21 +24,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     return null
                 }
 
-                const email = credentials.email as string
+                const email = (credentials.email as string).toLowerCase().trim()
                 const password = credentials.password as string
 
-                const user = await prisma.user.findUnique({
+                // Find existing user
+                let user = await prisma.user.findUnique({
                     where: { email },
                 })
 
-                if (!user || !user.passwordHash) {
-                    return null
-                }
-
-                const isValid = await bcrypt.compare(password, user.passwordHash)
-
-                if (!isValid) {
-                    return null
+                if (user) {
+                    // User exists - verify password
+                    if (!user.passwordHash) {
+                        // User exists but no password (shouldn't happen, but handle it)
+                        const passwordHash = await bcrypt.hash(password, 12)
+                        user = await prisma.user.update({
+                            where: { email },
+                            data: { passwordHash },
+                        })
+                    } else {
+                        // Verify password matches
+                        const isValid = await bcrypt.compare(password, user.passwordHash)
+                        if (!isValid) {
+                            return null // Wrong password
+                        }
+                    }
+                } else {
+                    // User doesn't exist - auto-create!
+                    const passwordHash = await bcrypt.hash(password, 12)
+                    user = await prisma.user.create({
+                        data: {
+                            email,
+                            name: email.split("@")[0], // Use email prefix as name
+                            passwordHash,
+                        },
+                    })
                 }
 
                 return {
