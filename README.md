@@ -61,17 +61,34 @@ The database schema is designed for strict multi-tenancy. Every record is scoped
 | **Recipient Data** | Plain Text | Required for delivery and history logs. |
 | **Tracking Data** | Timestamp & IP | Analytics (Who opened, when). |
 
-### **How to Verify This Yourself**
-Don't trust us? Verify the data security yourself.
-1.  **Open Database Studio**:
-    Run the following command in your terminal:
-    ```bash
-    npx prisma studio
-    ```
-2.  **Inspect Tables**:
-    -   Go to the **User** model: Look at `passwordHash` field. It will look like `$2b$10$XyZ...`. This is unintelligible.
-    -   Go to the **SmtpSettings** model: Look at `password`. It will be a distinct, encrypted string. It is NOT your real password.
-    -   This proves your secrets are cryptographically secured at rest.
+### **How to View Your Data (Backend Access)**
+Since you are self-hosting this application, **YOU** are the owner of the database. There is no external "IONOS Mailer" website that holds your data. It lives wherever you set up your database.
+
+Here are the 3 ways to view raw data (IPs, Emails, Logs):
+
+#### **Option 1: The Easiest Way (Prisma Studio)**
+This built-in tool launches a beautiful administrative dashboard on your computer.
+1.  Open your terminal in the project folder.
+2.  Run: `npx prisma studio`
+3.  A browser tab will open at `http://localhost:5555`.
+4.  **What you can see**:
+    -   **`User` Table**: See all registered users.
+    -   **`Campaign` / `Job` Table**: See every email sent, including the **Recipient Email** and **Opened At** timestamp.
+    -   **`Click` Table**: (If applicable) See the **IP Address** and **User Agent** of people who clicked links.
+
+#### **Option 2: Your Database Provider**
+If you hosted your database on **Neon.tech** or **Supabase**:
+1.  Go to the website (e.g., neon.tech) and log in.
+2.  Click on your project.
+3.  Go to the **"Tables"** or **"Editor"** tab.
+4.  You can browse raw SQL tables directly in their browser UI.
+
+#### **Option 3: PRO Way (SQL Client)**
+Use a professional database tool like **TablePlus**, **DBeaver**, or **Postico**.
+1.  Create a new connection.
+2.  Use the `POSTGRES_URL` from your `.env` file.
+3.  Connect and browse tables manually.
+
 
 ---
 
