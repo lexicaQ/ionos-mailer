@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import {
     Activity, CheckCircle, XCircle, Clock, Mail,
-    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText
+    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText, X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
@@ -302,6 +302,9 @@ export function LiveCampaignTracker() {
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
+                                <X className="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
 
@@ -451,11 +454,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                             <div className="w-[110px] flex-shrink-0">
                                 {job.openedAt ? (
                                     <div className="flex flex-col leading-tight">
-                                        <div className="text-green-600 dark:text-green-500 font-bold text-xs tracking-wide">
-                                            {format(new Date(job.openedAt), "dd.MM.yyyy")}
-                                        </div>
-                                        <div className="text-[10px] text-muted-foreground font-mono">
-                                            {format(new Date(job.openedAt), "HH:mm")}
+                                        <div className="text-green-600 dark:text-green-500 font-medium text-[10px] tracking-wide whitespace-nowrap">
+                                            {format(new Date(job.openedAt), "dd.MM")} at {format(new Date(job.openedAt), "HH:mm")}
                                         </div>
                                         {/* @ts-ignore: IP added in recent schema update */}
                                         {job.ipAddress && (

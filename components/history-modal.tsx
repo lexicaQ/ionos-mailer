@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     CheckCircle, XCircle, Trash2, Filter,
-    FileSpreadsheet, FileText, Search, History, Mail, Send, Eye, EyeOff
+    FileSpreadsheet, FileText, Search, History, Mail, Send, Eye, EyeOff, RefreshCw, X
 } from "lucide-react"
 import { format } from "date-fns"
 import {
@@ -287,6 +287,10 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                             </div>
                         </div>
                         <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={fetchTrackingStatus} className="gap-2 h-8 text-xs">
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                Refresh
+                            </Button>
                             <Button variant="outline" size="sm" onClick={exportToExcel} className="hidden sm:flex gap-2 h-8 text-xs">
                                 <FileSpreadsheet className="h-3.5 w-3.5" />
                                 Excel
@@ -298,6 +302,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                             <Button variant="outline" size="sm" onClick={onClearAll} className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600">
                                 <Trash2 className="h-3.5 w-3.5" />
                                 Clear
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
+                                <X className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>
