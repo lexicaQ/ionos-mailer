@@ -35,7 +35,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     user = await prisma.user.create({
                         data: {
                             email,
-                            name: email.split('@')[0],
+                            name: email,
                             passwordHash: await bcrypt.hash(password, 10),
                             emailVerified: new Date(),
                         }

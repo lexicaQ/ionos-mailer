@@ -46,17 +46,32 @@ export async function POST(request: Request) {
         }
 
         // 2. Check CampaignJob (Background Campaigns)
-        const jobs = await prisma.emailJob.findMany({
-            where: {
-                campaign: { userId: session.user.id },
-                recipient: { in: Array.from(inputs) } // Optimization: specific check
-            },
-            select: { recipient: true }
-        })
+        // 2. Check CampaignJob (Background Campaigns) - Decrypt to check
+        const secretKey = process.env.ENCRYPTION_KEY;
+        if (secretKey) {
+            const jobs = await prisma.emailJob.findMany({
+                where: {
+                    campaign: { userId: session.user.id }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 1000, // Check last 1000 emails
+                select: { recipient: true }
+            });
 
-        for (const job of jobs) {
-            if (inputs.has(job.recipient.toLowerCase())) {
-                duplicates.add(job.recipient)
+            const { decrypt } = await import("@/lib/encryption");
+
+            for (const job of jobs) {
+                try {
+                    const decrypted = decrypt(job.recipient, secretKey).toLowerCase();
+                    if (inputs.has(decrypted)) {
+                        duplicates.add(decrypted);
+                    }
+                } catch (e) {
+                    // Ignore legacy plain text or decryption failures
+                    if (inputs.has(job.recipient.toLowerCase())) {
+                        duplicates.add(job.recipient.toLowerCase());
+                    }
+                }
             }
         }
 
