@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { encrypt, decrypt } from "@/lib/encryption"
 
 // GET: Fetch all drafts for the authenticated user
 export async function GET() {
@@ -11,17 +12,37 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const secretKey = process.env.ENCRYPTION_KEY
+        if (!secretKey) {
+            console.error("ENCRYPTION_KEY not configured")
+            return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+        }
+
         const drafts = await prisma.draft.findMany({
             where: { userId: session.user.id },
             orderBy: { updatedAt: "desc" },
         })
 
-        // Parse JSON fields
-        const parsedDrafts = drafts.map(draft => ({
-            ...draft,
-            recipients: JSON.parse(draft.recipients || "[]"),
-            attachments: draft.attachments ? JSON.parse(draft.attachments) : [],
-        }))
+        // Decrypt and parse JSON fields
+        const parsedDrafts = drafts.map(draft => {
+            try {
+                return {
+                    ...draft,
+                    subject: draft.subject ? decrypt(draft.subject, secretKey) : "",
+                    body: draft.body ? decrypt(draft.body, secretKey) : "",
+                    recipients: JSON.parse(draft.recipients ? decrypt(draft.recipients, secretKey) : "[]"),
+                    attachments: draft.attachments ? JSON.parse(decrypt(draft.attachments, secretKey)) : [],
+                }
+            } catch (e) {
+                // Fallback for legacy unencrypted drafts
+                console.warn(`Draft ${draft.id} decryption failed, assuming legacy format`)
+                return {
+                    ...draft,
+                    recipients: JSON.parse(draft.recipients || "[]"),
+                    attachments: draft.attachments ? JSON.parse(draft.attachments) : [],
+                }
+            }
+        })
 
         return NextResponse.json({ drafts: parsedDrafts })
     } catch (error: any) {
@@ -30,7 +51,7 @@ export async function GET() {
     }
 }
 
-// POST: Save or update a draft
+// POST: Save or update a draft (with encryption)
 export async function POST(request: Request) {
     try {
         const session = await auth()
@@ -39,18 +60,25 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const secretKey = process.env.ENCRYPTION_KEY
+        if (!secretKey) {
+            console.error("ENCRYPTION_KEY not configured")
+            return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+        }
+
         const { id, name, subject, body, recipients, attachments } = await request.json()
 
         if (!name) {
             return NextResponse.json({ error: "Name is required" }, { status: 400 })
         }
 
+        // Encrypt sensitive fields before storing
         const data = {
-            name,
-            subject: subject || "",
-            body: body || "",
-            recipients: JSON.stringify(recipients || []),
-            attachments: attachments ? JSON.stringify(attachments) : null,
+            name, // Name stays unencrypted for listing/search
+            subject: encrypt(subject || "", secretKey),
+            body: encrypt(body || "", secretKey),
+            recipients: encrypt(JSON.stringify(recipients || []), secretKey),
+            attachments: attachments ? encrypt(JSON.stringify(attachments), secretKey) : null,
         }
 
         let draft;
@@ -79,12 +107,15 @@ export async function POST(request: Request) {
             })
         }
 
+        // Return decrypted version for immediate UI use
         return NextResponse.json({
             success: true,
             draft: {
                 ...draft,
-                recipients: JSON.parse(draft.recipients),
-                attachments: draft.attachments ? JSON.parse(draft.attachments) : [],
+                subject: subject || "",
+                body: body || "",
+                recipients: recipients || [],
+                attachments: attachments || [],
             },
         })
     } catch (error: any) {
@@ -118,3 +149,4 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: "Failed to delete draft" }, { status: 500 })
     }
 }
+
