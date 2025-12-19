@@ -42,24 +42,22 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // 2. Find Pending or Failed Jobs that are due (retry failed emails)
+        // 2. Find ONE Pending Job that is due
+        // Process 1 at a time to prevent race conditions causing duplicates
         const now = new Date();
-        // Limit processing to 1 email per run to ensure:
-        // 1. We stay under Vercel Hobby 10s timeout
-        // 2. We can enforce the 5s delay reliably across the chain
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
-                status: { in: ['PENDING', 'FAILED'] },
+                status: 'PENDING', // Only PENDING - no auto-retry of FAILED to prevent duplicates
                 scheduledFor: { lte: now }
             },
             include: { campaign: { include: { attachments: true } } },
-            take: 20 // Increased batch size for background processing
+            take: 1 // Process exactly 1 job per request to prevent race conditions
         });
 
         if (pendingJobs.length === 0) {
-            // Check if there are ANY pending/failed jobs in the future
+            // Check if there are ANY pending jobs in the future
             const futureJobs = await prisma.emailJob.count({
-                where: { status: { in: ['PENDING', 'FAILED'] } }
+                where: { status: 'PENDING' }
             });
             console.log(`Cron: No due jobs. Total future pending: ${futureJobs}`);
             return NextResponse.json({
@@ -77,8 +75,14 @@ async function handleCronRequest(req: NextRequest) {
         // Helper to add delay
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-        // Process up to 2 jobs
+        // Process the single job
         for (const job of pendingJobs) {
+            // IMMEDIATELY mark as SENDING to prevent any duplicate pickup
+            await prisma.emailJob.update({
+                where: { id: job.id },
+                data: { status: 'SENDING' }
+            });
+
             let pass = "";
             try {
                 pass = decrypt(job.campaign.pass, secretKey);
