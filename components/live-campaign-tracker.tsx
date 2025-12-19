@@ -166,15 +166,19 @@ export function LiveCampaignTracker() {
         if (!confirm("Do you really want to delete the campaign? Sending will be stopped immediately.")) return;
 
         try {
-            // Optimistic update
-            setCampaigns(prev => prev.filter(c => c.id !== id));
-
+            // Wait for server deletion FIRST
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-            if (!res.ok) {
+            if (res.ok) {
+                // Only update UI after confirmed deletion
+                setCampaigns(prev => prev.filter(c => c.id !== id));
+            } else {
                 console.error("Deletion failed on server");
-                fetchCampaigns();
+                alert("Deletion failed. Please try again.");
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            alert("Deletion failed. Please try again.");
+        }
     }
 
     // EXPORT FUNCTIONS

@@ -217,7 +217,9 @@ async function handleCronRequest(req: NextRequest) {
                     'x-manual-trigger': 'true',
                     'User-Agent': 'vercel-cron/1.0',
                     // Only add Authorization if CRON_SECRET is defined to avoid "Bearer undefined"
-                    ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {})
+                    ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
+                    // Add firewall bypass for recursive calls
+                    ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
                 },
                 // Use a safe timeout (e.g., 5s) to ensure request is sent but not block too long
                 signal: AbortSignal.timeout(5000)
