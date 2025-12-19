@@ -394,7 +394,11 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                 if (isOpened) {
                                                     return (
                                                         <div className="flex flex-col leading-none">
-                                                            <span className="text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-wider">Opened</span>
+                                                            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">
+                                                                {result.trackingId && trackingStatus[result.trackingId]?.openedAt
+                                                                    ? format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM 'at' HH:mm")
+                                                                    : 'Opened'}
+                                                            </span>
                                                         </div>
                                                     );
                                                 }
