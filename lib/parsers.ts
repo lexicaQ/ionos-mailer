@@ -281,7 +281,7 @@ async function parseJSON(file: File, options: ParseOptions): Promise<ExtractionR
                     // Reset regex index
                     EMAIL_REGEX.lastIndex = 0;
                     if (obj.match(EMAIL_REGEX)) {
-                        detectedRecipients.push({ email: obj.toLowerCase(), id: crypto.randomUUID() });
+                        detectedRecipients.push({ email: obj.toLowerCase(), id: crypto.randomUUID(), sourceFile: fileName });
                     }
                 }
             } else if (Array.isArray(obj)) {
@@ -291,7 +291,7 @@ async function parseJSON(file: File, options: ParseOptions): Promise<ExtractionR
                 for (const key of Object.keys(obj)) {
                     const lowerKey = key.toLowerCase();
                     if (EMAIL_COLUMN_NAMES.some(n => lowerKey.includes(n)) && typeof obj[key] === 'string') {
-                        detectedRecipients.push({ email: obj[key].toLowerCase(), id: crypto.randomUUID() });
+                        detectedRecipients.push({ email: obj[key].toLowerCase(), id: crypto.randomUUID(), sourceFile: fileName });
                     } else {
                         recursiveSearch(obj[key]);
                     }

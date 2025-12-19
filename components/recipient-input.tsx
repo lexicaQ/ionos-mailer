@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2 } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +28,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const [parsedRecipients, setParsedRecipients] = useState<ExtendedRecipientStatus[]>([])
     const [activeTab, setActiveTab] = useState("valid")
     const [isChecking, setIsChecking] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(false)
 
     // Helper: Check duplicates
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
@@ -172,7 +173,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                             </div>
 
                             <TabsContent value="valid" className="mt-4">
-                                <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto">
+                                <div className={`flex flex-wrap gap-2 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-full' : 'max-h-[140px] overflow-hidden'}`}>
                                     {displayList.map((recipient) => {
                                         const isGeneric = isGenericDomain(recipient.email);
                                         const isDuplicate = recipient.duplicate;
@@ -211,6 +212,22 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         <p className="text-sm text-muted-foreground">No valid email addresses</p>
                                     )}
                                 </div>
+                                {displayList.length > 20 && (
+                                    <div className="flex justify-center mt-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setIsExpanded(!isExpanded)}
+                                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 h-6"
+                                        >
+                                            {isExpanded ? (
+                                                <>Collapse <ChevronUp className="h-3 w-3" /></>
+                                            ) : (
+                                                <>Show {displayList.length - 20} more <ChevronDown className="h-3 w-3" /></>
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
                             </TabsContent>
 
                             <TabsContent value="invalid" className="mt-4">
