@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
         // Transform data for frontend
         const result = campaigns.map((campaign: any) => ({
             id: campaign.id,
+            name: campaign.name,
             createdAt: campaign.createdAt.toISOString(),
             jobs: campaign.jobs.map((job: any) => ({
                 id: job.id,
