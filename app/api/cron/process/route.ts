@@ -38,14 +38,14 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // 2. Find Pending Jobs that are due
+        // 2. Find Pending or Failed Jobs that are due (retry failed emails)
         const now = new Date();
         // Limit processing to 1 email per run to ensure:
         // 1. We stay under Vercel Hobby 10s timeout
         // 2. We can enforce the 5s delay reliably across the chain
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
-                status: 'PENDING',
+                status: { in: ['PENDING', 'FAILED'] },
                 scheduledFor: { lte: now }
             },
             include: { campaign: { include: { attachments: true } } },
@@ -53,12 +53,13 @@ async function handleCronRequest(req: NextRequest) {
         });
 
         if (pendingJobs.length === 0) {
-            // Check if there are ANY pending jobs in the future
+            // Check if there are ANY pending/failed jobs in the future
             const futureJobs = await prisma.emailJob.count({
-                where: { status: 'PENDING' }
+                where: { status: { in: ['PENDING', 'FAILED'] } }
             });
             console.log(`Cron: No due jobs. Total future pending: ${futureJobs}`);
             return NextResponse.json({
+                processed: 0,
                 message: "No pending jobs due.",
                 serverTime: now.toISOString(),
                 futurePendingCount: futureJobs

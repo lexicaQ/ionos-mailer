@@ -330,7 +330,15 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                 });
                                 const data = await res.json();
                                 if (res.ok) {
-                                    setStatusMsg({ type: 'success', text: `Processed: ${data.processed}. Next job triggered.` });
+                                    const processed = data.processed ?? 0;
+                                    const futureCount = data.futurePendingCount ?? 0;
+                                    if (processed === 0 && futureCount === 0) {
+                                        setStatusMsg({ type: 'success', text: `No pending emails to process.` });
+                                    } else if (processed === 0) {
+                                        setStatusMsg({ type: 'success', text: `No due emails. ${futureCount} scheduled for later.` });
+                                    } else {
+                                        setStatusMsg({ type: 'success', text: `Processed: ${processed}. ${futureCount > 0 ? `${futureCount} more scheduled.` : 'Queue complete.'}` });
+                                    }
                                 } else {
                                     setStatusMsg({ type: 'error', text: "Error: " + data.error });
                                 }

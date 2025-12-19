@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
         const result = campaigns.map((campaign: any) => ({
             id: campaign.id,
             name: campaign.name,
+            isDirect: campaign.host === 'DIRECT',
             createdAt: campaign.createdAt.toISOString(),
             jobs: campaign.jobs.map((job: any) => ({
                 id: job.id,

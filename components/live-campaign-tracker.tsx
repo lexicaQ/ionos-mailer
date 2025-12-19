@@ -35,6 +35,7 @@ interface Campaign {
     id: string
     createdAt: string
     name?: string | null
+    isDirect?: boolean
     jobs: EmailJob[]
     stats: {
         total: number
@@ -385,12 +386,23 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                     </div>
                     <div>
                         <div className="text-base font-semibold flex items-center gap-2">
+                            {campaign.isDirect ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                                    Direct
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    Campaign
+                                </span>
+                            )}
                             {campaign.name ? (
                                 <span>
                                     {campaign.name} <span className="text-muted-foreground font-normal text-sm">({format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")})</span>
                                 </span>
                             ) : (
-                                <span>Campaign <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")}</span></span>
+                                <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")}</span>
                             )}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
