@@ -567,13 +567,13 @@ export function EmailForm() {
                                     <Slider
                                         value={[durationMinutes]}
                                         onValueChange={(v) => setDurationMinutes(v[0])}
-                                        min={1}
+                                        min={7}
                                         max={1440}
                                         step={1}
                                         className="w-full"
                                     />
                                     <div className="flex justify-between text-xs text-neutral-500 mt-2">
-                                        <span>1 min</span>
+                                        <span>7 min</span>
                                         <span>24 hours</span>
                                     </div>
                                 </div>
