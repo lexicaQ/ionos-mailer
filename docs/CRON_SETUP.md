@@ -2,11 +2,11 @@
 
 ## Problem
 
-Vercel Hobby plan only allows cron jobs to run **once per day**. To send campaign emails every minute while the app is closed, you need an external trigger.
+Vercel Hobby plan only allows cron jobs to run **once per day**. To send campaign emails frequently while the app is closed, you need an external trigger.
 
 ## Solution: GitHub Actions (Primary)
 
-The repository has a GitHub Actions workflow that runs **every 1 minute**. To make it work:
+The repository has a GitHub Actions workflow that runs **every ~22 minutes** (at 0, 22, 44 past each hour). This gives ~1960 runs/month, staying just under the 2000 free minute limit.
 
 ### 1. Enable GitHub Actions Schedules
 
