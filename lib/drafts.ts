@@ -217,18 +217,22 @@ export async function saveDraft(draft: Omit<EmailDraft, 'id' | 'createdAt' | 'up
 
     await saveDraftDB(finalDraftForDB as any);
 
-    // Sync to Cloud (Background)
+    // Sync to Cloud (Await for reliability across devices)
     const cloudPayload = {
         id: baseDraft.id,
         name: baseDraft.name,
         ...payload // Decrypted content
     };
 
-    fetch('/api/sync/drafts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cloudPayload)
-    }).catch(e => console.error("Cloud upload failed", e));
+    try {
+        await fetch('/api/sync/drafts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cloudPayload)
+        });
+    } catch (e) {
+        console.error("Cloud upload failed", e);
+    }
 
     // Return the full decrypted version for UI usage immediately
     return {

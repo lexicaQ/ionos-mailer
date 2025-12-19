@@ -198,7 +198,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
             headerActions={syncIndicator}
         >
-            <ScrollArea className="flex-1 h-full pr-4">
+            <ScrollArea className="flex-1 h-full max-h-[60vh] md:max-h-[70vh] pr-4 overflow-y-auto">
 
                 <div className="grid gap-6 pt-4 pb-4">
 

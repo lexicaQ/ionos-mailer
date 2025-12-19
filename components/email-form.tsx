@@ -18,7 +18,7 @@ import { AuthDialog } from "@/components/auth-dialog"
 import { FileImportModal } from "@/components/file-import-modal"
 import { ExtractionResult } from "@/lib/parsers"
 import { SmtpConfig } from "@/lib/mail"
-import { Send, Loader2, Clock, Sparkles, FileUp } from "lucide-react"
+import { Send, Loader2, Clock, Sparkles, FileUp, LogOut } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -32,7 +32,7 @@ import { Attachment } from "@/lib/schemas"
 const HISTORY_STORAGE_KEY = "ionos-mailer-history"
 const DRAFTS_SYNC_KEY = "ionos-mailer-drafts-synced"
 
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 // ...
 
 export function EmailForm() {
@@ -416,6 +416,18 @@ export function EmailForm() {
             {/* Header Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
+                    {/* Mobile-only Logout Button (top-left) */}
+                    {session?.user && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="md:hidden h-10 w-10 text-muted-foreground"
+                            onClick={() => signOut()}
+                            title="Sign out"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
+                    )}
                     <div className="h-10 w-10 rounded-xl bg-black dark:bg-white flex items-center justify-center shadow-lg shrink-0">
                         <Sparkles className="h-5 w-5 text-white dark:text-black" />
                     </div>
@@ -477,10 +489,10 @@ export function EmailForm() {
                         customAction={
                             <Button
                                 type="button"
-                                variant="secondary"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setFileImportOpen(true)}
-                                className="gap-2"
+                                className="gap-2 border"
                                 title="Load email addresses from file"
                             >
                                 <FileUp className="h-4 w-4" />

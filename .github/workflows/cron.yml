@@ -2,8 +2,8 @@ name: Process Email Queue
 
 on:
   schedule:
-    # Run every minute (GitHub's minimum granularity)
-    - cron: '* * * * *'
+    # Run every 5 minutes (reduced from 1min to avoid rate limiting)
+    - cron: '*/5 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
