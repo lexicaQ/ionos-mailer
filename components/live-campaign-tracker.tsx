@@ -386,15 +386,20 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                     </div>
                     <div>
                         <div className="text-base font-semibold flex items-center gap-2">
-                            {campaign.isDirect ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                                    Direct
+                            {/* Status Badges */}
+                            {campaign.stats.sent > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                    ✓ {campaign.stats.sent}
                                 </span>
-                            ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                    Campaign
+                            )}
+                            {campaign.stats.pending > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                                    ⏳ {campaign.stats.pending}
+                                </span>
+                            )}
+                            {campaign.stats.failed > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                    ✗ {campaign.stats.failed}
                                 </span>
                             )}
                             {campaign.name ? (
@@ -407,8 +412,6 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
                             <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Finished</span>
-                            <span className="h-1 w-1 bg-neutral-300 rounded-full" />
-                            <span>{campaign.stats.sent} Sent</span>
                             <span className="h-1 w-1 bg-neutral-300 rounded-full" />
                             <span className="flex items-center gap-1 text-green-600 font-medium">
                                 <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
