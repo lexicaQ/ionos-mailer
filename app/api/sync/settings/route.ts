@@ -20,13 +20,22 @@ export async function GET() {
             return NextResponse.json({ settings: null })
         }
 
+        // Decrypt password before sending to frontend
+        let decryptedPass = "";
+        try {
+            decryptedPass = decrypt(settings.password, process.env.ENCRYPTION_KEY!);
+        } catch (e) {
+            // If decryption fails, password might already be plain text (legacy)
+            decryptedPass = settings.password;
+        }
+
         // Return flattened settings matching SmtpConfig interface
         return NextResponse.json({
             settings: {
                 host: settings.host,
                 port: settings.port,
                 user: settings.email, // Map DB email -> API user
-                pass: settings.password, // Map DB password -> API pass
+                pass: decryptedPass, // DECRYPTED password
                 fromEmail: settings.fromEmail || "",
                 fromName: settings.fromName || "",
                 replyTo: settings.replyTo || "",

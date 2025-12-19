@@ -90,9 +90,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     const handleParse = async () => {
         const results = parseRecipients(rawInput);
-        const processed = await processDuplicates(results);
-        setParsedRecipients(processed);
-        onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
+        // Skip duplicate API check for speed - user can see duplicates later in tracking
+        setParsedRecipients(results);
+        onRecipientsChange(results.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
     }
 
     const handleRemove = (id: string) => {
