@@ -40,13 +40,14 @@ export function ResponsiveModal({
     description,
     trigger,
     className,
-    headerActions
-}: ResponsiveModalProps & { headerActions?: React.ReactNode }) {
+    headerActions,
+    forceDialog
+}: ResponsiveModalProps & { headerActions?: React.ReactNode, forceDialog?: boolean }) {
     // This hook is key - it swaps component based on screen size
     const isDesktop = useMediaQuery("(min-width: 768px)")
 
-    // DESKTOP: Render standard Shadcn Dialog
-    if (isDesktop) {
+    // DESKTOP or FORCED DIALOG: Render standard Shadcn Dialog
+    if (isDesktop || forceDialog) {
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
                 {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
@@ -75,7 +76,7 @@ export function ResponsiveModal({
         <Drawer open={open} onOpenChange={onOpenChange}>
             {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
             <DrawerContent className="max-h-[90vh]">
-                <DrawerHeader className="text-left pt-2 px-4">
+                <DrawerHeader className="text-left pt-0 px-4">
                     <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1.5 min-w-0">
                             {title && <DrawerTitle className="leading-snug">{title}</DrawerTitle>}

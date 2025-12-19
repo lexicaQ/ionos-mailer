@@ -307,7 +307,7 @@ export function LiveCampaignTracker() {
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
+                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 hidden sm:flex">
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
@@ -392,23 +392,23 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                 <span>Campaign <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")}</span></span>
                             )}
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
-                            <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Finished</span>
+                        <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-1 whitespace-nowrap overflow-hidden">
+                            <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Done</span>
 
-                            <span className="h-1 w-1 bg-neutral-300 rounded-full" />
+                            <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
                             <span>{campaign.stats.sent} Sent</span>
 
                             {campaign.stats.pending > 0 && (
                                 <>
-                                    <span className="h-1 w-1 bg-neutral-300 rounded-full" />
-                                    <span>{campaign.stats.pending} Waiting</span>
+                                    <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
+                                    <span>{campaign.stats.pending} Wait</span>
                                 </>
                             )}
 
-                            <span className="h-1 w-1 bg-neutral-300 rounded-full" />
+                            <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
                             <span className="flex items-center gap-1 text-green-600 font-medium">
                                 <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
-                                {campaign.stats.opened} Opened
+                                {campaign.stats.opened} Open
                             </span>
                         </div>
                     </div>
@@ -436,11 +436,11 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
             {/* Email List - Minimalist Table */}
             {isOpen && (
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
-                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-2">
+                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-1">
                         <div className="w-[65px] sm:w-[100px]">Status</div>
-                        <div className="w-[60px] sm:w-[110px]">Opened</div>
+                        <div className="w-[45px] sm:w-[110px]">Opened</div>
                         <div className="flex-1 min-w-0">Recipient</div>
-                        <div className="w-[50px] sm:w-[140px] text-right">Time</div>
+                        <div className="w-[45px] sm:w-[140px] text-right">Time</div>
                     </div>
                     {campaign.jobs.map((job) => (
                         <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-2 sm:gap-4">
@@ -463,7 +463,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                             </div>
 
                             {/* Opened Status - SECOND */}
-                            <div className="w-[60px] sm:w-[110px] flex-shrink-0">
+                            <div className="w-[45px] sm:w-[110px] flex-shrink-0">
                                 {job.openedAt ? (
                                     <div className="flex flex-col leading-none sm:leading-tight">
                                         <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
@@ -478,15 +478,15 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                             </div>
 
                             {/* Recipient - THIRD */}
-                            <div className="flex-1 min-w-0 pr-1 sm:pr-4">
-                                <div className="text-[10px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
+                            <div className="flex-1 min-w-0 pr-1">
+                                <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                     {job.recipient}
                                 </div>
-                                <div className="text-[9px] sm:text-xs text-muted-foreground truncate opacity-80" title={job.subject}>{job.subject}</div>
+                                <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80" title={job.subject}>{job.subject}</div>
                             </div>
 
                             {/* Times - LAST */}
-                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[50px] sm:w-[140px]">
+                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[45px] sm:w-[140px]">
                                 <div className="text-right">
                                     <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
                                     <div className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>

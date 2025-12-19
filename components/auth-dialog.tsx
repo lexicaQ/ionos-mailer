@@ -94,6 +94,7 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                 title="Sync Your Data"
                 description="Use your IONOS email credentials to sync drafts and settings across all your devices"
                 className="sm:max-w-[400px]"
+                forceDialog={true}
             >
                 <form onSubmit={handleConnect} className="space-y-4 py-4">
                     <div className="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
