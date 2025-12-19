@@ -296,12 +296,27 @@ export function EmailForm() {
         try {
             // console.log('[EmailForm] Loading draft:', draft.name);
 
+            // Helper to ensure line breaks are preserved in Tiptap (which treats \n as space in HTML)
+            const ensureHtml = (content: string) => {
+                if (!content) return "";
+                // Simple check for HTML tags
+                const hasTags = /<[a-z][\s\S]*>/i.test(content);
+                if (!hasTags) {
+                    // Convert plain text newlines to <br>
+                    return content.replace(/\n/g, '<br>');
+                }
+                return content;
+            };
+
             // Sanitization Helper: AGGRESSIVELY remove all images to prevent blob/data URL issues
             const sanitizeContent = (html: string) => {
                 if (!html) return "";
 
+                // Ensure we have HTML structure first (preserve newlines)
+                let clean = ensureHtml(html);
+
                 // Step 1: Remove ALL img tags completely (images should be attachments, not inline)
-                let clean = html.replace(/<img[^>]*>/gi, '');
+                clean = clean.replace(/<img[^>]*>/gi, '');
 
                 // Step 2: Remove any remaining blob: or data: URLs that might be elsewhere
                 clean = clean.replace(/blob:[^\s"']*/gi, '');
@@ -396,7 +411,12 @@ export function EmailForm() {
             // Set body if provided and current is empty
             const currentBody = form.getValues('body') || '';
             if (result.bodySuggestion && (!currentBody.trim() || currentBody === '<p></p>')) {
-                form.setValue('body', result.bodySuggestion);
+                // Ensure newlines are preserved for imported text
+                const ensureHtml = (content: string) => {
+                    const hasTags = /<[a-z][\s\S]*>/i.test(content);
+                    return hasTags ? content : content.replace(/\n/g, '<br>');
+                };
+                form.setValue('body', ensureHtml(result.bodySuggestion));
                 setEditorKey(prev => prev + 1); // Force editor refresh
             }
 
