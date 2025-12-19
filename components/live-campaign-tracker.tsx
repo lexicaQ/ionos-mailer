@@ -28,6 +28,7 @@ interface EmailJob {
     sentAt: string | null
     error: string | null
     openedAt: string | null
+    ipAddress?: string | null
 }
 
 interface Campaign {
