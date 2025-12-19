@@ -25,16 +25,19 @@ This documentation serves as the comprehensive technical specification and opera
 ### 2.1 Smart Cloud Sync & Background Architecture
 IONOS Mailer utilizes a modern, serverless-compatible architecture that ensures reliability even when the application frontend is closed.
 
-*   **GitHub Background Workflow**: The sending engine is powered by a **GitHub Actions Workflow** (`.github/workflows/cron.yml`) that acts as a robust heartbeat. It triggers the processing engine every 10 minutes, ensuring pending emails are sent reliably in the background without requiring the browser tab to remain open.
-*   **Draft Cloud Sync**: Seamlessly synchronize your drafts across devices. Start writing on your desktop and finish on your mobile device. Changes are intelligently merged using a server-side resolution strategy.
+*   **External Cron Service (cron-job.org)**: The sending engine is triggered by an external cron service (cron-job.org) that calls the `/api/cron/process` endpoint every **1 minute**. This ensures emails are processed reliably without requiring the browser tab to remain open.
+*   **Draft Cloud Sync**: Seamlessly synchronize your drafts across devices. Start writing on your desktop and finish on your mobile device. Changes are intelligently merged using a server-side resolution strategy. **Drafts are encrypted at rest.**
 
 ### 2.2 Enterprise-Grade Security
 Security is architected on a "Zero-Trust" model, assuming that the database layer could be theoretically compromised.
 
--   **Credential Encryption**: SMTP passwords and sensitive **Recipient Information** are **never** stored in plain text.
-    -   **Algorithm**: **AES-256-GCM** (Galois/Counter Mode).
+-   **Comprehensive Encryption at Rest**: All sensitive data is encrypted using **AES-256-GCM**:
+    -   **SMTP Credentials** (passwords, usernames)
+    -   **Recipient Information** (email addresses)
+    -   **Draft Content** (subject, body, recipients, attachments)
+    -   **Campaign Data** (sender name, campaign name, attachment filenames)
     -   **Key Management**: The `ENCRYPTION_KEY` resides strictly in the runtime environment variables and is never persisted to the database.
-    -   **Storage Format**: `salt:iv:authTag:ciphertext`. This ensures that even with database access, decryption is mathematically impossible without the separate environment key.
+    -   **Storage Format**: `salt:iv:authTag:ciphertext`. Decryption is mathematically impossible without the environment key.
 -   **Authentication**: User passwords are hashed using **Bcrypt** (Salted, 10 rounds).
 -   **Session Management**: Secure, HTTP-only cookies prevent XSS vectors.
 
@@ -139,19 +142,21 @@ Connect via any standard PostgreSQL client (TablePlus, DBeaver, Postico).
 3.  **Configure Environment**: Add all variables from your `.env` file to the Vercel Project Settings.
 4.  **Deploy**: Initiate the build.
 
-### 4.4 Configuring Background Jobs (GitHub Actions)
-The application relies on **GitHub Actions** to trigger the sending engine. The workflow file is located at `.github/workflows/cron.yml`.
+### 4.4 Configuring Background Jobs (cron-job.org)
+The application uses an external cron service to trigger the email processing engine reliably.
 
-**Configuration:**
-1.  Go to your GitHub Repository **Settings > Secrets and variables > Actions**.
-2.  Add a new Repository Secret:
-    -   **Name**: `CRON_SECRET`
-    -   **Value**: Must match the `CRON_SECRET` in your Vercel Environment Variables.
-3.  Add a Variable (or Secret):
-    -   **Name**: `CRON_URL`
-    -   **Value**: `https://your-production-domain.com/api/cron/process`
+**Setup (Free):**
+1.  Create an account at [cron-job.org](https://cron-job.org).
+2.  Create a new Cronjob with the following settings:
+    -   **URL**: `https://your-production-domain.com/api/cron/process`
+    -   **Schedule**: Every 1 minute
+    -   **Request Method**: GET
+3.  Under **Advanced > Headers**, add:
+    -   **Key**: `Authorization`
+    -   **Value**: `Bearer YOUR_CRON_SECRET` (must match your Vercel env variable)
+4.  Save and activate the cronjob.
 
-The workflow will ping your application every **10 minutes** to process queued campaigns.
+The service will ping your application every **1 minute** to process queued campaigns.
 
 ---
 
