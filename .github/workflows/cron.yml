@@ -2,8 +2,7 @@ name: Process Email Queue
 
 on:
   schedule:
-    # Run every 7 minutes
-    - cron: '*/3 * * * *' # Every 3 minutes
+    - cron: '* * * * *' # Every minute
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -14,64 +13,26 @@ jobs:
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
         run: |
-          node -e "
-            const https = require('https');
-            const urlStr = process.env.APP_URL;
-            const cronSecret = process.env.CRON_SECRET;
-            const bypassSecret = process.env.VERCEL_PROTECTION_BYPASS;
-            
-            if (!urlStr) {
-              console.error('❌ Error: APP_URL is not set in GitHub Actions secrets.');
-              process.exit(1);
-            }
-            if (!cronSecret) {
-              console.error('❌ Error: CRON_SECRET is not set in GitHub Actions secrets.');
-              console.error('   Please go to Settings > Secrets and variables > Actions and add CRON_SECRET');
-              process.exit(1);
-            }
-            
-            const target = urlStr.trim() + '/api/cron/process';
-            console.log('Triggering cron at ' + target);
-            
-            const options = {
-              method: 'POST',
-              headers: { 
-                'x-manual-trigger': 'true',
-                'User-Agent': 'vercel-cron/1.0',
-                'Authorization': 'Bearer ' + process.env.CRON_SECRET
-              },
-              timeout: 30000
-            };
+          # Simple curl request with Bearer token
+          response=$(curl -s -w "\n%{http_code}" \
+            -X GET \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "User-Agent: GitHub-Actions-Cron" \
+            --max-time 55 \
+            "${APP_URL}/api/cron/process")
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Cron triggered successfully"
+            exit 0
+          else
+            echo "❌ Cron failed with status $http_code"
+            exit 1
+          fi
 
-            if (bypassSecret) {
-                options.headers['x-vercel-protection-bypass'] = bypassSecret;
-                console.log('🔒 Vercel Firewall Bypass enabled');
-            }
-
-            const req = https.request(target, options, (res) => {
-              console.log('Response status:', res.statusCode);
-              if (res.statusCode >= 200 && res.statusCode < 300) {
-                console.log('✅ Cron triggered successfully');
-                process.exit(0);
-              } else {
-                console.error('⚠️ Cron failed with status', res.statusCode);
-                res.on('data', d => process.stderr.write(d));
-                res.on('end', () => process.exit(1));
-              }
-            });
-            
-            req.on('error', (e) => {
-              console.error('Request error:', e);
-              process.exit(1);
-            });
-            
-            req.on('timeout', () => {
-              req.destroy();
-              console.error('Request timed out');
-              process.exit(1);
-            });
-            
-            req.end();
-          "
