@@ -402,7 +402,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                         </div>
                                                     );
                                                 }
-                                                return <span className="text-[10px] uppercase font-bold text-blue-500 tracking-wider">Sent</span>;
+                                                return <span className="text-[10px] font-bold text-neutral-300 dark:text-neutral-600 tracking-wider">---</span>;
                                             })()}
                                         </div>
 
