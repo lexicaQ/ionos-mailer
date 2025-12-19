@@ -378,22 +378,28 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                             )}
                                         </div>
 
-                                        {/* Opened Status - Show time only */}
-                                        <div className="w-[80px] flex-shrink-0">
-                                            {result.trackingId ? (
-                                                trackingStatus[result.trackingId]?.opened ? (
-                                                    <span className="text-xs text-green-600 dark:text-green-400 font-mono">
-                                                        {trackingStatus[result.trackingId]?.openedAt
-                                                            ? format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM 'at' HH:mm")
-                                                            : 'Opened'
-                                                        }
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground opacity-50">—</span>
-                                                )
-                                            ) : (
-                                                <span className="text-xs text-muted-foreground opacity-50">—</span>
-                                            )}
+                                        {/* Status Column (Text only, small) */}
+                                        <div className="w-[80px] flex-shrink-0 flex items-center">
+                                            {(() => {
+                                                const status = result.status; // 'waiting', 'success', 'error'
+                                                const isOpened = result.trackingId && trackingStatus[result.trackingId]?.opened;
+
+                                                if (status === 'waiting') {
+                                                    return <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Waiting</span>;
+                                                }
+                                                if (status === 'error') {
+                                                    return <span className="text-[10px] uppercase font-bold text-red-500 tracking-wider">Failed</span>;
+                                                }
+                                                // Success case
+                                                if (isOpened) {
+                                                    return (
+                                                        <div className="flex flex-col leading-none">
+                                                            <span className="text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-wider">Opened</span>
+                                                        </div>
+                                                    );
+                                                }
+                                                return <span className="text-[10px] uppercase font-bold text-blue-500 tracking-wider">Sent</span>;
+                                            })()}
                                         </div>
 
                                         {/* Recipient */}

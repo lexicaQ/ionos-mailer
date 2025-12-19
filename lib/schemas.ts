@@ -39,4 +39,5 @@ export interface SendResult {
     error?: string
     timestamp: string
     trackingId?: string
+    status?: 'success' | 'error' | 'waiting'
 }

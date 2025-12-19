@@ -387,21 +387,6 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                     <div>
                         <div className="text-base font-semibold flex items-center gap-2">
                             {/* Status Badges */}
-                            {campaign.stats.sent > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                    ✓ {campaign.stats.sent}
-                                </span>
-                            )}
-                            {campaign.stats.pending > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                                    ⏳ {campaign.stats.pending}
-                                </span>
-                            )}
-                            {campaign.stats.failed > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                    ✗ {campaign.stats.failed}
-                                </span>
-                            )}
                             {campaign.name ? (
                                 <span>
                                     {campaign.name} <span className="text-muted-foreground font-normal text-sm">({format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")})</span>
@@ -412,6 +397,17 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
                             <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Finished</span>
+
+                            <span className="h-1 w-1 bg-neutral-300 rounded-full" />
+                            <span>{campaign.stats.sent} Sent</span>
+
+                            {campaign.stats.pending > 0 && (
+                                <>
+                                    <span className="h-1 w-1 bg-neutral-300 rounded-full" />
+                                    <span>{campaign.stats.pending} Waiting</span>
+                                </>
+                            )}
+
                             <span className="h-1 w-1 bg-neutral-300 rounded-full" />
                             <span className="flex items-center gap-1 text-green-600 font-medium">
                                 <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />

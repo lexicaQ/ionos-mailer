@@ -22,7 +22,7 @@ export async function GET(req: Request) {
                     userId: session.user.id,
                     host: "DIRECT" // Only show "Direct Send" emails in the history popup
                 },
-                status: { in: ['SENT', 'FAILED'] }
+                status: { in: ['SENT', 'FAILED', 'PENDING', 'SENDING'] } // Include Waiting/Sending
             },
             take: 50, // Limit to 50 for performance (Lazy Load)
             orderBy: { createdAt: 'desc' },
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
                 body: "Check details", // Placeholder
                 results: [{
                     email: email,
-                    status: job.status === 'SENT' ? 'success' : 'error',
+                    status: (job.status === 'PENDING' || job.status === 'SENDING') ? 'waiting' : (job.status === 'SENT' ? 'success' : 'error'),
                     error: job.error,
                     trackingId: job.trackingId,
                     messageId: undefined, // Not stored in EmailJob currently
