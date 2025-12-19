@@ -2,8 +2,8 @@ name: Process Email Queue
 
 on:
   schedule:
-    # Run every 22 min (~1960 runs/month, just under 2000 free limit)
-    - cron: '0,22,44 * * * *'
+    # Run every 7 minutes
+    - cron: '*/7 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
