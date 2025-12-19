@@ -407,7 +407,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                     {campaign.name} <span className="text-muted-foreground font-normal text-sm">({format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")})</span>
                                 </span>
                             ) : (
-                                <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")}</span>
+                                <span>Campaign <span className="text-muted-foreground font-normal text-sm">from {format(new Date(campaign.createdAt), "dd.MM.yyyy HH:mm")}</span></span>
                             )}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-3 mt-1">
