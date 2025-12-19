@@ -102,7 +102,7 @@ export async function POST(req: Request) {
             const job = await prisma.emailJob.create({
                 data: {
                     campaignId: campaign.id,
-                    recipient: recipient.email,
+                    recipient: encrypt(recipient.email, encryptionKey),
                     subject: encrypt(finalSubject, encryptionKey),
                     body: encrypt(finalBody, encryptionKey),
                     status: 'PENDING',
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
                 where: { id: job.id },
                 data: {
                     status: success ? 'SENT' : 'FAILED',
-                    sentAt: new Date(),
+                    sentAt: success ? new Date() : undefined,
                     error: errorMsg
                 }
             });

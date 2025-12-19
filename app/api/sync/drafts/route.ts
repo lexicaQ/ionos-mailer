@@ -53,51 +53,27 @@ export async function POST(request: Request) {
             attachments: attachments ? JSON.stringify(attachments) : null,
         }
 
-        if (id) {
-            // Upsert: Create if not exists (using client ID), Update if exists
-            draft = await prisma.draft.upsert({
-                where: { id },
-                update: data,
-                create: {
-                    ...data,
-                    id, // Use client-provided ID
-                    userId: session.user.id,
-                },
-            })
+        let draft;
 
-            // Security check: ensure userId matches if we updated (upsert 'where' only checked ID)
-            // But wait, if someone guesses an ID, they could overwrite? 
-            // Better to add userId to 'where' clause of update? 
-            // Prisma upsert 'where' typically needs a unique identifier. ID is unique.
-            // We need to verify ownership if it's an update.
-
-            if (draft.userId !== session.user.id) {
-                // Rollback or Error? If we mistakenly updated someone else's draft?
-                // But ID is UUID-like (random). Collision unlikely.
-                // However, correct security practice: 
-                // We can't use upsert effectively with row-level security easily if 'id' is the only unique constraint but we want to filter by userId.
-                // Let's go back to explicit check.
-            }
-        }
-
-        // REVISED APPROACH for robust security & functionality:
-        // 1. Try to find existing draft by ID AND UserId
+        // Check if draft with this ID already exists
         const existing = id ? await prisma.draft.findUnique({ where: { id } }) : null;
 
         if (existing) {
+            // Verify ownership
             if (existing.userId !== session.user.id) {
                 return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
             }
+            // Update existing draft
             draft = await prisma.draft.update({
                 where: { id },
                 data
             })
         } else {
-            // Create new (with client ID if provided)
+            // Create new draft (with client ID if provided)
             draft = await prisma.draft.create({
                 data: {
                     ...data,
-                    id: id || undefined, // undefined lets Prisma/DB gen ID if needed (though client always sends one)
+                    id: id || undefined,
                     userId: session.user.id
                 }
             })

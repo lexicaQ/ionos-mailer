@@ -121,7 +121,8 @@ async function handleCronRequest(req: NextRequest) {
 
                 if (PLACEHOLDER_REGEX.test(finalBody) || PLACEHOLDER_REGEX.test(finalSubject)) {
                     try {
-                        const companyName = await extractCompanyFromEmail(job.recipient);
+                        const decryptedRecipientForCompany = decrypt(job.recipient, secretKey);
+                        const companyName = await extractCompanyFromEmail(decryptedRecipientForCompany);
 
                         // Use centralized logic for both Subject and Body
                         // Note: If companyName is null (not found/generic), it will remove "at XXX" entirely
@@ -178,7 +179,7 @@ async function handleCronRequest(req: NextRequest) {
                         where: { id: job.id },
                         data: {
                             status: response.success ? 'SENT' : 'FAILED',
-                            sentAt: new Date(),
+                            sentAt: response.success ? new Date() : undefined,
                             error: response.error || null
                         }
                     });

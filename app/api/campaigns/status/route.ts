@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
             jobs: campaign.jobs.map((job: any) => ({
                 id: job.id,
                 trackingId: job.trackingId,
-                recipient: job.recipient,
+                recipient: decrypt(job.recipient, process.env.ENCRYPTION_KEY!),
                 subject: decrypt(job.subject, process.env.ENCRYPTION_KEY!),
                 status: job.status,
                 scheduledFor: job.scheduledFor.toISOString(),
