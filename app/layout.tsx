@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { MobileAuthToggle } from "@/components/mobile-auth-toggle"
 import { AutoThemeSwitcher } from "@/components/auto-theme-switcher"
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/auth-provider"
@@ -124,6 +125,7 @@ export default function RootLayout({
           <AuthProvider>
             <AutoThemeSwitcher />
             <ThemeToggle />
+            <MobileAuthToggle />
             {children}
             <Toaster />
             <Analytics />

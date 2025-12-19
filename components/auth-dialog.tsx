@@ -10,7 +10,11 @@ import { startAuthentication } from "@simplewebauthn/browser"
 import { toast } from "sonner"
 import { LogOut, Loader2, Cloud, Mail, Fingerprint } from "lucide-react"
 
-export function AuthDialog() {
+interface AuthDialogProps {
+    customTrigger?: React.ReactNode
+}
+
+export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const { data: session, status } = useSession()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
