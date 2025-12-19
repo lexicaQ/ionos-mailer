@@ -7,22 +7,26 @@ import { extractCompanyFromEmail } from '@/lib/company-scraper';
 
 // Helper function for the core logic (reused by GET and POST)
 async function handleCronRequest(req: NextRequest) {
-    // 1. Security Check - Allow manual trigger during development or internal calls
+    // Security Check - Allow:
+    // 1. Vercel native cron (Authorization: Bearer CRON_SECRET)
+    // 2. Manual trigger from same domain (x-manual-trigger: true)
+    // 3. GitHub Actions with x-vercel-protection-bypass header
     const authHeader = req.headers.get('authorization');
-    const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    const cronSecret = process.env.CRON_SECRET;
+    const isVercelCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
     const isManualTrigger = req.headers.get('x-manual-trigger') === 'true';
+    const hasProtectionBypass = !!req.headers.get('x-vercel-protection-bypass');
 
-    // In production, require CRON_SECRET unless it's a manual trigger from the app
-    if (process.env.NODE_ENV === 'production' && !isVercelCron && !isManualTrigger) {
+    // In production, verify the request is legitimate
+    if (process.env.NODE_ENV === 'production' && !isVercelCron && !isManualTrigger && !hasProtectionBypass) {
         // Allow if referer is from our own domain
-        // Check both Referer and Origin for strictness
         const referer = req.headers.get('referer') || '';
         const origin = req.headers.get('origin') || '';
         const host = req.headers.get('host') || '';
-
-        const isFromSameDomain = referer.includes(host) || origin.includes(host);
+        const isFromSameDomain = (referer && referer.includes(host)) || (origin && origin.includes(host));
 
         if (!isFromSameDomain) {
+            console.log('Cron: Unauthorized request rejected');
             return new NextResponse('Unauthorized', { status: 401 });
         }
     }
