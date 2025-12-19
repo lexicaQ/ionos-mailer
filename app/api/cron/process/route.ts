@@ -166,6 +166,22 @@ async function handleCronRequest(req: NextRequest) {
                 const htmlWithTracking = processBodyWithTracking(finalBody, job.trackingId, baseUrl);
 
                 try {
+                    // Decrypt SMTP user and fromName (now encrypted)
+                    let smtpUser = job.campaign.user;
+                    let fromName = job.campaign.fromName;
+                    try {
+                        smtpUser = decrypt(job.campaign.user, secretKey);
+                    } catch (e) {
+                        // Legacy unencrypted, use as-is
+                    }
+                    if (fromName) {
+                        try {
+                            fromName = decrypt(fromName, secretKey);
+                        } catch (e) {
+                            // Legacy unencrypted, use as-is
+                        }
+                    }
+
                     // Send with tracking
                     const response = await sendEmail({
                         to: decryptedRecipient,
@@ -175,10 +191,10 @@ async function handleCronRequest(req: NextRequest) {
                         config: {
                             host: job.campaign.host,
                             port: job.campaign.port,
-                            user: job.campaign.user,
+                            user: smtpUser,
                             pass: pass,
                             secure: job.campaign.secure,
-                            fromName: job.campaign.fromName || undefined,
+                            fromName: fromName || undefined,
                         },
                         attachments: attachments,
                     });

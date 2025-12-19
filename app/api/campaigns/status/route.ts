@@ -27,33 +27,48 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Transform data for frontend
-        const result = campaigns.map((campaign: any) => ({
-            id: campaign.id,
-            name: campaign.name,
-            isDirect: campaign.host === 'DIRECT',
-            createdAt: campaign.createdAt.toISOString(),
-            jobs: campaign.jobs.map((job: any) => ({
-                id: job.id,
-                trackingId: job.trackingId,
-                recipient: decrypt(job.recipient, process.env.ENCRYPTION_KEY!),
-                subject: decrypt(job.subject, process.env.ENCRYPTION_KEY!),
-                status: job.status,
-                scheduledFor: job.scheduledFor.toISOString(),
-                sentAt: job.sentAt?.toISOString() || null,
-                error: job.error,
-                // Tracking data
-                openedAt: job.openedAt?.toISOString() || null,
-                openCount: job.openCount
-            })),
-            stats: {
-                total: campaign.jobs.length,
-                sent: campaign.jobs.filter((j: any) => j.status === 'SENT').length,
-                pending: campaign.jobs.filter((j: any) => j.status === 'PENDING').length,
-                failed: campaign.jobs.filter((j: any) => j.status === 'FAILED').length,
-                opened: campaign.jobs.filter((j: any) => j.openedAt).length
+        const secretKey = process.env.ENCRYPTION_KEY!;
+
+        // Transform data for frontend with decryption
+        const result = campaigns.map((campaign: any) => {
+            // Decrypt campaign name (may be null or legacy unencrypted)
+            let decryptedName = campaign.name;
+            if (campaign.name) {
+                try {
+                    decryptedName = decrypt(campaign.name, secretKey);
+                } catch (e) {
+                    // Legacy unencrypted name, keep as-is
+                    decryptedName = campaign.name;
+                }
             }
-        }));
+
+            return {
+                id: campaign.id,
+                name: decryptedName,
+                isDirect: campaign.host === 'DIRECT',
+                createdAt: campaign.createdAt.toISOString(),
+                jobs: campaign.jobs.map((job: any) => ({
+                    id: job.id,
+                    trackingId: job.trackingId,
+                    recipient: decrypt(job.recipient, process.env.ENCRYPTION_KEY!),
+                    subject: decrypt(job.subject, process.env.ENCRYPTION_KEY!),
+                    status: job.status,
+                    scheduledFor: job.scheduledFor.toISOString(),
+                    sentAt: job.sentAt?.toISOString() || null,
+                    error: job.error,
+                    // Tracking data
+                    openedAt: job.openedAt?.toISOString() || null,
+                    openCount: job.openCount
+                })),
+                stats: {
+                    total: campaign.jobs.length,
+                    sent: campaign.jobs.filter((j: any) => j.status === 'SENT').length,
+                    pending: campaign.jobs.filter((j: any) => j.status === 'PENDING').length,
+                    failed: campaign.jobs.filter((j: any) => j.status === 'FAILED').length,
+                    opened: campaign.jobs.filter((j: any) => j.openedAt).length
+                }
+            };
+        });
 
         return NextResponse.json(result);
     } catch (error: any) {

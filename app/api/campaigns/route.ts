@@ -28,22 +28,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Server misconfiguration: No Encryption Key" }, { status: 500 });
         }
 
-        // 1. Create Campaign
+        // 1. Create Campaign with encrypted sensitive fields
         const { attachments } = json;
 
         const campaign = await prisma.campaign.create({
             data: {
-                host: smtpSettings.host,
+                host: smtpSettings.host, // Keep unencrypted for debugging
                 port: smtpSettings.port,
-                user: smtpSettings.user,
-                pass: encrypt(smtpSettings.pass, secretKey),
+                user: encrypt(smtpSettings.user, secretKey), // Encrypt SMTP username
+                pass: encrypt(smtpSettings.pass, secretKey), // Encrypt SMTP password
                 secure: smtpSettings.secure,
-                fromName: smtpSettings.fromName || null,
-                name: json.name || null,
+                fromName: smtpSettings.fromName ? encrypt(smtpSettings.fromName, secretKey) : null, // Encrypt sender name
+                name: json.name ? encrypt(json.name, secretKey) : null, // Encrypt campaign name
                 userId: userId, // SECURE: Use authenticated user ID
                 attachments: attachments && attachments.length > 0 ? {
                     create: attachments.map((att: any) => ({
-                        filename: att.filename,
+                        filename: encrypt(att.filename, secretKey), // Encrypt filename
                         content: encrypt(att.content, secretKey), // Encrypt attachment content
                         contentType: att.contentType
                     }))
