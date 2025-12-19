@@ -2,8 +2,8 @@ name: Process Email Queue
 
 on:
   schedule:
-    # Run every 5 minutes (reduced from 1min to avoid rate limiting)
-    - cron: '*/5 * * * *'
+    # Run every minute for faster email processing
+    - cron: '* * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

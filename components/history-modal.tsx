@@ -384,7 +384,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                                 trackingStatus[result.trackingId]?.opened ? (
                                                     <span className="text-xs text-green-600 dark:text-green-400 font-mono">
                                                         {trackingStatus[result.trackingId]?.openedAt
-                                                            ? format(new Date(trackingStatus[result.trackingId].openedAt!), "MMM dd HH:mm")
+                                                            ? format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM 'at' HH:mm")
                                                             : 'Opened'
                                                         }
                                                     </span>
@@ -406,7 +406,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
                                         {/* Time */}
                                         <div className="flex items-center justify-end text-xs text-muted-foreground flex-shrink-0 w-[120px]">
                                             <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
-                                                {format(new Date(result.batchTime), "dd.MM HH:mm")}
+                                                {format(new Date(result.batchTime), "dd.MM 'at' HH:mm")}
                                             </div>
                                         </div>
                                     </div>

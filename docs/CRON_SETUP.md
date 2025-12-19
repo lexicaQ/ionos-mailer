@@ -2,11 +2,11 @@
 
 ## Problem
 
-Vercel Hobby plan only allows cron jobs to run **once per day**. To send campaign emails every 5 minutes while the app is closed, you need an external trigger.
+Vercel Hobby plan only allows cron jobs to run **once per day**. To send campaign emails every minute while the app is closed, you need an external trigger.
 
 ## Solution: GitHub Actions (Primary)
 
-The repository already has a GitHub Actions workflow that runs every 5 minutes. To make it work:
+The repository has a GitHub Actions workflow that runs **every 1 minute**. To make it work:
 
 ### 1. Enable GitHub Actions Schedules
 
@@ -47,24 +47,6 @@ Add these 3 secrets:
 2. Click "Run workflow" → "Run workflow"
 3. Check the logs for success/failure
 
-## Alternative: External Cron Service (cron-job.org)
-
-If GitHub Actions doesn't work reliably, use a free external cron service:
-
-### Setup on cron-job.org
-
-1. Go to [cron-job.org](https://cron-job.org) and create free account
-2. Click "Create cronjob"
-3. Configure:
-   - **Title**: IONOS Mailer Cron
-   - **URL**: `https://your-app.vercel.app/api/cron/process`
-   - **Schedule**: Every 5 minutes
-   - **Request Method**: GET
-   - **Headers** (click "Advanced"):
-     - `x-manual-trigger`: `true`
-     - `x-vercel-protection-bypass`: (your bypass secret from Vercel)
-4. Save and enable
-
 ## Troubleshooting
 
 ### Cron not running?
@@ -86,18 +68,21 @@ If GitHub Actions doesn't work reliably, use a free external cron service:
 
 ```
 ┌─────────────────┐
-│ GitHub Actions  │  ──(every 5 min)──▶  POST /api/cron/process
+│ GitHub Actions  │  ──(every 1 min)──▶  POST /api/cron/process
 └─────────────────┘                              │
                                                  ▼
-┌─────────────────┐                    ┌─────────────────┐
-│ cron-job.org    │  ──(backup)──────▶ │   Your Vercel   │
-└─────────────────┘                    │   Application   │
+                                       ┌─────────────────┐
+                                       │   Your Vercel   │
+                                       │   Application   │
                                        └─────────────────┘
-┌─────────────────┐                              │
-│  Vercel Cron    │  ──(once/day on Hobby)────▶  │
-└─────────────────┘                              │
+                                                 │
                                                  ▼
                                        ┌─────────────────┐
                                        │  Send Emails    │
                                        └─────────────────┘
 ```
+
+## Important Notes
+
+- **GitHub Actions Limits**: Free tier allows ~2000 minutes/month. Running every minute = ~44,640 runs/month. This exceeds the free limit, so consider upgrading or using every 2-3 minutes instead.
+- Running every minute uses the most GitHub Actions minutes but provides the fastest email delivery.
