@@ -83,8 +83,8 @@ export function LiveCampaignTracker() {
     }, []); // Run once on mount
 
     // FETCH CAMPAIGNS
-    const fetchCampaigns = useCallback(async () => {
-        setLoading(true)
+    const fetchCampaigns = useCallback(async (isBackground = false) => {
+        if (!isBackground) setLoading(true)
         try {
             // Server now uses authenticated session for userId
             const res = await fetch("/api/campaigns/status")
@@ -105,7 +105,7 @@ export function LiveCampaignTracker() {
         } catch (error) {
             console.error("Failed to fetch campaigns:", error)
         } finally {
-            setLoading(false)
+            if (!isBackground) setLoading(false)
         }
     }, [])
 
@@ -121,12 +121,12 @@ export function LiveCampaignTracker() {
     // Separate Effect for Intervals to avoid resetting timer when campaigns update
     useEffect(() => {
         // Initial fetch
-        fetchCampaigns();
+        fetchCampaigns(false);
 
         // 1. Refresh Data Interval
         const refreshInterval = setInterval(() => {
-            if (open) fetchCampaigns();
-            else if (Math.random() > 0.4) fetchCampaigns(); // Probabilistic throttling ~5-6s
+            if (open) fetchCampaigns(true); // Pass true to avoid spinner flicker
+            else if (Math.random() > 0.4) fetchCampaigns(true); // Probabilistic throttling ~5-6s
         }, 3000);
 
         // 2. Auto-Process trigger (Acts as a backup cron while UI is open)
@@ -154,7 +154,7 @@ export function LiveCampaignTracker() {
     }, [open, fetchCampaigns]);
 
     useEffect(() => {
-        if (open) fetchCampaigns();
+        if (open) fetchCampaigns(false);
     }, [open, fetchCampaigns]);
 
 
@@ -303,7 +303,7 @@ export function LiveCampaignTracker() {
                                 <FileText className="h-3.5 w-3.5" />
                                 PDF
                             </Button>
-                            <Button variant="outline" size="sm" onClick={fetchCampaigns} disabled={loading} className="gap-2">
+                            <Button variant="outline" size="sm" onClick={() => fetchCampaigns(false)} disabled={loading} className="gap-2">
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
@@ -365,9 +365,6 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, height: 0 }}
             className="mb-6 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm"
         >
             {/* Campaign Header */}
