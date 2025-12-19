@@ -166,26 +166,9 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
 
 
     const syncIndicator = (
-        <div className="flex items-center text-xs text-muted-foreground mr-8">
-            {syncStatus === 'saving' && (
-                <span className="flex items-center animate-pulse text-blue-500">
-                    <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
-                    Saving...
-                </span>
-            )}
-            {syncStatus === 'saved' && (
-                <span className="flex items-center text-green-600 dark:text-green-500 transition-all duration-500">
-                    <Cloud className="h-3 w-3 mr-1.5" />
-                    Saved
-                </span>
-            )}
-            {syncStatus === 'error' && (
-                <span className="flex items-center text-red-500">
-                    <XCircle className="h-3 w-3 mr-1.5" />
-                    Failed
-                </span>
-            )}
-        </div>
+        <span className="text-[10px] text-muted-foreground mr-8 italic">
+            Everything is saved automatically
+        </span>
     )
 
     return (
@@ -360,7 +343,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
 
 
                 {/* Data Management */}
-                <div className="space-y-4 pt-8 border-t mt-4 pb-6">
+                <div className="space-y-4 pt-2 mt-4 pb-6">
                     <h4 className="text-sm font-medium text-muted-foreground">Data Management</h4>
                     <div className="flex items-center justify-between">
                         <div className="text-xs text-muted-foreground">
