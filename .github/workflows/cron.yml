@@ -14,11 +14,13 @@ jobs:
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
         run: |
           node -e "
             const https = require('https');
             const urlStr = process.env.APP_URL;
             const cronSecret = process.env.CRON_SECRET;
+            const bypassSecret = process.env.VERCEL_PROTECTION_BYPASS;
             
             if (!urlStr) {
               console.error('❌ Error: APP_URL is not set in GitHub Actions secrets.');
@@ -42,6 +44,11 @@ jobs:
               },
               timeout: 30000
             };
+
+            if (bypassSecret) {
+                options.headers['x-vercel-protection-bypass'] = bypassSecret;
+                console.log('🔒 Vercel Firewall Bypass enabled');
+            }
 
             const req = https.request(target, options, (res) => {
               console.log('Response status:', res.statusCode);
