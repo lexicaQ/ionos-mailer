@@ -106,10 +106,17 @@ export function DraftsModal({
 
     const handleDeleteDraft = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
-        if (confirm("Do you really want to delete this draft?")) {
+        if (!confirm("Do you really want to delete this draft?")) return
+
+        try {
             await deleteDraft(id)
             await safeLoadDrafts()
-            toast.success("Draft deleted")
+            toast.success("Draft deleted and synced across devices")
+        } catch (error: any) {
+            console.error("Draft deletion failed:", error)
+            toast.error("Draft deleted locally, but cloud sync failed. Try again.")
+            // Still reload to show local state
+            await safeLoadDrafts()
         }
     }
 

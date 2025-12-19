@@ -332,18 +332,24 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                 if (res.ok) {
                                     const processed = data.processed ?? 0;
                                     const futureCount = data.futurePendingCount ?? 0;
+                                    const failed = data.failed ?? 0;
+                                    
                                     if (processed === 0 && futureCount === 0) {
-                                        setStatusMsg({ type: 'success', text: `No pending emails to process.` });
-                                    } else if (processed === 0) {
-                                        setStatusMsg({ type: 'success', text: `No due emails. ${futureCount} scheduled for later.` });
+                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails to process.` });
+                                    } else if (processed === 0 && futureCount > 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ No emails due now. ${futureCount} email${futureCount !== 1 ? 's' : ''} scheduled for later delivery.` });
+                                    } else if (processed > 0 && failed === 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ Successfully sent ${processed} email${processed !== 1 ? 's' : ''}!${futureCount > 0 ? ` ${futureCount} more scheduled for later.` : ' Queue complete.'}` });
+                                    } else if (processed > 0 && failed > 0) {
+                                        setStatusMsg({ type: 'error', text: `Sent ${processed}, failed ${failed}.${futureCount > 0 ? ` ${futureCount} more scheduled.` : ''}` });
                                     } else {
-                                        setStatusMsg({ type: 'success', text: `Processed: ${processed}. ${futureCount > 0 ? `${futureCount} more scheduled.` : 'Queue complete.'}` });
+                                        setStatusMsg({ type: 'success', text: `✓ Processing complete. ${futureCount > 0 ? `${futureCount} emails scheduled.` : 'Queue empty.'}` });
                                     }
                                 } else {
                                     setStatusMsg({ type: 'error', text: "Error: " + data.error });
                                 }
                             } catch (e: any) {
-                                setStatusMsg({ type: 'error', text: "Error: " + e.message });
+                                setStatusMsg({ type: 'error', text: "Connection error: " + e.message });
                             } finally {
                                 setTesting(false);
                             }

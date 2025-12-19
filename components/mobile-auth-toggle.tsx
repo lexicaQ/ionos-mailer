@@ -16,7 +16,7 @@ export function MobileAuthToggle() {
                     variant="outline"
                     size="icon"
                     onClick={() => signOut()}
-                    className="h-10 w-10 rounded-full bg-white dark:bg-neutral-900 border shadow-lg text-neutral-500 hover:text-destructive"
+                    className="h-10 w-10 rounded-full bg-white dark:bg-neutral-900 border shadow-lg text-black dark:text-white hover:text-destructive"
                     title="Sign out"
                 >
                     <LogOut className="h-[1.2rem] w-[1.2rem]" />
@@ -48,7 +48,7 @@ export function MobileAuthToggle() {
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 rounded-full bg-white dark:bg-neutral-900 border shadow-lg text-neutral-500"
+                        className="h-10 w-10 rounded-full bg-white dark:bg-neutral-900 border shadow-lg text-black dark:text-white"
                         title="Sign in"
                     >
                         <LogIn className="h-[1.2rem] w-[1.2rem]" />

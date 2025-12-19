@@ -1,11 +1,13 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = 'https://ionos-mailer.vercel.app'
+
   return [
     {
-      url: 'https://ionos-mailer.vercel.app',
+      url: baseUrl,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 1,
     },
   ]

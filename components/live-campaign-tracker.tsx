@@ -436,21 +436,21 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
             {/* Email List - Minimalist Table */}
             {isOpen && (
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
-                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                        <div className="w-[100px]">Status</div>
-                        <div className="w-[110px]">Opened</div>
+                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 sm:px-4 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        <div className="w-[70px] sm:w-[100px]">Status</div>
+                        <div className="hidden sm:block w-[110px]">Opened</div>
                         <div className="flex-1">Recipient / Subject</div>
-                        <div className="w-[140px] text-right">Time</div>
+                        <div className="w-[60px] sm:w-[140px] text-right">Time</div>
                     </div>
                     {campaign.jobs.map((job) => (
-                        <div key={job.id} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-4">
+                        <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-2 sm:gap-4">
 
                             {/* Status Pill - FIRST */}
-                            <div className="w-[100px] flex-shrink-0">
+                            <div className="w-[70px] sm:w-[100px] flex-shrink-0">
                                 <Badge
                                     variant={job.status === 'SENT' ? 'default' : 'secondary'}
                                     className={`
-                                        h-6 px-0 text-[10px] border-0 font-bold tracking-wide w-[90px] justify-center shadow-none
+                                        h-5 sm:h-6 px-0 text-[9px] sm:text-[10px] border-0 font-bold tracking-wide w-[65px] sm:w-[90px] justify-center shadow-none
                                         ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100' :
                                             job.status === 'FAILED' ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400' :
                                                 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
@@ -462,8 +462,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                 </Badge>
                             </div>
 
-                            {/* Opened Status - SECOND */}
-                            <div className="w-[110px] flex-shrink-0">
+                            {/* Opened Status - SECOND (hidden on mobile) */}
+                            <div className="hidden sm:block w-[110px] flex-shrink-0">
                                 {job.openedAt ? (
                                     <div className="flex flex-col leading-tight">
                                         <div className="text-green-600 dark:text-green-500 font-medium text-[10px] tracking-wide whitespace-nowrap">
@@ -482,22 +482,22 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                             </div>
 
                             {/* Recipient - THIRD */}
-                            <div className="flex-1 min-w-0 pr-4">
-                                <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
+                            <div className="flex-1 min-w-0 pr-2 sm:pr-4">
+                                <div className="text-xs sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                     {job.recipient}
                                 </div>
-                                <div className="text-xs text-muted-foreground truncate opacity-80" title={job.subject}>{job.subject}</div>
+                                <div className="text-[10px] sm:text-xs text-muted-foreground truncate opacity-80" title={job.subject}>{job.subject}</div>
                             </div>
 
                             {/* Times - LAST */}
-                            <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground flex-shrink-0 w-[140px]">
+                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[60px] sm:w-[140px]">
                                 <div className="text-right">
-                                    <div className="uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
-                                    <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>
+                                    <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
+                                    <div className="font-mono text-[10px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>
                                 </div>
 
                                 {job.sentAt && (
-                                    <div className="text-right">
+                                    <div className="hidden sm:block text-right">
                                         <div className="uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Sent</div>
                                         <div className="font-mono text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
                                             {format(new Date(job.sentAt), "HH:mm")}
@@ -510,24 +510,19 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-6 w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent"
+                                        className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent"
                                         onClick={async (e) => {
                                             e.stopPropagation();
                                             if (!confirm("Cancel this email?")) return;
                                             try {
                                                 await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
-                                                // Optimistic update handled by swr/refresh or just let polling handle it?
-                                                // Since we don't have SWR in this component yet (it uses manual refresh/polling), let's trigger refresh
-                                                // We can inject a refresh handler if needed, but for now user can click refresh or wait.
-                                                // Actually, we should probably force a refresh or update local state.
-                                                // Ideally pass a callback but for speed: just consume click.
                                             } catch (e) {
                                                 console.error(e);
                                             }
                                         }}
                                         title="Cancel Email"
                                     >
-                                        <XCircle className="h-4 w-4" />
+                                        <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     </Button>
                                 )}
                             </div>

@@ -67,6 +67,15 @@ export function middleware(request: NextRequest) {
         response.headers.set(key, value);
     });
 
+    // Additional security for API routes - prevent caching and indexing
+    const pathname = request.nextUrl.pathname;
+    if (pathname.startsWith('/api/')) {
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
+    }
+
     return response;
 }
 
