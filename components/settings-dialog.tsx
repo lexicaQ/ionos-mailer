@@ -41,6 +41,9 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
         const loadSettings = async () => {
             let loadedFromCloud = false;
 
+            // Helper to detect if a password looks encrypted (contains IV separator)
+            const looksEncrypted = (pass: string) => pass && pass.includes(':') && pass.length > 50;
+
             // 1. Try Cloud Sync
             if (session?.user) {
                 try {
@@ -56,14 +59,13 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             setDelay(s.delay || 500);
                             setFromName(s.fromName || "");
 
-                            // Sync down to local
+                            // Sync down to local (with decrypted password)
                             localStorage.setItem("smtp-config-full", JSON.stringify(s));
 
                             if (s.user && s.pass) {
                                 onSettingsChange({ ...s, secure: Number(s.port) === 465 });
                             }
                             loadedFromCloud = true;
-                            // toast.success("Settings synced from cloud");
                         }
                     }
                 } catch (e) {
@@ -76,7 +78,13 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
-                        if (!loadedFromCloud) {
+
+                        // CLEAR stale encrypted passwords from localStorage
+                        if (looksEncrypted(parsed.pass)) {
+                            console.log("Detected encrypted password in localStorage, clearing...");
+                            localStorage.removeItem("smtp-config-full");
+                            // Don't load this corrupted data
+                        } else if (!loadedFromCloud) {
                             setHost(parsed.host || "smtp.ionos.de");
                             setPort(parsed.port || "587");
                             setUser(parsed.user || "");
@@ -85,7 +93,6 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             setFromName(parsed.fromName || "");
                             setSavePassword(parsed.savePassword !== false);
 
-                            // Propagate initially
                             if (parsed.pass && parsed.user) {
                                 onSettingsChange({
                                     host: parsed.host || "smtp.ionos.de",
