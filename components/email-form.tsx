@@ -586,14 +586,13 @@ export function EmailForm() {
                                     </div>
                                     <Slider
                                         value={[durationMinutes]}
-                                        onValueChange={(v) => setDurationMinutes(v[0])}
-                                        min={7}
-                                        max={1440}
+                                        min={3} // Minimum 3 minutes (aligned with Cron)
+                                        max={1440} // 24 hours
                                         step={1}
-                                        className="w-full"
+                                        onValueChange={(vals) => setDurationMinutes(vals[0])}
                                     />
-                                    <div className="flex justify-between text-xs text-neutral-500 mt-2">
-                                        <span>7 min</span>
+                                    <div className="flex justify-between text-xs text-neutral-400">
+                                        <span>3 min</span>
                                         <span>24 hours</span>
                                     </div>
                                 </div>

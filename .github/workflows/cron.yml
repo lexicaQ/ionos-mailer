@@ -3,7 +3,7 @@ name: Process Email Queue
 on:
   schedule:
     # Run every 7 minutes
-    - cron: '*/7 * * * *'
+    - cron: '*/3 * * * *' # Every 3 minutes
   workflow_dispatch: # Allow manual trigger
 
 jobs:

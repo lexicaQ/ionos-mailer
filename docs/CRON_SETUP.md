@@ -73,7 +73,6 @@ Add these 3 secrets:
                                                  ▼
                                        ┌─────────────────┐
                                        │   Your Vercel   │
-                                       │   Application   │
                                        └─────────────────┘
                                                  │
                                                  ▼
@@ -86,3 +85,12 @@ Add these 3 secrets:
 
 - **GitHub Actions Limits**: Free tier allows ~2000 minutes/month. Running every minute = ~44,640 runs/month. This exceeds the free limit, so consider upgrading or using every 2-3 minutes instead.
 - Running every minute uses the most GitHub Actions minutes but provides the fastest email delivery.
+### 2. GitHub Actions Cron (Primary)
+- **File**: `.github/workflows/cron.yml`
+- **Schedule**: Every 3 minutes (`*/3 * * * *`)
+- **Function**: Calls `https://your-app.vercel.app/api/cron/process` to process the email queue.
+- **Bypass**: Uses `x-vercel-protection-bypass` header to bypass Vercel's firewall.
+- **Limits**:
+  - GitHub Actions Free Tier: ~2,000 minutes/month.
+  - Every 3 minutes = ~14,400 runs/month.
+  - **Note**: This exceeds the free tier comfortably. Monitor usage or increase interval if needed.
