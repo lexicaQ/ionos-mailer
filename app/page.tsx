@@ -1,7 +1,6 @@
 import { EmailForm } from "@/components/email-form"
 import { Logo } from "@/components/logo"
 import { AuthDialog } from "@/components/auth-dialog"
-import { InfoFooter } from "@/components/info-footer"
 
 export default function Home() {
   return (
@@ -18,10 +17,10 @@ export default function Home() {
 
           <div className="space-y-3">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-black dark:text-white">
-              Secure Batch Mailer
+              IONOS Mailer
             </h1>
             <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-              Enterprise-grade email dispatcher for IONOS. send encrypted, scheduled campaigns directly from your browser.
+              Professional Email Delivery • SMTP • Scheduling • Tracking
             </p>
           </div>
 
@@ -47,9 +46,6 @@ export default function Home() {
         <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
           <EmailForm />
         </div>
-
-        {/* Info Footer */}
-        <InfoFooter />
       </div>
     </main>
   )

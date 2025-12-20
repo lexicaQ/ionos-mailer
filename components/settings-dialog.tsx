@@ -360,8 +360,6 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     </div>
                 </div>
 
-
-
                 {/* Data Management */}
                 <div className="space-y-4 pt-2 mt-4 pb-6">
                     <h4 className="text-sm font-medium text-muted-foreground">Data Management</h4>
