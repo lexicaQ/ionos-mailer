@@ -5,9 +5,9 @@ export function Logo({ className = "" }: { className?: string }) {
         <div className={`relative ${className}`}>
             <Image
                 src="/logo.png"
-                alt="IONOS Mailer"
+                alt="IONOS Mailer Logo"
                 fill
-                className="object-contain" // Preserves aspect ratio
+                className="object-contain"
                 priority
             />
         </div>

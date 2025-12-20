@@ -22,7 +22,6 @@ model User {
   
   accounts      Account[]
   sessions      Session[]
-  passkeys      Passkey[]  // WebAuthn passkey credentials
   
   // User Data
   drafts        Draft[]
@@ -31,24 +30,6 @@ model User {
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-}
-
-// WebAuthn Passkey Credentials
-model Passkey {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  credentialId    String   @unique  // Base64URL encoded credential ID
-  publicKey       String   // Base64URL encoded public key (COSE format)
-  counter         BigInt   @default(0)  // Signature counter for replay protection
-  transports      String?  // JSON array of transports (usb, ble, nfc, internal)
-  deviceName      String?  // User-friendly name like "MacBook Touch ID"
-  
-  createdAt       DateTime @default(now())
-  lastUsedAt      DateTime?
-  
-  @@index([userId])
 }
 
 model Account {
