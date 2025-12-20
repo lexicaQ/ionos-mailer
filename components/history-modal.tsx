@@ -43,6 +43,7 @@ export interface HistoryBatch {
     recipientList?: any
     subject?: string
     status?: string
+    campaignName?: string
 }
 
 interface HistoryModalProps {
