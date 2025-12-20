@@ -83,43 +83,28 @@ export function LiveCampaignTracker() {
         migrateData();
     }, []); // Run once on mount
 
-    // FETCH CAMPAIGNS
+    // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
     const fetchCampaigns = useCallback(async (isBackground = false) => {
-        // Key to track if user has seen the loading animation before
-        const ANIMATION_SEEN_KEY = "ionos-mailer-animation-seen";
-        const hasSeenAnimation = localStorage.getItem(ANIMATION_SEEN_KEY) === "true";
-
-        if (!isBackground) {
-            setLoading(true)
-
-            // INSTANT: Load from cache immediately for returning users
-            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-            if (cached) {
-                try {
-                    const parsed = JSON.parse(cached);
-                    setCampaigns(parsed);
-
-                    // If user has seen animation before, skip the delay entirely
-                    if (hasSeenAnimation) {
-                        setLoading(false);
-                        // Continue to sync from cloud in background below
-                    }
-                } catch (e) { }
-            }
+        // 1. ALWAYS load from cache first for INSTANT display
+        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                setCampaigns(parsed);
+            } catch (e) { }
         }
 
-        try {
-            // Only show animation delay for FIRST TIME users who haven't seen it
-            if (!isBackground && !hasSeenAnimation) {
-                await new Promise(r => setTimeout(r, 4500));
-                // Mark animation as seen
-                localStorage.setItem(ANIMATION_SEEN_KEY, "true");
-            }
+        // 2. NEVER show loading spinner - data is already visible from cache
+        // Only set loading if there's NO cached data at all (first time ever)
+        if (!cached && !isBackground) {
+            setLoading(true);
+        }
 
-            // Server now uses authenticated session for userId
-            const res = await fetch("/api/campaigns/status")
+        // 3. Fetch fresh data from server in background
+        try {
+            const res = await fetch("/api/campaigns/status");
             if (res.ok) {
-                const data = await res.json()
+                const data = await res.json();
                 // Sort by date DESCENDING (Newest First -> #1)
                 data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -130,16 +115,16 @@ export function LiveCampaignTracker() {
                     }
                 });
 
-                setCampaigns(data)
-                // Cache for next time (instant loading)
+                setCampaigns(data);
+                // Update cache for next time
                 localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
             }
         } catch (error) {
-            console.error("Failed to fetch campaigns:", error)
+            console.error("Failed to fetch campaigns:", error);
         } finally {
-            if (!isBackground) setLoading(false)
+            setLoading(false);
         }
-    }, [])
+    }, []);
 
     const campaignsRef = useRef<Campaign[]>([]);
 
@@ -538,16 +523,18 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 )}
                             </div>
 
-                            {/* Recipient - THIRD */}
-                            <div className="flex-1 min-w-0 pr-2">
+                            {/* Recipient - THIRD (constrained width on mobile) */}
+                            <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none pr-2">
                                 <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                     {job.recipient}
                                 </div>
-                                <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80" title={job.subject}>{job.subject || "(No Subject)"}</div>
+                                <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80 max-w-full" title={job.subject}>
+                                    {job.subject ? (job.subject.length > 30 ? job.subject.slice(0, 30) + "..." : job.subject) : "(No Subject)"}
+                                </div>
                             </div>
 
-                            {/* Times - LAST */}
-                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[45px] sm:w-[140px]">
+                            {/* Times - LAST (wider on mobile to prevent overlap) */}
+                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
                                 <div className="text-right">
                                     <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
                                     <div className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>
