@@ -20,7 +20,9 @@ export async function POST(request: Request) {
         // 1. Check SentEmail (History)
         const sentEmails = await prisma.sentEmail.findMany({
             where: { userId: session.user.id },
-            select: { recipients: true }
+            select: { recipients: true },
+            orderBy: { sentAt: 'desc' },
+            take: 100 // Optimization: Check last 100 batches only to improve speed
         })
 
         const duplicates = new Set<string>()
