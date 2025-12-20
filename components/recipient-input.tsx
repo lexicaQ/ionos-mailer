@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
+
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -91,9 +93,20 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     const handleParse = async () => {
         const results = parseRecipients(rawInput);
-        // Skip duplicate API check for speed - user can see duplicates later in tracking
-        setParsedRecipients(results);
-        onRecipientsChange(results.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
+
+        // Check for duplicates immediately
+        const processed = await processDuplicates(results);
+        setParsedRecipients(processed);
+
+        // Notify user if duplicates were found
+        const duplicateCount = processed.filter(r => r.duplicate).length;
+        if (duplicateCount > 0) {
+            toast.warning(`Found ${duplicateCount} duplicate recipient${duplicateCount === 1 ? '' : 's'}`, {
+                description: "Addresses marked in red have been contacted before."
+            });
+        }
+
+        onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
     }
 
     const handleRemove = (id: string) => {
