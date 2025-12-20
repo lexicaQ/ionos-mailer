@@ -108,14 +108,55 @@ export default function RootLayout({
     }
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is IONOS Mailer secure?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. All data is encrypted with AES-256-GCM, keys are derived using PBKDF2 with 100,000 iterations, and all connections use TLS with HSTS."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is IONOS Mailer GDPR compliant?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Data is stored on EU servers, you can export or delete your data anytime, and no data is shared with third parties."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does scheduling work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Campaigns are queued in the cloud and delivered via cron jobs that run every minute, even when your device is offline."
+        }
+      }
+    ]
+  };
+
   return (
     <html lang="en">
+      <head>
+        {/* Preconnect for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black`}
       >
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
         <ThemeProvider
           attribute="class"

@@ -11,33 +11,53 @@ export function SecurityInfoPanel() {
     const features = [
         {
             icon: Lock,
-            title: "AES-256-GCM Encryption",
-            description: "All campaign data encrypted at rest using military-grade encryption with PBKDF2 key derivation (100,000 iterations)."
+            title: "End-to-End Encryption",
+            description: "Your emails and drafts are encrypted using AES-256-GCM, the same standard used by banks and governments. Each record gets a unique cryptographic salt, making brute-force attacks virtually impossible."
         },
         {
             icon: Database,
-            title: "Secure Storage",
-            description: "Data stored in PostgreSQL via Prisma ORM. Local drafts in browser storage, synced to cloud when authenticated."
+            title: "Zero-Knowledge Architecture",
+            description: "Encryption keys are derived on your device using your credentials. The server only stores encrypted blobs—even we cannot read your content without your password."
+        },
+        {
+            icon: Shield,
+            title: "PBKDF2 Key Derivation",
+            description: "Your password is strengthened through 100,000 iterations of PBKDF2-SHA512 before being used as an encryption key. This makes password guessing attacks impractical."
+        },
+        {
+            icon: Server,
+            title: "TLS-Only Communication",
+            description: "All connections use HTTPS with HTTP Strict Transport Security (HSTS) enforced for 2 years. Your data never travels unencrypted."
+        },
+        {
+            icon: Shield,
+            title: "Content Security Policy",
+            description: "A strict CSP header prevents cross-site scripting (XSS) and code injection attacks. Only trusted sources can load scripts and styles."
+        },
+        {
+            icon: Lock,
+            title: "Secure Session Management",
+            description: "JWT tokens with secure, HTTP-only cookies. Sessions auto-expire, and passkey authentication adds phishing-resistant biometric login."
+        },
+        {
+            icon: Eye,
+            title: "Bot & Scraper Protection",
+            description: "Middleware blocks known malicious bots (GPTBot, CCBot, etc.) and suspicious user agents. Rate limiting prevents abuse."
         },
         {
             icon: Mail,
             title: "Direct SMTP Delivery",
-            description: "Emails sent directly via TLS-encrypted connection to your IONOS SMTP server. No intermediary services."
+            description: "Emails are sent directly from your browser to your IONOS SMTP server over TLS. No intermediary servers see your content."
         },
         {
-            icon: Server,
-            title: "Managed Serverless Infrastructure",
-            description: "No servers to manage. Powered by Vercel Edge Network for global low-latency performance."
+            icon: Cloud,
+            title: "Privacy-First Analytics",
+            description: "Optional open tracking uses a 1x1 pixel—no Google Analytics or third-party trackers. All analytics data stays on Vercel infrastructure."
         },
         {
             icon: Clock,
-            title: "Automated Cron Jobs",
-            description: "Reliable background processing via cron-job.org (external trigger) ensuring campaigns run even when your device is off."
-        },
-        {
-            icon: Eye,
-            title: "Private Open Tracking",
-            description: "Optional 1x1 pixel tracking. Data remains strictly yours—no third-party analytic trackers involved."
+            title: "GDPR Compliant",
+            description: "Data is stored on EU servers. You can export or delete your data anytime. No data sharing with third parties."
         }
     ]
 
