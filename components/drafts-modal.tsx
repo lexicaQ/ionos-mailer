@@ -46,8 +46,6 @@ export function DraftsModal({
     const safeLoadDrafts = async () => {
         setIsLoading(true)
         try {
-            // Add artificial delay to show the secure loading animation
-            await new Promise(r => setTimeout(r, 2000));
             const loaded = await loadDrafts()
             setDrafts(loaded || [])
         } catch (e) {
@@ -208,9 +206,7 @@ export function DraftsModal({
                     <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0f0f0f]">
                         <ScrollArea className="flex-1 h-full">
                             {isLoading && drafts.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-8">
-                                    <SecurityLoader />
-                                </div>
+                                <SecurityLoader />
                             ) : filteredDrafts.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">
                                     <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />

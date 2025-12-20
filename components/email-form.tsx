@@ -464,7 +464,7 @@ export function EmailForm() {
                     />
                     <div className="flex items-center gap-2 shrink-0">
                         <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
-                        <div className="hidden sm:block">
+                        <div className="hidden md:block">
                             <AuthDialog />
                         </div>
                     </div>

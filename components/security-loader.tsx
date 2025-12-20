@@ -2,84 +2,97 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ShieldCheck, Lock, Cloud, Key, FileCode } from "lucide-react"
+import { ShieldCheck, Lock, Cloud, Key, FileCode, CheckCircle } from "lucide-react"
 
 export function SecurityLoader() {
     const [step, setStep] = useState(0)
 
     const steps = [
-        { text: "Connecting to secure cloud storage...", icon: Cloud },
-        { text: "Verifying user identity...", icon: ShieldCheck },
-        { text: "Decrypting sensitive data...", icon: Key },
-        { text: "Analyzing encryption signatures...", icon: FileCode },
-        { text: "Access granted. Loading data.", icon: Lock },
+        { text: "Connecting to secure cloud...", icon: Cloud },
+        { text: "Authenticating session...", icon: ShieldCheck },
+        { text: "Decrypting your data...", icon: Key },
+        { text: "Verifying integrity...", icon: FileCode },
+        { text: "Access granted", icon: CheckCircle },
     ]
 
     useEffect(() => {
         const interval = setInterval(() => {
             setStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev))
-        }, 800)
+        }, 600)
 
         return () => clearInterval(interval)
     }, [])
 
     const CurrentIcon = steps[step].icon
+    const isComplete = step === steps.length - 1
 
     return (
-        <div className="flex flex-col items-center justify-center p-12 space-y-6 text-center h-64">
+        <div className="flex flex-col items-center justify-center p-8 space-y-6 text-center min-h-[280px]">
+            {/* Icon Container */}
             <div className="relative">
-                {/* Pulse Ring */}
+                {/* Pulse Ring - Black/White */}
+                <motion.div
+                    className="absolute inset-0 rounded-2xl bg-neutral-900/5 dark:bg-white/5"
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                />
 
-
-                {/* Icon Transition */}
-                <div className="relative z-10 h-16 w-16 bg-white dark:bg-black rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center justify-center shadow-2xl">
+                {/* Main Icon Box */}
+                <motion.div
+                    className="relative z-10 h-20 w-20 bg-neutral-900 dark:bg-white rounded-2xl flex items-center justify-center shadow-xl"
+                    animate={isComplete ? { scale: [1, 1.05, 1] } : {}}
+                    transition={{ duration: 0.3 }}
+                >
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={step}
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.5, opacity: 0 }}
+                            initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
+                            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                            exit={{ scale: 0.5, opacity: 0, rotate: 10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <CurrentIcon className="h-8 w-8 text-neutral-900 dark:text-neutral-100" />
+                            <CurrentIcon className={`h-10 w-10 ${isComplete ? 'text-green-400' : 'text-white dark:text-black'}`} />
                         </motion.div>
                     </AnimatePresence>
-                </div>
-
-                {/* Secure Badge */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="absolute -bottom-2 -right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm border border-white dark:border-black"
-                >
-                    <Lock className="h-2 w-2" /> E2EE
                 </motion.div>
             </div>
 
-            <div className="space-y-2 max-w-[250px]">
+            {/* Text & Progress */}
+            <div className="space-y-3 w-full max-w-[280px]">
                 <AnimatePresence mode="wait">
                     <motion.p
                         key={step}
-                        initial={{ opacity: 0, y: 5 }}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="text-sm font-medium text-neutral-900 dark:text-neutral-100 font-mono"
+                        exit={{ opacity: 0, y: -8 }}
+                        className={`text-sm font-medium ${isComplete ? 'text-green-600 dark:text-green-400' : 'text-neutral-700 dark:text-neutral-300'}`}
                     >
                         {steps[step].text}
                     </motion.p>
                 </AnimatePresence>
 
-                {/* Loading Bar */}
-                <div className="h-1 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                {/* Progress Bar */}
+                <div className="h-1.5 w-full bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                     <motion.div
-                        className="h-full bg-neutral-900 dark:bg-neutral-100"
+                        className={`h-full ${isComplete ? 'bg-green-500' : 'bg-neutral-900 dark:bg-white'}`}
                         initial={{ width: "0%" }}
                         animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
                     />
                 </div>
+
+                {/* Security Badge - Below, minimal */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center justify-center gap-1.5 text-[10px] font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wider"
+                >
+                    <Lock className="h-3 w-3" />
+                    <span>AES-256 Encrypted</span>
+                </motion.div>
             </div>
         </div>
     )
 }
+
