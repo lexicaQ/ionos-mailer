@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { SecurityLoader } from "@/components/security-loader"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -83,9 +84,14 @@ export function LiveCampaignTracker() {
     }, []); // Run once on mount
 
     // FETCH CAMPAIGNS
+    // FETCH CAMPAIGNS
     const fetchCampaigns = useCallback(async (isBackground = false) => {
         if (!isBackground) setLoading(true)
         try {
+            // Add artificial delay to show the secure loading animation
+            // This reassures the user that decryption is happening
+            if (!isBackground) await new Promise(r => setTimeout(r, 2000));
+
             // Server now uses authenticated session for userId
             const res = await fetch("/api/campaigns/status")
             if (res.ok) {
@@ -329,14 +335,17 @@ export function LiveCampaignTracker() {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
-                    {filteredCampaigns.length === 0 ? (
+                    {loading ? (
+                        <div className="flex h-full items-center justify-center">
+                            <SecurityLoader />
+                        </div>
+                    ) : filteredCampaigns.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                             <Mail className="h-12 w-12 opacity-20 mb-4" />
                             <p>No campaigns found</p>
                         </div>
                     ) : (
-                        <div className="space-y-4 max-w-5xl mx-auto">
-                            {/* Single Unified List - Chronological (Newest Top -> Oldest Bottom) */}
+                        <AnimatePresence>
                             {filteredCampaigns.map((c, idx) => (
                                 <MinimalCampaignRow
                                     key={c.id}
@@ -350,7 +359,7 @@ export function LiveCampaignTracker() {
                             ))}
                             {/* Anchor to scroll to bottom if needed in future */}
                             <div className="h-px" />
-                        </div>
+                        </AnimatePresence>
                     )}
                 </div>
             </DialogContent>

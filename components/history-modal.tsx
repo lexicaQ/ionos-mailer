@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback } from "react"
+import { SecurityLoader } from "@/components/security-loader"
 import { SendResult } from "@/lib/schemas"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -60,6 +61,20 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed">("all")
     const [trackingStatus, setTrackingStatus] = useState<Record<string, { opened: boolean; openedAt: string | null }>>({})
+
+    // Fake loading state for "decryption" animation
+    const [isLoading, setIsLoading] = useState(false)
+
+    // Trigger loading animation when opening
+    useEffect(() => {
+        if (open) {
+            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(false), 2000);
+            return () => clearTimeout(timer);
+        } else {
+            setIsLoading(false);
+        }
+    }, [open]);
 
     // Collect all tracking IDs from batches
     const trackingIds = useMemo(() => {
@@ -338,7 +353,11 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
 
                 {/* Content - Matching Live Tracker Table Style */}
                 <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-neutral-50/50 dark:bg-black/20">
-                    {allResults.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex h-full items-center justify-center">
+                            <SecurityLoader />
+                        </div>
+                    ) : allResults.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                             <Mail className="h-12 w-12 opacity-20 mb-4" />
                             <p>No emails found</p>
