@@ -14,6 +14,7 @@ import { EmailDraft, loadDrafts, saveDraft, deleteDraft } from '@/lib/drafts'
 import { Attachment } from '@/lib/schemas'
 import { toast } from 'sonner'
 import { cn } from "@/lib/utils"
+import { SecurityLoader } from "@/components/security-loader"
 
 interface DraftsModalProps {
     currentSubject: string
@@ -45,6 +46,8 @@ export function DraftsModal({
     const safeLoadDrafts = async () => {
         setIsLoading(true)
         try {
+            // Add artificial delay to show the secure loading animation
+            await new Promise(r => setTimeout(r, 2000));
             const loaded = await loadDrafts()
             setDrafts(loaded || [])
         } catch (e) {
@@ -205,9 +208,8 @@ export function DraftsModal({
                     <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0f0f0f]">
                         <ScrollArea className="flex-1 h-full">
                             {isLoading && drafts.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                                    <p className="text-sm text-muted-foreground">Loading drafts...</p>
+                                <div className="flex flex-col items-center justify-center py-8">
+                                    <SecurityLoader />
                                 </div>
                             ) : filteredDrafts.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">

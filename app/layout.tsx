@@ -8,6 +8,7 @@ import { MobileAuthToggle } from "@/components/mobile-auth-toggle"
 import { AutoThemeSwitcher } from "@/components/auto-theme-switcher"
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/auth-provider"
+import { SecurityFooter } from "@/components/security-footer"
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -64,9 +65,13 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon",
-    shortcut: "/favicon.ico",
-    apple: "/apple-icon",
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png' },
+    ],
   },
   alternates: {
     canonical: "https://ionos-mailer.vercel.app",
@@ -127,6 +132,7 @@ export default function RootLayout({
             <ThemeToggle />
             <MobileAuthToggle />
             {children}
+            <SecurityFooter />
             <Toaster />
             <Analytics />
           </AuthProvider>

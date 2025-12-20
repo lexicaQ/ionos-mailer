@@ -29,11 +29,7 @@ export function SecurityLoader() {
         <div className="flex flex-col items-center justify-center p-12 space-y-6 text-center h-64">
             <div className="relative">
                 {/* Pulse Ring */}
-                <motion.div
-                    className="absolute inset-0 rounded-full bg-blue-500/20 dark:bg-blue-400/10 blur-xl"
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                />
+
 
                 {/* Icon Transition */}
                 <div className="relative z-10 h-16 w-16 bg-white dark:bg-black rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center justify-center shadow-2xl">
