@@ -34,7 +34,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [savePassword, setSavePassword] = useState(true)
     const [fromName, setFromName] = useState("")
     const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-    const [testing, setTesting] = useState(false)
+    const [testing, setTesting] = useState(false) // For connection test
+    const [cronLoading, setCronLoading] = useState(false) // For cron start
     const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
     const [hasLoaded, setHasLoaded] = useState(false)
 
@@ -320,31 +321,33 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     <div className="flex items-center justify-between pb-4">
                         <div className="text-xs text-muted-foreground">
                             <p>Manual Cron Start</p>
-                            <p>(Processes pending emails)</p>
+                            <p>(Processes ALL pending emails)</p>
                         </div>
-                        <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
-                            setTesting(true);
+                        <Button variant="outline" size="sm" disabled={cronLoading} onClick={async () => {
+                            setCronLoading(true);
                             setStatusMsg(null);
                             try {
                                 const res = await fetch("/api/cron/process", {
-                                    headers: { 'x-manual-trigger': 'true' }
+                                    method: 'POST',
+                                    headers: {
+                                        'x-manual-trigger': 'true',
+                                        'x-process-all': 'true' // Process ALL overdue emails
+                                    }
                                 });
                                 const data = await res.json();
                                 if (res.ok) {
                                     const processed = data.processed ?? 0;
+                                    const remaining = data.remaining ?? 0;
                                     const futureCount = data.futurePendingCount ?? 0;
-                                    const failed = data.failed ?? 0;
 
-                                    if (processed === 0 && futureCount === 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails to process.` });
+                                    if (processed === 0 && futureCount === 0 && remaining === 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails.` });
                                     } else if (processed === 0 && futureCount > 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ No emails due now. ${futureCount} email${futureCount !== 1 ? 's' : ''} scheduled for later delivery.` });
-                                    } else if (processed > 0 && failed === 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Successfully sent ${processed} email${processed !== 1 ? 's' : ''}!${futureCount > 0 ? ` ${futureCount} more scheduled for later.` : ' Queue complete.'}` });
-                                    } else if (processed > 0 && failed > 0) {
-                                        setStatusMsg({ type: 'error', text: `Sent ${processed}, failed ${failed}.${futureCount > 0 ? ` ${futureCount} more scheduled.` : ''}` });
+                                        setStatusMsg({ type: 'success', text: `✓ No emails due now. ${futureCount} scheduled for later.` });
+                                    } else if (processed > 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ Sent ${processed} email${processed !== 1 ? 's' : ''}!${remaining > 0 ? ` Processing ${remaining} more in background...` : ' All done!'}` });
                                     } else {
-                                        setStatusMsg({ type: 'success', text: `✓ Processing complete. ${futureCount > 0 ? `${futureCount} emails scheduled.` : 'Queue empty.'}` });
+                                        setStatusMsg({ type: 'success', text: `✓ Processing started.` });
                                     }
                                 } else {
                                     setStatusMsg({ type: 'error', text: "Error: " + data.error });
@@ -352,11 +355,11 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             } catch (e: any) {
                                 setStatusMsg({ type: 'error', text: "Connection error: " + e.message });
                             } finally {
-                                setTesting(false);
+                                setCronLoading(false);
                             }
                         }}>
-                            {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
-                            Start Cron
+                            {cronLoading ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
+                            {cronLoading ? "Processing..." : "Start Cron"}
                         </Button>
                     </div>
                 </div>
