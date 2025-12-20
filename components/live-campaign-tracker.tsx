@@ -140,33 +140,18 @@ export function LiveCampaignTracker() {
         // Initial fetch
         fetchCampaigns(false);
 
-        // 1. Refresh Data Interval
+        // Refresh Data Interval (display only - no cron triggering)
         const refreshInterval = setInterval(() => {
             if (open) fetchCampaigns(true); // Pass true to avoid spinner flicker
             else if (Math.random() > 0.4) fetchCampaigns(true); // Probabilistic throttling ~5-6s
         }, 3000);
 
-        // 2. Auto-Process trigger (Acts as a backup cron while UI is open)
-        const processInterval = setInterval(() => {
-            const currentCampaigns = campaignsRef.current;
-            const hasPending = currentCampaigns.some(c => c.stats.pending > 0);
-
-            if (hasPending) {
-                // console.log("Frontend Cron: Triggering processing...");
-                setIsAutoProcessing(true);
-                fetch('/api/cron/process', {
-                    method: 'GET',
-                    headers: { 'x-manual-trigger': 'true' }
-                }).catch(e => console.error("Auto-process failed", e))
-                    .finally(() => {
-                        setTimeout(() => setIsAutoProcessing(false), 2000);
-                    });
-            }
-        }, 10000); // Trigger every 10s
+        // NOTE: Auto-process trigger REMOVED to reduce Fluid Active CPU usage
+        // Email processing is now handled ONLY by external cron-job.org (1x/minute)
+        // or manual "Start Cron" button in Settings
 
         return () => {
             clearInterval(refreshInterval);
-            clearInterval(processInterval);
         }
     }, [open, fetchCampaigns]);
 
