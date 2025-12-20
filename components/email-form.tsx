@@ -434,20 +434,11 @@ export function EmailForm() {
         <div className="p-6 md:p-8 space-y-8">
             {/* Header Bar */}
             {/* Header Bar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md::items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     {/* Mobile button moved to layout/global */}
-                    <div className="h-10 w-10 rounded-xl overflow-hidden shrink-0">
-                        <img
-                            src="/logo-light.png"
-                            alt="IONOS Mailer"
-                            className="h-10 w-10 object-contain dark:hidden"
-                        />
-                        <img
-                            src="/logo-dark.png"
-                            alt="IONOS Mailer"
-                            className="h-10 w-10 object-contain hidden dark:block"
-                        />
+                    <div className="h-10 w-10 rounded-xl bg-black dark:bg-white flex items-center justify-center shadow-lg shrink-0">
+                        <Sparkles className="h-5 w-5 text-white dark:text-black" />
                     </div>
                     <div>
                         <h2 className="font-bold text-lg">New Message</h2>
