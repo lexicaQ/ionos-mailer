@@ -185,9 +185,9 @@ async function handleCronRequest(req: NextRequest) {
                 }
             }
 
-            // Rate Limit: Wait 500ms between emails
-            // This prevents IP reputation damage and SMTP blocks
-            await delay(500);
+            // Rate Limit: Removed artificial delay to optimize CPU usage
+            // rely on natural network latency and provider limits
+            // await delay(500);
         }
 
         // RECURSION: If we processed a full batch, there might be more.

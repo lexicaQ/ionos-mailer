@@ -456,13 +456,13 @@ export function EmailForm() {
                         onLoadDraft={handleLoadDraft}
                         currentDraftId={currentDraftId}
                     />
-                    <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <LiveCampaignTracker />
                     <HistoryModal
                         batches={history}
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
+                    <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <div className="hidden md:flex items-center gap-2 shrink-0">
                         <AuthDialog />
                     </div>
