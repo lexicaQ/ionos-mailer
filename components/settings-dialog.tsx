@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud, Check } from "lucide-react"
 import { toast } from "sonner"
+import { PasskeyManager } from "@/components/passkey-manager"
 
 
 
@@ -358,6 +359,11 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             Start Cron
                         </Button>
                     </div>
+                </div>
+
+                {/* Passkey Management */}
+                <div className="space-y-4 pt-2 mt-4 border-t">
+                    <PasskeyManager />
                 </div>
 
                 {/* Data Management */}

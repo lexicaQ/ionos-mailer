@@ -22,6 +22,7 @@ model User {
   
   accounts      Account[]
   sessions      Session[]
+  passkeys      Passkey[]
   
   // User Data
   drafts        Draft[]
@@ -32,6 +33,38 @@ model User {
   updatedAt     DateTime  @updatedAt
 }
 
+// Passkey (WebAuthn Credential)
+model Passkey {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  credentialId    String   @unique // Base64URL encoded
+  publicKey       Bytes    // COSE public key
+  counter         Int      @default(0) // Signature counter for replay protection
+  
+  deviceType      String   // "singleDevice" or "multiDevice"
+  backedUp        Boolean  @default(false) // Cloud synced
+  transports      String[] // ["internal", "usb", "ble", "nfc"]
+  
+  name            String?  // User-friendly name like "MacBook Pro"
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+}
+
+// WebAuthn Challenge Storage
+model AuthChallenge {
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  userId    String?  // Null for authentication (unknown user)
+  type      String   // "registration" or "authentication"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([challenge])
+}
 
 model Account {
   id                String  @id @default(cuid())

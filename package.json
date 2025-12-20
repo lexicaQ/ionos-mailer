@@ -26,6 +26,8 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@simplewebauthn/browser": "^9.0.1",
+    "@simplewebauthn/server": "^9.0.3",
     "@tiptap/extension-bubble-menu": "^3.13.0",
     "@tiptap/extension-color": "^3.13.0",
     "@tiptap/extension-font-family": "^3.13.0",
