@@ -85,26 +85,36 @@ export function LiveCampaignTracker() {
 
     // FETCH CAMPAIGNS
     const fetchCampaigns = useCallback(async (isBackground = false) => {
+        // Key to track if user has seen the loading animation before
+        const ANIMATION_SEEN_KEY = "ionos-mailer-animation-seen";
+        const hasSeenAnimation = localStorage.getItem(ANIMATION_SEEN_KEY) === "true";
+
         if (!isBackground) {
             setLoading(true)
-            // Try loading from cache immediately for speed
+
+            // INSTANT: Load from cache immediately for returning users
             const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
-                    // Don't set loading false yet, we want to show the cool animation
-                    // But we can set campaigns if we want instant data. 
-                    // User asked to "time it so it gets shown in the perfect time"
-                    // So we wait for animation
+                    setCampaigns(parsed);
+
+                    // If user has seen animation before, skip the delay entirely
+                    if (hasSeenAnimation) {
+                        setLoading(false);
+                        // Continue to sync from cloud in background below
+                    }
                 } catch (e) { }
             }
         }
 
         try {
-            // Artificial delay for Security Animation (User asked for "really slow" and "show them once")
-            // Animation is ~1.2s * 5 steps = 6s total roughly
-            // Let's do 4.5s delay to let most of it play
-            if (!isBackground) await new Promise(r => setTimeout(r, 4500));
+            // Only show animation delay for FIRST TIME users who haven't seen it
+            if (!isBackground && !hasSeenAnimation) {
+                await new Promise(r => setTimeout(r, 4500));
+                // Mark animation as seen
+                localStorage.setItem(ANIMATION_SEEN_KEY, "true");
+            }
 
             // Server now uses authenticated session for userId
             const res = await fetch("/api/campaigns/status")
@@ -121,7 +131,7 @@ export function LiveCampaignTracker() {
                 });
 
                 setCampaigns(data)
-                // Cache for next time
+                // Cache for next time (instant loading)
                 localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
             }
         } catch (error) {

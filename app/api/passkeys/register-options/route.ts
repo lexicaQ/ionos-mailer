@@ -1,15 +1,15 @@
 import { generateRegistrationOptions } from "@simplewebauthn/server"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-
-const RP_NAME = "IONOS Mailer"
-const RP_ID = process.env.WEBAUTHN_RP_ID || "localhost"
+import { getWebAuthnConfig } from "@/lib/webauthn-config"
 
 export async function POST() {
     const session = await auth()
     if (!session?.user?.id) {
         return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const { rpName, rpID } = getWebAuthnConfig()
 
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
@@ -26,8 +26,8 @@ export async function POST() {
     })
 
     const options = await generateRegistrationOptions({
-        rpName: RP_NAME,
-        rpID: RP_ID,
+        rpName,
+        rpID,
         userID: user.id,
         userName: user.email,
         userDisplayName: user.name || user.email,
