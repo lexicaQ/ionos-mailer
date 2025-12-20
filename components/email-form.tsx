@@ -448,22 +448,31 @@ export function EmailForm() {
 
                 {/* Actions Grid for Mobile, Flex for Desktop */}
                 <div className="flex flex-nowrap justify-end gap-2 w-full sm:w-auto items-center overflow-x-auto no-scrollbar py-1">
-                    <DraftsModal
-                        currentSubject={form.watch('subject')}
-                        currentBody={form.watch('body')}
-                        currentRecipients={form.watch('recipients')}
-                        currentAttachments={currentAttachments}
-                        onLoadDraft={handleLoadDraft}
-                        currentDraftId={currentDraftId}
-                    />
-                    <LiveCampaignTracker />
-                    <HistoryModal
-                        batches={history}
-                        onDeleteBatch={handleDeleteBatch}
-                        onClearAll={handleClearAllHistory}
-                    />
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Drafts & Tracking Group */}
+                    <div className="flex items-center gap-1.5 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg p-1">
+                        <DraftsModal
+                            currentSubject={form.watch('subject')}
+                            currentBody={form.watch('body')}
+                            currentRecipients={form.watch('recipients')}
+                            currentAttachments={currentAttachments}
+                            onLoadDraft={handleLoadDraft}
+                            currentDraftId={currentDraftId}
+                        />
+                        <LiveCampaignTracker />
+                        <HistoryModal
+                            batches={history}
+                            onDeleteBatch={handleDeleteBatch}
+                            onClearAll={handleClearAllHistory}
+                        />
+                    </div>
+
+                    {/* Divider */}
+                    <div className="hidden sm:block h-6 w-px bg-neutral-200 dark:bg-neutral-700 mx-1" />
+
+                    {/* Settings & Auth Group */}
+                    <div className="flex items-center gap-1.5">
                         <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
+                        {/* Hidden on mobile - MobileAuthToggle handles auth there */}
                         <div className="hidden md:block">
                             <AuthDialog />
                         </div>
