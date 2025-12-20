@@ -46,7 +46,7 @@ async function handleCronRequest(req: NextRequest) {
 
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
-                status: 'PENDING',
+                status: { in: ['PENDING', 'FAILED'] }, // Also retry failed emails
                 scheduledFor: { lte: now }
             },
             include: { campaign: { include: { attachments: true } } },
@@ -72,8 +72,8 @@ async function handleCronRequest(req: NextRequest) {
         for (const job of pendingJobs) {
             // CONCURRENCY LOCK: Atomic update to ensure no double-processing
             const locked = await prisma.emailJob.updateMany({
-                where: { id: job.id, status: 'PENDING' },
-                data: { status: 'SENDING' }
+                where: { id: job.id, status: { in: ['PENDING', 'FAILED'] } },
+                data: { status: 'SENDING', error: null } // Clear previous error on retry
             });
 
             if (locked.count === 0) {

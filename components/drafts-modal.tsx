@@ -73,6 +73,19 @@ export function DraftsModal({
         }
     }, [open])
 
+    // Pre-load draft count on mount
+    useEffect(() => {
+        const preloadCount = async () => {
+            try {
+                const local = await loadDrafts()
+                setDrafts(local || [])
+            } catch (e) {
+                console.error("Failed to preload drafts:", e)
+            }
+        }
+        preloadCount()
+    }, [])
+
     const handleSaveDraft = async () => {
         if (!draftName.trim()) return
 
