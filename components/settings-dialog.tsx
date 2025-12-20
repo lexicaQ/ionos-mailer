@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud, Check } from "lucide-react"
 import { toast } from "sonner"
+import { PasskeyManager } from "@/components/passkey-manager"
 
 
 
@@ -333,7 +334,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                     const processed = data.processed ?? 0;
                                     const futureCount = data.futurePendingCount ?? 0;
                                     const failed = data.failed ?? 0;
-                                    
+
                                     if (processed === 0 && futureCount === 0) {
                                         setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails to process.` });
                                     } else if (processed === 0 && futureCount > 0) {
@@ -360,7 +361,21 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     </div>
                 </div>
 
-                {/* Passkey Management */}
+
+                {/* Passkey Management (Only When Logged In) */}
+                {session?.user && (
+                    <div className="space-y-4 pt-2 mt-4 border-t border-neutral-200 dark:border-neutral-800">
+                        <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" /><path d="M17 22v-6a5 5 0 0 0-10 0v6" /><circle cx="12" cy="17" r="1" /></svg>
+                            Passkeys
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                            Sign in faster with Touch ID, Face ID, or Windows Hello
+                        </p>
+
+                        <PasskeyManager />
+                    </div>
+                )}
 
 
                 {/* Data Management */}
