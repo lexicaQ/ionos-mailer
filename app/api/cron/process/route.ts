@@ -38,10 +38,9 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // BATCH SIZE: Process up to 10 emails per invocation
-        // Vercel Limit: 10s (Hobby) / 60s (Pro). 
-        // 10 emails * 0.5s delay = 5s (Safe)
-        const BATCH_SIZE = 10;
+        // SINGLE EMAIL: Process 1 email per invocation
+        // cron-job.org runs every 3 minutes = 1 email every 3 minutes
+        const BATCH_SIZE = 1;
         const now = new Date();
 
         const pendingJobs = await prisma.emailJob.findMany({
@@ -199,27 +198,8 @@ async function handleCronRequest(req: NextRequest) {
             // await delay(500);
         }
 
-        // RECURSION: If we processed a full batch, there might be more.
-        // Trigger immediately. If we processed < BATCH_SIZE, we are done until next cron.
-        if (pendingJobs.length === BATCH_SIZE) {
-            console.log("Full batch processed. Triggering next batch immediately.");
-            const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
-
-            // Fire-and-forget (fetch without await, but handled carefully)
-            // Note: In Vercel serverless, unawaited promises can be cancelled when function freezes.
-            // We use waitUntil or just await it with short timeout.
-            // But standard await fetch is safest for reliable chaining.
-            await fetch(triggerUrl, {
-                method: 'POST',
-                headers: {
-                    'x-manual-trigger': 'true',
-                    'User-Agent': 'vercel-cron/1.0',
-                    ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
-                    ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
-                },
-                signal: AbortSignal.timeout(5000)
-            }).catch(e => console.error('Recursive trigger failed:', e));
-        }
+        // NOTE: No recursive trigger - cron-job.org handles timing (every 3 minutes)
+        // This prevents CPU usage from self-triggering loops
 
         return NextResponse.json({
             processed: results.length,

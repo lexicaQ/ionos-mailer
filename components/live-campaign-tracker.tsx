@@ -536,6 +536,19 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         <div className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 sm:px-1.5 py-0.5 rounded">
                                             {format(new Date(job.sentAt), "HH:mm")}
                                         </div>
+                                        {/* Show delay if sent more than 1 minute after scheduled */}
+                                        {(() => {
+                                            const delayMs = new Date(job.sentAt).getTime() - new Date(job.scheduledFor).getTime();
+                                            const delayMin = Math.round(delayMs / 60000);
+                                            if (delayMin > 1) {
+                                                return (
+                                                    <div className="text-[8px] sm:text-[9px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
+                                                        +{delayMin} min
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
                                 )}
 
