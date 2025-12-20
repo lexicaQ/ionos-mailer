@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Shield, Lock, Server, Eye, X, ChevronUp, Database, Mail, Cloud, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export function SecurityInfoPanel({ customTrigger }: { customTrigger?: React.ReactNode }) {
+export function SecurityInfoPanel() {
     const [isOpen, setIsOpen] = useState(false)
 
     const features = [
@@ -63,30 +63,23 @@ export function SecurityInfoPanel({ customTrigger }: { customTrigger?: React.Rea
 
     return (
         <>
-            {/* Trigger Button */}
-            {customTrigger ? (
-                <div onClick={() => setIsOpen(true)}>{customTrigger}</div>
-            ) : (
-                <motion.div
-                    className="fixed bottom-4 left-4 z-50 hidden md:block" // Hide default on mobile if we use custom upstream? Or just use custom everywhere?
-                    // User said "bottom on the mobiel view onyl at the very top".
-                    // That means: Default desktop = bottom left. Mobile = top.
-                    // So I'll hide this default one on mobile via md:block if I place a custom one on mobile.
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 }}
+            {/* Trigger Button - Fixed Bottom */}
+            <motion.div
+                className="fixed top-4 left-4 sm:top-auto sm:left-4 sm:bottom-4 z-50"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 }}
+            >
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsOpen(true)}
+                    className="gap-2 bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 shadow-lg hover:shadow-xl transition-shadow"
                 >
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsOpen(true)}
-                        className="gap-2 bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 shadow-lg hover:shadow-xl transition-shadow"
-                    >
-                        <Shield className="h-4 w-4" />
-                        <span className="hidden sm:inline">Security</span>
-                    </Button>
-                </motion.div>
-            )}
+                    <Shield className="h-4 w-4" />
+                    <span className="inline">Security</span>
+                </Button>
+            </motion.div>
 
             {/* Panel Overlay */}
             <AnimatePresence>

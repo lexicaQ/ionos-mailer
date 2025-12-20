@@ -85,6 +85,10 @@ export function LiveCampaignTracker() {
 
     // FETCH CAMPAIGNS
     const fetchCampaigns = useCallback(async (isBackground = false) => {
+        // Key to track if user has seen the loading animation before
+        const ANIMATION_SEEN_KEY = "ionos-mailer-animation-seen";
+        const hasSeenAnimation = localStorage.getItem(ANIMATION_SEEN_KEY) === "true";
+
         if (!isBackground) {
             setLoading(true)
 
@@ -94,15 +98,22 @@ export function LiveCampaignTracker() {
                 try {
                     const parsed = JSON.parse(cached);
                     setCampaigns(parsed);
-                    // We don't set loading(false) yet because we want to show the animation
+
+                    // If user has seen animation before, skip the delay entirely
+                    if (hasSeenAnimation) {
+                        setLoading(false);
+                        // Continue to sync from cloud in background below
+                    }
                 } catch (e) { }
             }
         }
 
         try {
-            // Always show animation delay for non-background fetches to ensure users see the cool loader
-            if (!isBackground) {
+            // Only show animation delay for FIRST TIME users who haven't seen it
+            if (!isBackground && !hasSeenAnimation) {
                 await new Promise(r => setTimeout(r, 4500));
+                // Mark animation as seen
+                localStorage.setItem(ANIMATION_SEEN_KEY, "true");
             }
 
             // Server now uses authenticated session for userId
@@ -120,7 +131,7 @@ export function LiveCampaignTracker() {
                 });
 
                 setCampaigns(data)
-                // Cache for next time
+                // Cache for next time (instant loading)
                 localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
             }
         } catch (error) {
@@ -328,7 +339,7 @@ export function LiveCampaignTracker() {
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
@@ -493,7 +504,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                         </div>
                     )}
                     {filteredJobs.map((job) => (
-                        <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-2 sm:gap-4">
+                        <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-3 sm:gap-4">
 
                             {/* Status Pill - FIRST */}
                             <div className="w-[65px] sm:w-[100px] flex-shrink-0">
@@ -528,15 +539,15 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                             </div>
 
                             {/* Recipient - THIRD */}
-                            <div className="flex-1 min-w-0 pr-1">
+                            <div className="flex-1 min-w-0 pr-2">
                                 <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                     {job.recipient}
                                 </div>
-                                <div className="text-[8px] sm:text-xs text-muted-foreground line-clamp-1 truncate opacity-80 max-w-[120px] sm:max-w-none" title={job.subject}>{job.subject} ...</div>
+                                <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80" title={job.subject}>{job.subject || "(No Subject)"}</div>
                             </div>
 
                             {/* Times - LAST */}
-                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[45px] sm:w-[140px] pl-4 sm:pl-0">
+                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[45px] sm:w-[140px]">
                                 <div className="text-right">
                                     <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
                                     <div className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>

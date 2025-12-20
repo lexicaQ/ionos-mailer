@@ -15,11 +15,10 @@ import { HistoryModal, HistoryBatch } from "@/components/history-modal"
 import { LiveCampaignTracker } from "@/components/live-campaign-tracker"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { AuthDialog } from "@/components/auth-dialog"
-import { SecurityInfoPanel } from "@/components/security-info-panel"
 import { FileImportModal } from "@/components/file-import-modal"
 import { ExtractionResult } from "@/lib/parsers"
 import { SmtpConfig } from "@/lib/mail"
-import { Send, Loader2, Clock, Sparkles, FileUp, Shield } from "lucide-react"
+import { Send, Loader2, Clock, Sparkles, FileUp } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -449,16 +448,6 @@ export function EmailForm() {
 
                 {/* Actions Grid for Mobile, Flex for Desktop */}
                 <div className="flex flex-nowrap justify-end gap-2 w-full sm:w-auto items-center overflow-x-auto no-scrollbar py-1">
-                    {/* Mobile: Security Icon at Top with Text */}
-                    <div className="md:hidden">
-                        <SecurityInfoPanel customTrigger={
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full border border-green-200 dark:border-green-800 text-[10px] font-medium cursor-pointer">
-                                <Shield className="h-3 w-3" />
-                                Security
-                            </div>
-                        } />
-                    </div>
-
                     <DraftsModal
                         currentSubject={form.watch('subject')}
                         currentBody={form.watch('body')}
@@ -467,22 +456,15 @@ export function EmailForm() {
                         onLoadDraft={handleLoadDraft}
                         currentDraftId={currentDraftId}
                     />
+                    <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <LiveCampaignTracker />
                     <HistoryModal
                         batches={history}
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                     />
-                    {/* Settings: Visible on Mobile too now (User requested restore) */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
-                        <div className="hidden md:block">
-                            <AuthDialog />
-                        </div>
-                        {/* Mobile Auth is handled globally or elsewhere? User didn't ask for Auth on mobile bottom, just Settings. */}
-                        <div className="md:hidden">
-                            <AuthDialog />
-                        </div>
+                    <div className="hidden md:flex items-center gap-2 shrink-0">
+                        <AuthDialog />
                     </div>
                 </div>
             </div>
