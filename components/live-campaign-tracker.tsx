@@ -462,11 +462,11 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
             {/* Email List - Minimalist Table */}
             {isOpen && (
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
-                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-1">
+                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 sm:px-4 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-3 sm:gap-4">
                         <div className="w-[65px] sm:w-[100px]">Status</div>
                         <div className="w-[45px] sm:w-[110px]">Opened</div>
                         <div className="flex-1 min-w-0">Recipient</div>
-                        <div className="w-[45px] sm:w-[140px] text-right">Time</div>
+                        <div className="w-[55px] sm:w-[140px] text-right">Time</div>
                     </div>
                     {filteredJobs.length === 0 && (
                         <div className="p-4 text-center text-xs text-muted-foreground">
@@ -508,13 +508,18 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 )}
                             </div>
 
-                            {/* Recipient - THIRD (constrained width on mobile) */}
-                            <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none pr-2">
+                            {/* Recipient - THIRD (aligned with header) */}
+                            <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none">
                                 <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                     {job.recipient}
                                 </div>
                                 <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80 max-w-full" title={job.subject}>
-                                    {job.subject ? (job.subject.length > 30 ? job.subject.slice(0, 30) + "..." : job.subject) : "(No Subject)"}
+                                    {job.subject ? (
+                                        <>
+                                            <span className="sm:hidden">{job.subject.length > 25 ? job.subject.slice(0, 25) + "..." : job.subject}</span>
+                                            <span className="hidden sm:inline">{job.subject.length > 50 ? job.subject.slice(0, 50) + "..." : job.subject}</span>
+                                        </>
+                                    ) : "(No Subject)"}
                                 </div>
                             </div>
 
