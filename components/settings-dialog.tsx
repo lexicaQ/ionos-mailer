@@ -324,42 +324,52 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             <p>(Processes ALL pending emails)</p>
                         </div>
                         <Button variant="outline" size="sm" disabled={cronLoading} onClick={async () => {
+                            if (cronLoading) {
+                                // Stop logic would need an AbortController or state ref, but specific request is START
+                                // For now, prevent double clicks or just let it run.
+                                return;
+                            }
+
                             setCronLoading(true);
                             setStatusMsg(null);
-                            try {
-                                const res = await fetch("/api/cron/process", {
-                                    method: 'POST',
-                                    headers: {
-                                        'x-manual-trigger': 'true',
-                                        'x-process-all': 'true' // Process ALL overdue emails
-                                    }
-                                });
-                                const data = await res.json();
-                                if (res.ok) {
-                                    const processed = data.processed ?? 0;
-                                    const remaining = data.remaining ?? 0;
-                                    const futureCount = data.futurePendingCount ?? 0;
 
-                                    if (processed === 0 && futureCount === 0 && remaining === 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails.` });
-                                    } else if (processed === 0 && futureCount > 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ No emails due now. ${futureCount} scheduled for later.` });
-                                    } else if (processed > 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Sent ${processed} email${processed !== 1 ? 's' : ''}!${remaining > 0 ? ` Processing ${remaining} more in background...` : ' All done!'}` });
+                            const processOne = async () => {
+                                try {
+                                    // 1. Send request for SINGLE email (no x-process-all means batch size = 1)
+                                    const res = await fetch("/api/cron/process", {
+                                        method: 'POST',
+                                        headers: { 'x-manual-trigger': 'true' } // Just manual, NOT all at once
+                                    });
+                                    const data = await res.json();
+
+                                    if (!res.ok) throw new Error(data.error);
+
+                                    const processed = data.processed ?? 0;
+                                    const remaining = data.futurePendingCount ?? 0; // Check if more exist (even future ones)
+                                    // Note: API returns futurePendingCount as *pending* jobs. 
+                                    // If processed > 0, we found one. If processed == 0, maybe none due?
+
+                                    if (processed > 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ Sent 1 email. Waiting 3 min for next...` });
+
+                                        // Wait 3 minutes then recurse
+                                        setTimeout(() => processOne(), 3 * 60 * 1000);
                                     } else {
-                                        setStatusMsg({ type: 'success', text: `✓ Processing started.` });
+                                        setStatusMsg({ type: 'success', text: `✓ Queue empty or no emails due now.` });
+                                        setCronLoading(false);
                                     }
-                                } else {
-                                    setStatusMsg({ type: 'error', text: "Error: " + data.error });
+                                } catch (e: any) {
+                                    setStatusMsg({ type: 'error', text: "Error: " + e.message });
+                                    setCronLoading(false);
                                 }
-                            } catch (e: any) {
-                                setStatusMsg({ type: 'error', text: "Connection error: " + e.message });
-                            } finally {
-                                setCronLoading(false);
                             }
+
+                            // Start the loop
+                            processOne();
+
                         }}>
                             {cronLoading ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
-                            {cronLoading ? "Processing..." : "Start Cron"}
+                            {cronLoading ? "Running (3m Loop)..." : "Start Cron Loop"}
                         </Button>
                     </div>
                 </div>

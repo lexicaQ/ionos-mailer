@@ -15,7 +15,6 @@ async function handleCronRequest(req: NextRequest) {
     const cronSecret = process.env.CRON_SECRET;
     const isVercelCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
     const isManualTrigger = req.headers.get('x-manual-trigger') === 'true';
-    const processAll = req.headers.get('x-process-all') === 'true'; // Manual: process all overdue
     const hasProtectionBypass = !!req.headers.get('x-vercel-protection-bypass');
 
     // In production, verify the request is legitimate
@@ -39,10 +38,9 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // BATCH SIZE: 
-        // - Manual trigger (processAll): 10 at a time, then recurse
-        // - External cron (cron-job.org): 1 at a time, no recurse
-        const BATCH_SIZE = processAll ? 10 : 1;
+        // SINGLE EMAIL: Process 1 email per invocation
+        // cron-job.org runs every 3 minutes = 1 email every 3 minutes
+        const BATCH_SIZE = 1;
         const now = new Date();
 
         const pendingJobs = await prisma.emailJob.findMany({
@@ -200,28 +198,13 @@ async function handleCronRequest(req: NextRequest) {
             // await delay(500);
         }
 
-        // RECURSIVE TRIGGER: Only for manual processAll mode
-        // External cron (cron-job.org) handles its own timing
-        if (processAll && pendingJobs.length === BATCH_SIZE) {
-            console.log("Manual mode: Triggering next batch...");
-            const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
-
-            // Continue processing in background
-            fetch(triggerUrl, {
-                method: 'POST',
-                headers: {
-                    'x-manual-trigger': 'true',
-                    'x-process-all': 'true',
-                    'User-Agent': 'manual-cron/1.0',
-                },
-                signal: AbortSignal.timeout(5000)
-            }).catch(e => console.error('Recursive trigger failed:', e));
-        }
+        // NOTE: No recursive trigger - cron-job.org handles timing (every 3 minutes)
+        // Manual loop is now handled client-side in SettingsDialog
 
         return NextResponse.json({
             processed: results.length,
             batchSize: BATCH_SIZE,
-            remaining: processAll ? await prisma.emailJob.count({ where: { status: { in: ['PENDING', 'FAILED'] }, scheduledFor: { lte: now } } }) : undefined,
+            remaining: undefined, // Client uses futurePendingCount
             results
         });
 

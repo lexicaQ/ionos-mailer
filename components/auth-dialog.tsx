@@ -38,6 +38,24 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                 toast.error("Invalid credentials. Please check your IONOS email and password.")
             } else {
                 toast.success("Connected! Your data is now synced across devices.")
+
+                // Pre-fetch campaigns immediately for instant loading
+                try {
+                    fetch("/api/campaigns/status")
+                        .then(r => r.ok ? r.json() : null)
+                        .then(data => {
+                            if (data) {
+                                // Sort same way as LiveCampaignTracker
+                                data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                                data.forEach((c: any) => {
+                                    if (c.jobs) c.jobs.sort((a: any, b: any) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+                                });
+                                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
+                            }
+                        })
+                        .catch(() => { });
+                } catch (e) { }
+
                 setOpen(false)
                 setEmail("")
                 setPassword("")
