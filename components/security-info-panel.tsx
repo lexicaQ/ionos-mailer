@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Shield, Lock, Server, Eye, X, ChevronUp, Database, Mail, Cloud } from "lucide-react"
+import { Shield, Lock, Server, Eye, X, ChevronUp, Database, Mail, Cloud, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function SecurityInfoPanel() {

@@ -117,6 +117,36 @@ export async function authenticateWithPasskey(email?: string): Promise<{
 }
 
 /**
+ * Get passkey credential for NextAuth sign-in
+ * Does NOT verify with the API route, but returns the credential to be sent to NextAuth
+ */
+export async function getPasskeyCredential(email?: string): Promise<any> {
+    // Get authentication options
+    const optionsRes = await fetch("/api/passkeys/auth-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+    })
+
+    if (!optionsRes.ok) {
+        throw new Error("Failed to initialize passkey login")
+    }
+
+    const options = await optionsRes.json()
+
+    // Start WebAuthn authentication ceremony
+    try {
+        const credential = await startAuthentication(options)
+        return credential
+    } catch (error: any) {
+        if (error.name === "NotAllowedError") {
+            throw new Error("Login cancelled")
+        }
+        throw error
+    }
+}
+
+/**
  * Get list of user's passkeys
  */
 export async function listPasskeys(): Promise<PasskeyInfo[]> {

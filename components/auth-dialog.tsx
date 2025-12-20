@@ -147,6 +147,59 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                         Same credentials = same account on all devices
                     </p>
                 </form>
+
+                {/* Passkey Divider */}
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-white dark:bg-neutral-950 px-2 text-muted-foreground">
+                            Or continue with
+                        </span>
+                    </div>
+                </div>
+
+                <div className="pb-4">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={async () => {
+                            setLoading(true);
+                            try {
+                                const { getPasskeyCredential } = await import("@/lib/passkeys");
+                                const credential = await getPasskeyCredential(email || undefined); // Pass email if entered to filter
+
+                                const result = await signIn("webauthn", {
+                                    credential: JSON.stringify(credential),
+                                    redirect: false
+                                });
+
+                                if (result?.error) {
+                                    toast.error("Passkey login failed");
+                                    console.error(result.error);
+                                } else {
+                                    toast.success("Logged in with Passkey!");
+                                    setOpen(false);
+                                }
+                            } catch (e: any) {
+                                if (e.message?.includes("cancelled")) {
+                                    // ignore
+                                } else {
+                                    toast.error(e.message || "Passkey error");
+                                }
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Passkey
+                    </Button>
+                </div>
             </ResponsiveModal>
         </>
     )

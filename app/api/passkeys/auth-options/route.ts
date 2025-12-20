@@ -1,9 +1,9 @@
 import { generateAuthenticationOptions } from "@simplewebauthn/server"
 import { prisma } from "@/lib/prisma"
-
-const RP_ID = process.env.WEBAUTHN_RP_ID || "localhost"
+import { getWebAuthnConfig } from "@/lib/webauthn-config"
 
 export async function POST(req: Request) {
+    const { rpID } = getWebAuthnConfig()
     const body = await req.json().catch(() => ({}))
     const { email } = body
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
 
     const options = await generateAuthenticationOptions({
-        rpID: RP_ID,
+        rpID,
         userVerification: "required",
         allowCredentials
     })
