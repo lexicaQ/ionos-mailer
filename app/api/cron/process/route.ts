@@ -30,75 +30,70 @@ async function handleCronRequest(req: NextRequest) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
     }
-    // ... rest of logic stays mostly same, but we need to ensure the recursive trigger uses POST too
-
 
     try {
         const secretKey = process.env.ENCRYPTION_KEY;
         if (!secretKey) throw new Error("No Encryption Key configured");
 
-        // Get base URL for tracking - PRIORITIZE stable production URL over VERCEL_URL
-        // VERCEL_URL changes with each deployment, breaking tracking for old emails
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // 2. Find ONE Pending Job that is due
-        // Process 1 at a time to prevent race conditions causing duplicates
+        // BATCH SIZE: Process up to 10 emails per invocation
+        // Vercel Limit: 10s (Hobby) / 60s (Pro). 
+        // 10 emails * 0.5s delay = 5s (Safe)
+        const BATCH_SIZE = 10;
         const now = new Date();
+
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
-                status: 'PENDING', // Only PENDING - no auto-retry of FAILED to prevent duplicates
+                status: 'PENDING',
                 scheduledFor: { lte: now }
             },
             include: { campaign: { include: { attachments: true } } },
-            take: 1 // Process exactly 1 job per request to prevent race conditions
+            take: BATCH_SIZE,
+            orderBy: { scheduledFor: 'asc' } // First in, first out
         });
 
         if (pendingJobs.length === 0) {
-            // Check if there are ANY pending jobs in the future
-            const futureJobs = await prisma.emailJob.count({
-                where: { status: 'PENDING' }
-            });
-            console.log(`Cron: No due jobs. Total future pending: ${futureJobs}`);
+            // Check future count only if idle, to save massive DB queries on busy loops
+            const futureJobs = await prisma.emailJob.count({ where: { status: 'PENDING' } });
             return NextResponse.json({
                 processed: 0,
                 message: "No pending jobs due.",
-                serverTime: now.toISOString(),
                 futurePendingCount: futureJobs
             });
         }
 
-        console.log(`Cron: Found ${pendingJobs.length} due jobs. Processing...`);
-
+        console.log(`Cron: Found batch of ${pendingJobs.length} jobs.`);
         const results = [];
-
-        // Helper to add delay
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-        // Process the single job
+        // Process Batch
         for (const job of pendingJobs) {
-            // IMMEDIATELY mark as SENDING to prevent any duplicate pickup
-            await prisma.emailJob.update({
-                where: { id: job.id },
+            // CONCURRENCY LOCK: Atomic update to ensure no double-processing
+            const locked = await prisma.emailJob.updateMany({
+                where: { id: job.id, status: 'PENDING' },
                 data: { status: 'SENDING' }
             });
+
+            if (locked.count === 0) {
+                console.log(`Job ${job.id} already picked up by another worker. Skipping.`);
+                continue;
+            }
 
             let pass = "";
             try {
                 pass = decrypt(job.campaign.pass, secretKey);
             } catch (e) {
-                console.error(`Failed to decrypt password for job ${job.id}`, e instanceof Error ? e.message : String(e));
+                console.error(`Failed to decrypt password for job ${job.id}`);
                 await prisma.emailJob.update({
                     where: { id: job.id },
                     data: { status: 'FAILED', error: "Decryption failed" }
                 });
-                results.push({ id: job.id, success: false });
-                continue; // Skip onto next
+                continue;
             }
-            // ... (rest of processing logic, will close loop after pushing result)
 
             if (pass) {
-                // Decrypt content for processing
                 let finalBody = "";
                 let finalSubject = "";
                 let attachments: { filename: string; content: string; contentType: string }[] = [];
@@ -107,7 +102,6 @@ async function handleCronRequest(req: NextRequest) {
                     finalBody = decrypt(job.body, secretKey);
                     finalSubject = decrypt(job.subject, secretKey);
 
-                    // Decrypt attachments
                     if (job.campaign.attachments) {
                         attachments = job.campaign.attachments.map((att: any) => ({
                             filename: att.filename,
@@ -116,34 +110,24 @@ async function handleCronRequest(req: NextRequest) {
                         }));
                     }
                 } catch (e) {
-                    console.error(`Failed to decrypt content for job ${job.id}`, e);
                     await prisma.emailJob.update({
                         where: { id: job.id },
                         data: { status: 'FAILED', error: "Content decryption failed" }
                     });
-                    return NextResponse.json({ processed: 1, results: [{ id: job.id, success: false }] });
+                    results.push({ id: job.id, success: false });
+                    continue;
                 }
 
-                // Company Name Extraction & Replacement
-                // Check for placeholders
+                // Placeholders & Company Name
                 const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
-
                 if (PLACEHOLDER_REGEX.test(finalBody) || PLACEHOLDER_REGEX.test(finalSubject)) {
                     try {
-                        const decryptedRecipientForCompany = decrypt(job.recipient, secretKey);
-                        const companyName = await extractCompanyFromEmail(decryptedRecipientForCompany);
-
-                        // Use centralized logic for both Subject and Body
-                        // Note: If companyName is null (not found/generic), it will remove "at XXX" entirely
+                        const decryptedRecipient = decrypt(job.recipient, secretKey);
+                        const companyName = await extractCompanyFromEmail(decryptedRecipient);
                         finalBody = replacePlaceholders(finalBody, companyName);
                         finalSubject = replacePlaceholders(finalSubject, companyName);
 
-                        // Only update DB if we actually found a company to maintain "Smart" data?
-                        // Actually, we should probably save the *processed* version so we know what was sent.
-                        // But wait, if we remove it, we are changing the content significantly.
-                        // Saving the processed version is correct for audit trail.
-
-                        // RE-ENCRYPT updated content before saving history/job
+                        // Save processed content for audit
                         await prisma.emailJob.update({
                             where: { id: job.id },
                             data: {
@@ -151,38 +135,21 @@ async function handleCronRequest(req: NextRequest) {
                                 subject: encrypt(finalSubject, secretKey)
                             }
                         });
-
                     } catch (e) {
-                        console.error("Failed to extract company info", e);
-                        // Safe fallback: Remove placeholders
                         finalBody = replacePlaceholders(finalBody, null);
                         finalSubject = replacePlaceholders(finalSubject, null);
                     }
                 }
 
                 const decryptedRecipient = decrypt(job.recipient, secretKey);
-
-                // Create HTML with tracking for open/click detection
                 const htmlWithTracking = processBodyWithTracking(finalBody, job.trackingId, baseUrl);
 
                 try {
-                    // Decrypt SMTP user and fromName (now encrypted)
                     let smtpUser = job.campaign.user;
                     let fromName = job.campaign.fromName;
-                    try {
-                        smtpUser = decrypt(job.campaign.user, secretKey);
-                    } catch (e) {
-                        // Legacy unencrypted, use as-is
-                    }
-                    if (fromName) {
-                        try {
-                            fromName = decrypt(fromName, secretKey);
-                        } catch (e) {
-                            // Legacy unencrypted, use as-is
-                        }
-                    }
+                    try { smtpUser = decrypt(job.campaign.user, secretKey); } catch (e) { }
+                    if (fromName) { try { fromName = decrypt(fromName, secretKey); } catch (e) { } }
 
-                    // Send with tracking
                     const response = await sendEmail({
                         to: decryptedRecipient,
                         subject: finalSubject,
@@ -199,7 +166,6 @@ async function handleCronRequest(req: NextRequest) {
                         attachments: attachments,
                     });
 
-                    // Update DB
                     await prisma.emailJob.update({
                         where: { id: job.id },
                         data: {
@@ -208,10 +174,9 @@ async function handleCronRequest(req: NextRequest) {
                             error: response.error || null
                         }
                     });
-
                     results.push({ id: job.id, success: response.success });
+
                 } catch (sendError: any) {
-                    console.error(`Failed to send email ${job.id}:`, sendError instanceof Error ? sendError.message : String(sendError));
                     await prisma.emailJob.update({
                         where: { id: job.id },
                         data: { status: 'FAILED', error: sendError.message || 'Unknown send error' }
@@ -220,40 +185,38 @@ async function handleCronRequest(req: NextRequest) {
                 }
             }
 
+            // Rate Limit: Wait 500ms between emails
+            // This prevents IP reputation damage and SMTP blocks
+            await delay(500);
         }
 
-        // Enforce 2s delay AFTER processing (Optimized for Vercel 10s limit)
-        // This leaves ~5-7s headroom for valid execution before timeout
-        await delay(2000);
-
-        // If we processed successfully, trigger the next batch immediately
-        if (results.length > 0) {
-            console.log("Triggering next job (Fire-and-Forget)...");
-            // Use a non-awaited promise to trigger recursion without blocking 
-            // We use a timestamp to bypass Vercel caching
+        // RECURSION: If we processed a full batch, there might be more.
+        // Trigger immediately. If we processed < BATCH_SIZE, we are done until next cron.
+        if (pendingJobs.length === BATCH_SIZE) {
+            console.log("Full batch processed. Triggering next batch immediately.");
             const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
 
-            // Trigger next job recursively
-            // We await it to ensure Vercel doesn't kill the request before it leaves execution context
-            console.log(`Triggering next job recursively at ${triggerUrl}...`);
+            // Fire-and-forget (fetch without await, but handled carefully)
+            // Note: In Vercel serverless, unawaited promises can be cancelled when function freezes.
+            // We use waitUntil or just await it with short timeout.
+            // But standard await fetch is safest for reliable chaining.
             await fetch(triggerUrl, {
                 method: 'POST',
                 headers: {
                     'x-manual-trigger': 'true',
                     'User-Agent': 'vercel-cron/1.0',
-                    // Only add Authorization if CRON_SECRET is defined to avoid "Bearer undefined"
                     ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
-                    // Add firewall bypass for recursive calls
                     ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
                 },
-                // Use a safe timeout (e.g., 5s) to ensure request is sent but not block too long
                 signal: AbortSignal.timeout(5000)
-            }).then(res => {
-                console.log(`Recursive trigger response: ${res.status} ${res.statusText}`);
-                if (!res.ok) console.error("Recursive trigger failed with non-OK status");
-            }).catch(e => console.error('Recursive trigger failed:', e instanceof Error ? e.message : String(e)));
+            }).catch(e => console.error('Recursive trigger failed:', e));
         }
-        return NextResponse.json({ processed: results.length, results });
+
+        return NextResponse.json({
+            processed: results.length,
+            batchSize: BATCH_SIZE,
+            results
+        });
 
     } catch (error: any) {
         console.error("Cron Job Fatal Error:", error);
