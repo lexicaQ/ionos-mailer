@@ -76,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         expectedOrigin: origin,
                         expectedRPID: rpID,
                         authenticator: {
-                            credentialID: passkey.credentialId,
+                            credentialID: Buffer.from(passkey.credentialId, 'base64url'),
                             credentialPublicKey: passkey.publicKey as any,
                             counter: Number(passkey.counter),
                             transports: passkey.transports as any[] // optional
