@@ -18,10 +18,10 @@ export default function Home() {
 
           <div className="space-y-3">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-black dark:text-white">
-              IONOS Mailer
+              Secure Batch Mailer
             </h1>
             <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-              Professional Email Delivery • SMTP • Scheduling • Tracking
+              Enterprise-grade email dispatcher for IONOS. send encrypted, scheduled campaigns directly from your browser.
             </p>
           </div>
 
