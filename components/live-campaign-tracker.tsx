@@ -358,10 +358,16 @@ export function LiveCampaignTracker() {
 }
 
 function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void }) {
-    const [isOpen, setIsOpen] = useState(true);
-    const progress = campaign.stats.total > 0
-        ? ((campaign.stats.sent + campaign.stats.failed) / campaign.stats.total) * 100
+    const calculateProgress = (c: Campaign) => c.stats.total > 0
+        ? ((c.stats.sent + c.stats.failed) / c.stats.total) * 100
         : 0;
+
+    const [isOpen, setIsOpen] = useState(() => {
+        // Auto-collapse if 100% finished
+        return calculateProgress(campaign) < 100;
+    });
+
+    const progress = calculateProgress(campaign);
 
     return (
         <motion.div
