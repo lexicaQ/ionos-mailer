@@ -1,13 +1,22 @@
-export function getWebAuthnConfig() {
-    const rpID = process.env.WEBAUTHN_RP_ID || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL || "localhost"
+// Production domain - this is your canonical URL
+const PRODUCTION_DOMAIN = "ionos-mailer.vercel.app"
 
-    // Ensure origin has protocol
-    const vercelUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL
-    let origin = process.env.WEBAUTHN_ORIGIN || (vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000")
-    if (origin.includes("localhost") && !origin.startsWith("http")) {
-        origin = `http://${origin}`
-    } else if (!origin.startsWith("http")) {
-        origin = `https://${origin}`
+export function getWebAuthnConfig() {
+    // Priority: manual env > production domain (hardcoded)
+    // VERCEL_URL is NOT used because it returns deployment-specific URLs like 
+    // "ionos-mailer-abc123.vercel.app" which don't match your canonical domain
+    const rpID = process.env.WEBAUTHN_RP_ID || PRODUCTION_DOMAIN
+
+    // Origin must match the exact URL in the browser
+    let origin = process.env.WEBAUTHN_ORIGIN || `https://${PRODUCTION_DOMAIN}`
+
+    // Handle localhost for development
+    if (process.env.NODE_ENV === "development" || origin.includes("localhost")) {
+        return {
+            rpName: "IONOS Mailer",
+            rpID: "localhost",
+            origin: "http://localhost:3000"
+        }
     }
 
     // Strip trailing slash if present
