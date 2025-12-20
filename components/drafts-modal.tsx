@@ -46,12 +46,22 @@ export function DraftsModal({
     const safeLoadDrafts = async () => {
         setIsLoading(true)
         try {
-            const loaded = await loadDrafts()
-            setDrafts(loaded || [])
+            // 1. Initial Load (Local DB - Instant)
+            const local = await loadDrafts()
+            setDrafts(local || [])
+            setIsLoading(false) // Show data immediately
+
+            // 2. Background Sync (Cloud)
+            // Dynamically import to safely call new function without breaking if file not fully reloaded (though in agent mode it is)
+            const { syncDrafts } = await import('@/lib/drafts');
+            await syncDrafts();
+
+            // 3. Reload after sync
+            const synced = await loadDrafts()
+            setDrafts(synced || [])
         } catch (e) {
             console.error("Failed to load drafts:", e)
             toast.error("Error loading drafts.")
-            setDrafts([])
         } finally {
             setIsLoading(false)
         }

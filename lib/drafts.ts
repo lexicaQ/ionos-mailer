@@ -62,44 +62,7 @@ export async function loadDrafts(): Promise<EmailDraft[]> {
         await migrateFromLocalStorage();
     }
 
-    // 1. Sync Down from Cloud (if logged in)
-    try {
-        const res = await fetch('/api/sync/drafts');
-        if (res.ok) {
-            const { drafts } = await res.json();
-            if (Array.isArray(drafts)) {
-                // console.log(`[Drafts] Cloud sync: found ${drafts.length} drafts`);
-                for (const d of drafts) {
-                    // Encrypt Cloud Data for Local Storage
-                    const payload = {
-                        subject: d.subject || "",
-                        body: d.body || "",
-                        recipients: d.recipients || [],
-                        attachments: d.attachments || []
-                    };
-                    const encrypted = await encryptData(payload);
-
-                    // Upsert to Local DB
-                    await saveDraftDB({
-                        id: d.id,
-                        name: d.name,
-                        createdAt: d.createdAt,
-                        updatedAt: d.updatedAt,
-                        encryptedData: encrypted,
-                        // Clear plaintext fields from DB object
-                        subject: undefined,
-                        body: undefined,
-                        recipients: undefined,
-                        attachments: undefined
-                    } as any);
-                }
-            }
-        }
-    } catch (e) {
-        // console.log("Cloud sync skipped (offline or not logged in)");
-    }
-
-    // 2. Load from Local DB
+    // Load from Local DB ONLY
     const drafts = await getAllDraftsDB();
     const decryptedDrafts: EmailDraft[] = [];
 
@@ -130,6 +93,47 @@ export async function loadDrafts(): Promise<EmailDraft[]> {
 
     return decryptedDrafts;
 }
+
+/**
+ * Sync drafts from cloud to local DB
+ */
+export async function syncDrafts(): Promise<void> {
+    try {
+        const res = await fetch('/api/sync/drafts');
+        if (res.ok) {
+            const { drafts } = await res.json();
+            if (Array.isArray(drafts)) {
+                for (const d of drafts) {
+                    // Encrypt Cloud Data for Local Storage
+                    const payload = {
+                        subject: d.subject || "",
+                        body: d.body || "",
+                        recipients: d.recipients || [],
+                        attachments: d.attachments || []
+                    };
+                    const encrypted = await encryptData(payload);
+
+                    // Upsert to Local DB
+                    await saveDraftDB({
+                        id: d.id,
+                        name: d.name,
+                        createdAt: d.createdAt,
+                        updatedAt: d.updatedAt,
+                        encryptedData: encrypted,
+                        // Clear plaintext fields from DB object
+                        subject: undefined,
+                        body: undefined,
+                        recipients: undefined,
+                        attachments: undefined
+                    } as any);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Cloud sync skipped", e);
+    }
+}
+
 
 /**
  * Get a single draft by ID (Async)

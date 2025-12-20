@@ -26,18 +26,18 @@ export function SecurityInfoPanel() {
         },
         {
             icon: Server,
-            title: "Serverless Processing",
-            description: "Background campaigns processed via Vercel Edge Functions with automatic cron scheduling."
+            title: "Managed Serverless Infrastructure",
+            description: "No servers to manage. Powered by Vercel Edge Network for global low-latency performance."
+        },
+        {
+            icon: Clock,
+            title: "Automated Cron Jobs",
+            description: "Reliable background processing via cron-job.org (external trigger) ensuring campaigns run even when your device is off."
         },
         {
             icon: Eye,
-            title: "Open Tracking",
-            description: "Optional 1x1 invisible pixel tracking. Opens logged with timestamp. No third-party analytics."
-        },
-        {
-            icon: Cloud,
-            title: "No Data Sharing",
-            description: "Your data never leaves Vercel infrastructure. No external APIs, no third-party integrations."
+            title: "Private Open Tracking",
+            description: "Optional 1x1 pixel tracking. Data remains strictly yours—no third-party analytic trackers involved."
         }
     ]
 

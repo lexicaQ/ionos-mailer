@@ -84,13 +84,27 @@ export function LiveCampaignTracker() {
     }, []); // Run once on mount
 
     // FETCH CAMPAIGNS
-    // FETCH CAMPAIGNS
     const fetchCampaigns = useCallback(async (isBackground = false) => {
-        if (!isBackground) setLoading(true)
+        if (!isBackground) {
+            setLoading(true)
+            // Try loading from cache immediately for speed
+            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    // Don't set loading false yet, we want to show the cool animation
+                    // But we can set campaigns if we want instant data. 
+                    // User asked to "time it so it gets shown in the perfect time"
+                    // So we wait for animation
+                } catch (e) { }
+            }
+        }
+
         try {
-            // Add artificial delay to show the secure loading animation
-            // This reassures the user that decryption is happening
-            if (!isBackground) await new Promise(r => setTimeout(r, 2000));
+            // Artificial delay for Security Animation (User asked for "really slow" and "show them once")
+            // Animation is ~1.2s * 5 steps = 6s total roughly
+            // Let's do 4.5s delay to let most of it play
+            if (!isBackground) await new Promise(r => setTimeout(r, 4500));
 
             // Server now uses authenticated session for userId
             const res = await fetch("/api/campaigns/status")
@@ -107,6 +121,8 @@ export function LiveCampaignTracker() {
                 });
 
                 setCampaigns(data)
+                // Cache for next time
+                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
             }
         } catch (error) {
             console.error("Failed to fetch campaigns:", error)

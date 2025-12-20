@@ -16,9 +16,17 @@ export function SecurityLoader() {
     ]
 
     useEffect(() => {
+        // Slower animation, stop at last step
         const interval = setInterval(() => {
-            setStep((prev) => (prev + 1) % steps.length)
-        }, 700)
+            setStep((prev) => {
+                const next = prev + 1;
+                if (next >= steps.length) {
+                    clearInterval(interval);
+                    return prev;
+                }
+                return next;
+            })
+        }, 1200) // Slower speed (1.2s per step)
 
         return () => clearInterval(interval)
     }, [])
@@ -31,29 +39,28 @@ export function SecurityLoader() {
                 {/* Pulse Ring - Neutral */}
                 <motion.div
                     className="absolute inset-0 rounded-full bg-neutral-500/10 dark:bg-neutral-400/5 blur-xl"
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0.4, 0.2] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
+                    transition={{ duration: 3, repeat: Infinity }}
                 />
 
-                {/* Icon Container */}
-                <div className="relative z-10 h-16 w-16 bg-white dark:bg-black rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center justify-center shadow-xl">
+                {/* Icon Container - Removed bg-white/black, made transparent/subtle */}
+                <div className="relative z-10 h-16 w-16 flex items-center justify-center">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={step}
-                            initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
-                            animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                            exit={{ scale: 0.5, opacity: 0, rotate: 10 }}
-                            transition={{ duration: 0.2 }}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            transition={{ duration: 0.5 }}
                         >
-                            <CurrentIcon className="h-7 w-7 text-neutral-900 dark:text-neutral-100" />
+                            <CurrentIcon className="h-10 w-10 text-neutral-800 dark:text-neutral-200" />
                         </motion.div>
                     </AnimatePresence>
                 </div>
 
-                {/* Lock indicator - Small, subtle */}
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-black dark:bg-white rounded-full flex items-center justify-center border-2 border-white dark:border-black">
-                    <Lock className="h-2.5 w-2.5 text-white dark:text-black" />
-                </div>
+                {/* Lock indicator - Hidden for cleaner look or kept subtle? User asked to remove white bg behind icon. 
+                   The lock indicator also had a bg. Let's remove it to be super clean as requested.
+                */}
             </div>
 
             <div className="space-y-3 max-w-[220px]">
@@ -63,26 +70,25 @@ export function SecurityLoader() {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
-                        className="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                        transition={{ duration: 0.4 }}
+                        className="text-sm font-medium text-neutral-600 dark:text-neutral-400"
                     >
                         {steps[step].text}
                     </motion.p>
                 </AnimatePresence>
 
-                {/* Progress dots */}
-                <div className="flex justify-center gap-1.5">
-                    {steps.map((_, i) => (
-                        <div
-                            key={i}
-                            className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${i === step
-                                    ? "bg-black dark:bg-white w-4"
-                                    : "bg-neutral-300 dark:bg-neutral-700"
-                                }`}
-                        />
-                    ))}
+                {/* Progress bars instead of dots for "loading" feel */}
+                <div className="h-1 w-32 bg-neutral-100 dark:bg-neutral-800 rounded-full mx-auto overflow-hidden">
+                    <motion.div
+                        className="h-full bg-neutral-800 dark:bg-neutral-200"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
+                        transition={{ duration: 1.2, ease: "linear" }}
+                    />
                 </div>
             </div>
         </div>
     )
 }
+
 
