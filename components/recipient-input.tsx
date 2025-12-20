@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 
@@ -150,9 +150,16 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                     className="min-h-[100px] font-mono text-sm"
                 />
                 <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">
-                        Tip: Addresses are automatically analyzed when leaving the field
-                    </span>
+                    {isChecking ? (
+                        <span className="text-xs text-blue-500 font-medium flex items-center gap-1.5 animate-pulse">
+                            <Sparkles className="h-3 w-3" />
+                            Analyzing email addresses...
+                        </span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">
+                            Tip: Addresses are automatically analyzed when leaving the field
+                        </span>
+                    )}
                     <div className="flex items-center gap-2">
                         {customAction}
                     </div>
