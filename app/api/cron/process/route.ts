@@ -177,11 +177,20 @@ async function handleCronRequest(req: NextRequest) {
                     results.push({ id: job.id, success: response.success });
 
                 } catch (sendError: any) {
+                    const errorMsg = sendError.message || 'Unknown send error';
+                    const isRetryable = errorMsg.includes('timeout') ||
+                        errorMsg.includes('ETIMEDOUT') ||
+                        errorMsg.includes('ECONNREFUSED') ||
+                        errorMsg.includes('ECONNRESET');
+
                     await prisma.emailJob.update({
                         where: { id: job.id },
-                        data: { status: 'FAILED', error: sendError.message || 'Unknown send error' }
+                        data: {
+                            status: isRetryable ? 'PENDING' : 'FAILED', // Retry on timeout
+                            error: isRetryable ? `Retrying: ${errorMsg}` : errorMsg
+                        }
                     });
-                    results.push({ id: job.id, success: false });
+                    results.push({ id: job.id, success: false, retrying: isRetryable });
                 }
             }
 

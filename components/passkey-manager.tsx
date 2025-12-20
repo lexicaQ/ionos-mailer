@@ -94,7 +94,7 @@ export function PasskeyManager() {
     }
 
     const getDeviceIcon = (deviceType: string, backedUp: boolean) => {
-        if (backedUp) return <Cloud className="h-4 w-4 text-blue-500" />
+        if (backedUp) return <Cloud className="h-4 w-4 text-black dark:text-white" />
         if (deviceType === "multiDevice") return <Smartphone className="h-4 w-4" />
         return <Monitor className="h-4 w-4" />
     }
