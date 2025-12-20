@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
-export const alt = 'IONOS Mailer - Professional Email Marketing'
+export const alt = 'IONOS Mailer - Professional Email Delivery'
 export const size = {
     width: 1200,
     height: 630,
@@ -21,120 +21,100 @@ export default async function Image() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: '#050505',
-                    backgroundImage: 'radial-gradient(circle at 25px 25px, #202020 2%, transparent 0%), radial-gradient(circle at 75px 75px, #202020 2%, transparent 0%)',
-                    backgroundSize: '100px 100px',
+                    backgroundColor: '#000000',
                     fontFamily: 'sans-serif',
                 }}
             >
+                {/* Logo Icon */}
                 <div
                     style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: '140px',
-                        height: '140px',
+                        width: '120px',
+                        height: '120px',
                         marginBottom: '40px',
-                        borderRadius: '30px',
-                        border: '1px solid #333',
-                        background: 'linear-gradient(180deg, #1a1a1a 0%, #000 100%)',
-                        boxShadow: '0 0 80px -20px rgba(255,255,255,0.1)',
                     }}
                 >
                     <svg
-                        width="80"
-                        height="80"
-                        viewBox="0 0 24 24"
+                        width="100"
+                        height="100"
+                        viewBox="0 0 100 100"
                         fill="none"
                         stroke="white"
-                        strokeWidth="1.5"
+                        strokeWidth="3"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     >
-                        <rect width="20" height="16" x="2" y="4" rx="2" />
-                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        {/* Envelope base */}
+                        <rect x="10" y="30" width="60" height="45" rx="4" />
+                        {/* Envelope flap */}
+                        <path d="M10 34L40 55L70 34" />
+                        {/* Arrow pointing up-right */}
+                        <path d="M55 50L85 20M85 20L65 20M85 20L85 40" strokeWidth="4" />
                     </svg>
                 </div>
 
+                {/* Title */}
                 <div
                     style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
+                        fontSize: 72,
+                        fontWeight: 900,
+                        letterSpacing: '-0.03em',
+                        color: 'white',
+                        marginBottom: 16,
+                        lineHeight: 1,
                     }}
                 >
-                    <div
-                        style={{
-                            fontSize: 80,
-                            fontWeight: 900,
-                            letterSpacing: '-0.04em',
-                            color: 'white',
-                            marginBottom: 20,
-                            lineHeight: 1,
-                            textShadow: '0 0 40px rgba(255,255,255,0.2)',
-                        }}
-                    >
-                        IONOS Mailer
-                    </div>
-
-                    <div
-                        style={{
-                            fontSize: 32,
-                            fontWeight: 500,
-                            color: '#888',
-                            letterSpacing: '-0.02em',
-                            marginBottom: 60,
-                        }}
-                    >
-                        Professional Email Marketing & SMTP Analysis
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        {['Secure', 'Analytics', 'Fast', 'SMTP'].map((tag) => (
-                            <div
-                                key={tag}
-                                style={{
-                                    padding: '10px 24px',
-                                    background: '#111',
-                                    border: '1px solid #222',
-                                    borderRadius: '99px',
-                                    fontSize: 18,
-                                    color: '#ddd',
-                                    fontWeight: 600,
-                                    letterSpacing: '-0.01em',
-                                }}
-                            >
-                                {tag}
-                            </div>
-                        ))}
-                    </div>
+                    IONOS Mailer
                 </div>
 
-                {/* Decorative Grid Overlay */}
+                {/* Subtitle */}
+                <div
+                    style={{
+                        fontSize: 28,
+                        fontWeight: 400,
+                        color: '#888888',
+                        letterSpacing: '0.02em',
+                        marginBottom: 50,
+                    }}
+                >
+                    Professional Email Delivery
+                </div>
+
+                {/* Feature Tags */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {['SMTP', 'Scheduling', 'Tracking', 'Encryption'].map((tag) => (
+                        <div
+                            key={tag}
+                            style={{
+                                padding: '12px 28px',
+                                background: 'transparent',
+                                border: '2px solid #444444',
+                                borderRadius: '100px',
+                                fontSize: 18,
+                                color: '#ffffff',
+                                fontWeight: 600,
+                                letterSpacing: '0.01em',
+                            }}
+                        >
+                            {tag}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Bottom Border */}
                 <div
                     style={{
                         position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '1px',
-                        background: 'linear-gradient(90deg, transparent 0%, #333 50%, transparent 100%)',
-                        opacity: 0.2,
+                        bottom: 30,
+                        fontSize: 16,
+                        color: '#555555',
+                        letterSpacing: '0.05em',
                     }}
-                />
-                <div
-                    style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: '1px',
-                        background: 'linear-gradient(90deg, transparent 0%, #333 50%, transparent 100%)',
-                        opacity: 0.2,
-                    }}
-                />
+                >
+                    ionos-mailer.vercel.app
+                </div>
             </div>
         ),
         {
@@ -142,3 +122,4 @@ export default async function Image() {
         }
     )
 }
+
