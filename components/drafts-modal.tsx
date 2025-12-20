@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { SecurityLoader } from '@/components/security-loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,6 @@ import { EmailDraft, loadDrafts, saveDraft, deleteDraft } from '@/lib/drafts'
 import { Attachment } from '@/lib/schemas'
 import { toast } from 'sonner'
 import { cn } from "@/lib/utils"
-import { SecurityLoader } from "@/components/security-loader"
 
 interface DraftsModalProps {
     currentSubject: string

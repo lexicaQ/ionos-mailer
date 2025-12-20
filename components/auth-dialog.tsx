@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ResponsiveModal } from "@/components/responsive-modal"
+import { startAuthentication } from "@simplewebauthn/browser"
 import { toast } from "sonner"
-import { LogOut, Loader2, Cloud, Mail } from "lucide-react"
+import { LogOut, Loader2, Cloud, Mail, Fingerprint } from "lucide-react"
 
 interface AuthDialogProps {
     customTrigger?: React.ReactNode
