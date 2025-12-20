@@ -345,6 +345,7 @@ export function LiveCampaignTracker() {
                                     // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
                                     displayIndex={filteredCampaigns.length - idx}
                                     onDelete={(e) => deleteCampaign(c.id, e)}
+                                    searchTerm={searchTerm}
                                 />
                             ))}
                             {/* Anchor to scroll to bottom if needed in future */}
@@ -357,17 +358,31 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void }) {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, searchTerm: string }) {
     const calculateProgress = (c: Campaign) => c.stats.total > 0
         ? ((c.stats.sent + c.stats.failed) / c.stats.total) * 100
         : 0;
 
     const [isOpen, setIsOpen] = useState(() => {
-        // Auto-collapse if 100% finished
+        // Auto-collapse if 100% finished, UNLESS searching
+        if (searchTerm) return true;
         return calculateProgress(campaign) < 100;
     });
 
+    // Auto-open if search term matches something inside
+    useEffect(() => {
+        if (searchTerm) setIsOpen(true);
+    }, [searchTerm]);
+
     const progress = calculateProgress(campaign);
+
+    // Filter jobs based on search term
+    const filteredJobs = campaign.jobs.filter(job =>
+        !searchTerm ||
+        job.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.subject.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <motion.div
@@ -448,7 +463,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete }: { campa
                         <div className="flex-1 min-w-0">Recipient</div>
                         <div className="w-[45px] sm:w-[140px] text-right">Time</div>
                     </div>
-                    {campaign.jobs.map((job) => (
+                    {filteredJobs.length === 0 && (
+                        <div className="p-4 text-center text-xs text-muted-foreground">
+                            No emails match "{searchTerm}"
+                        </div>
+                    )}
+                    {filteredJobs.map((job) => (
                         <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-2 sm:gap-4">
 
                             {/* Status Pill - FIRST */}
