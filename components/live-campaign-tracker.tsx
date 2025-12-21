@@ -140,11 +140,10 @@ export function LiveCampaignTracker() {
         // Initial fetch
         fetchCampaigns(false);
 
-        // Refresh Data Interval (display only - no cron triggering)
+        // Refresh Data Interval (display only - fast polling for instant updates)
         const refreshInterval = setInterval(() => {
-            if (open) fetchCampaigns(true); // Pass true to avoid spinner flicker
-            else if (Math.random() > 0.4) fetchCampaigns(true); // Probabilistic throttling ~5-6s
-        }, 3000);
+            fetchCampaigns(true); // Always background refresh, no spinner
+        }, 2000); // 2 second interval for fast status updates
 
         // NOTE: Auto-process trigger REMOVED to reduce Fluid Active CPU usage
         // Email processing is now handled ONLY by external cron-job.org (1x/minute)
@@ -153,7 +152,7 @@ export function LiveCampaignTracker() {
         return () => {
             clearInterval(refreshInterval);
         }
-    }, [open, fetchCampaigns]);
+    }, [fetchCampaigns]);
 
     useEffect(() => {
         if (open) fetchCampaigns(false);
