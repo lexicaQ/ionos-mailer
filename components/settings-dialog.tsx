@@ -377,11 +377,41 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             <p>Reset App</p>
                             <p>(Deletes history & settings)</p>
                         </div>
-                        <Button variant="destructive" size="sm" onClick={() => {
-                            if (confirm("Do you really want to delete all local data (history, settings)?")) {
-                                localStorage.removeItem("ionos-mailer-history");
-                                localStorage.removeItem("smtp-config-full");
-                                window.location.reload();
+                        <Button variant="destructive" size="sm" onClick={async () => {
+                            if (!confirm("⚠️ WARNUNG: Dies löscht ALLE Daten (Einstellungen, History, Live-Kampagnen, Entwürfe, Cache) und lädt die Seite neu. Fortfahren?")) return;
+
+                            try {
+                                // 1. Clear ALL localStorage keys
+                                const keysToDelete = [
+                                    'ionos-mailer-history',
+                                    'smtp-config-full',
+                                    'ionos-mailer-campaigns-cache',
+                                    'ionos-mailer-deleted-campaigns',
+                                    'ionos-mailer-email-whitelist'
+                                ];
+                                keysToDelete.forEach(key => localStorage.removeItem(key));
+
+                                // 2. Delete server data (if logged in)
+                                if (session?.user) {
+                                    // Delete all campaigns
+                                    await fetch('/api/sync/history', { method: 'DELETE' });
+                                    // Delete all drafts  
+                                    await fetch('/api/drafts', { method: 'DELETE' });
+                                }
+
+                                // 3. Clear PWA/Service Worker caches
+                                if ('caches' in window) {
+                                    const cacheNames = await caches.keys();
+                                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                                }
+
+                                toast.success('Alle Daten gelöscht. Seite wird neu geladen...', { duration: 2000 });
+
+                                // 4. Reload page after short delay
+                                setTimeout(() => window.location.reload(), 1000);
+                            } catch (e) {
+                                console.error('Delete all data failed:', e);
+                                toast.error('Fehler beim Löschen. Versuche es erneut.');
                             }
                         }}>
                             <Trash2 className="h-3 w-3 mr-2" />

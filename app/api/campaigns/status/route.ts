@@ -58,6 +58,10 @@ export async function GET(req: NextRequest) {
                     scheduledFor: job.scheduledFor.toISOString(),
                     sentAt: job.sentAt?.toISOString() || null,
                     error: job.error,
+                    // Retry tracking
+                    retryCount: job.retryCount || 0,
+                    maxRetries: job.maxRetries || 3,
+                    nextRetryAt: job.nextRetryAt?.toISOString() || null,
                     // Tracking data
                     openedAt: job.openedAt?.toISOString() || null,
                     openCount: job.openCount

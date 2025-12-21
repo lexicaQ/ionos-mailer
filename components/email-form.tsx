@@ -640,8 +640,9 @@ export function EmailForm() {
                                         max={1440} // 24 hours
                                         step={1}
                                         onValueChange={(vals) => setDurationMinutes(vals[0])}
+                                        className="mb-3"
                                     />
-                                    <div className="flex justify-between text-xs text-neutral-400">
+                                    <div className="flex justify-between text-xs text-neutral-400 mt-1">
                                         <span>1 min</span>
                                         <span>24 hours</span>
                                     </div>

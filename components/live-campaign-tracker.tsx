@@ -618,6 +618,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                             job.status === 'FAILED' ? 'FAILED' :
                                                 'WAITING'}
                                     </Badge>
+                                    {/* Retry Badge */}
+                                    {(job as any).retryCount > 0 && (
+                                        <Badge className="h-4 px-1.5 text-[7px] sm:text-[8px] bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-0 font-bold">
+                                            RETRY #{(job as any).retryCount}
+                                        </Badge>
+                                    )}
                                 </div>
 
                                 {/* Opened Status - SECOND */}
