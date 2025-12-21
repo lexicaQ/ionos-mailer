@@ -22,7 +22,10 @@ export async function GET(req: Request) {
         const campaigns = await prisma.campaign.findMany({
             where: {
                 userId: session.user.id,
-                host: "DIRECT"
+                OR: [
+                    { host: "DIRECT" }, // Legacy Direct Sends
+                    { name: "DIRECT" }  // New Async Direct Sends
+                ]
             },
             take: 20, // Limit to 20 most recent batches
             orderBy: { createdAt: 'desc' },

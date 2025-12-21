@@ -49,6 +49,7 @@ interface HistoryModalProps {
     batches: HistoryBatch[]
     onDeleteBatch: (id: string) => void
     onClearAll: () => void
+    onRefresh?: () => void
 }
 
 // Shorten ID to first 8 characters
@@ -56,7 +57,7 @@ function shortId(id: string): string {
     return id.substring(0, 8)
 }
 
-export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModalProps) {
+export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: HistoryModalProps) {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed">("all")
@@ -90,13 +91,18 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
     }, [trackingIds])
 
     useEffect(() => {
-        if (open && trackingIds.length > 0) {
-            fetchTrackingStatus()
-            // Poll every 2 seconds for instant open detection (Real-time feel)
-            const interval = setInterval(fetchTrackingStatus, 2000)
-            return () => clearInterval(interval)
+        if (open) {
+            // Trigger parent refresh to get latest delivery status
+            if (onRefresh) onRefresh();
+
+            if (trackingIds.length > 0) {
+                fetchTrackingStatus()
+                // Poll every 2 seconds for instant open detection (Real-time feel)
+                const interval = setInterval(fetchTrackingStatus, 2000)
+                return () => clearInterval(interval)
+            }
         }
-    }, [open, trackingIds, fetchTrackingStatus])
+    }, [open, trackingIds, fetchTrackingStatus, onRefresh])
 
     const stats = useMemo(() => {
         const totalEmails = batches.reduce((sum, b) => sum + b.total, 0)

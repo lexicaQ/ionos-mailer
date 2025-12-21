@@ -63,41 +63,39 @@ export function EmailForm() {
         }
     }, [])
 
+    const syncHistory = useCallback(async () => {
+        if (!session?.user) return
+
+        try {
+            // 1. Fetch server history
+            // We use 'no-store' or timestamp to ensure fresh data
+            const res = await fetch("/api/sync/history?t=" + Date.now())
+            if (!res.ok) return
+            const serverData: HistoryBatch[] = await res.json()
+
+            // 2. Merge with local history
+            setHistory(prev => {
+                const map = new Map<string, HistoryBatch>()
+                prev.forEach(b => map.set(b.id, b))
+
+                // Server data is authoritative for status
+                serverData.forEach(b => map.set(b.id, { ...map.get(b.id), ...b }))
+
+                const merged = Array.from(map.values()).sort((a, b) =>
+                    new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
+                )
+
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(merged))
+                return merged
+            })
+        } catch (error) {
+            console.error("History sync failed", error)
+        }
+    }, [session])
+
     // Sync history from cloud when logged in
     useEffect(() => {
         if (!session?.user) return
-
-        const syncHistory = async () => {
-            try {
-                // 1. Fetch server history
-                const res = await fetch("/api/sync/history")
-                if (!res.ok) return
-                const serverData: HistoryBatch[] = await res.json()
-
-                // 2. Merge with local history (prefer local if conflict? or server? History is append-only mostly)
-                setHistory(prev => {
-                    // Create map by ID
-                    const map = new Map<string, HistoryBatch>()
-
-                    // Add local first
-                    prev.forEach(b => map.set(b.id, b))
-
-                    // Add server (overwriting if ID match? Usually harmless for history)
-                    // Server might have more up-to-date stats (clickedCount) if we implemented that.
-                    // Let's assume server is truth for properties, but we want union of items.
-                    serverData.forEach(b => map.set(b.id, { ...map.get(b.id), ...b }))
-
-                    const merged = Array.from(map.values()).sort((a, b) =>
-                        new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
-                    )
-
-                    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(merged))
-                    return merged
-                })
-            } catch (error) {
-                console.error("History sync failed", error)
-            }
-        }
 
         const syncDrafts = async () => {
             try {
@@ -129,7 +127,7 @@ export function EmailForm() {
 
         syncHistory()
         syncDrafts()
-    }, [session])
+    }, [session, syncHistory])
 
     const saveHistoryToServer = async (batch: HistoryBatch) => {
         if (!session?.user) return
@@ -468,6 +466,7 @@ export function EmailForm() {
                         batches={history}
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
+                        onRefresh={syncHistory}
                     />
                     <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <div className="hidden md:flex items-center gap-2 shrink-0">
