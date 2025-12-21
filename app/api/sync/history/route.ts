@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma"
 import { encrypt, decrypt } from "@/lib/encryption"
 import { NextResponse } from "next/server"
 
-// GET: List all history (Fetch from EmailJob)
+// GET: List all history (Fetch from Campaigns aka Batches)
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
     const session = await auth()
     if (!session?.user?.id) {
@@ -14,59 +16,74 @@ export async function GET(req: Request) {
         const secretKey = process.env.ENCRYPTION_KEY;
         if (!secretKey) throw new Error("Encryption key missing");
 
-        // Fetch jobs via campaigns owned by user
-        // We strict filter for campaigns created by the 'Direct Send' flow
-        const jobs = await prisma.emailJob.findMany({
+        // Fetch Campaigns (Direct Batches)
+        // Now that we create a unique Campaign for each Direct Send batch,
+        // we can fetch the campaigns and their jobs to reconstruct the history batch.
+        const campaigns = await prisma.campaign.findMany({
             where: {
-                campaign: {
-                    userId: session.user.id,
-                    host: "DIRECT" // Only show "Direct Send" emails in the history popup
-                },
-                status: { in: ['SENT', 'FAILED', 'PENDING', 'SENDING'] } // Include Waiting/Sending
+                userId: session.user.id,
+                host: "DIRECT"
             },
-            take: 50, // Limit to 50 for performance (Lazy Load)
+            take: 20, // Limit to 20 most recent batches
             orderBy: { createdAt: 'desc' },
-            include: { campaign: true } // Need campaign to verify ownership context if needed
-        })
-
-        // Map to expected history format (SentEmail-like structure)
-        const history = jobs.map(job => {
-            let email = "Encrypted";
-            let subject = "Encrypted";
-            try {
-                email = decrypt(job.recipient, secretKey);
-                // Try decrypt subject (it might be plain text in old legacy data, but assume encrypted for new)
-                // Actually subject IS encrypted in creation logic.
-                subject = decrypt(job.subject, secretKey);
-            } catch (e) {
-                // Determine if it was legacy plain text?
-                // For now, if decrypt fails, return raw or error. 
-                // Since this is a hard cutover, legacy data might break. 
-                // We'll return raw if decrypt fails, assuming legacy plain text.
-                email = job.recipient;
-                subject = job.subject;
+            include: {
+                jobs: {
+                    orderBy: { createdAt: 'asc' }
+                }
             }
+        });
 
-            return {
-                id: job.id,
-                sentAt: (job.sentAt || job.createdAt).toISOString(),
-                total: 1,
-                success: job.status === 'SENT' ? 1 : 0,
-                failed: job.status === 'FAILED' ? 1 : 0,
-                subject: subject,
-                body: "Check details", // Placeholder
-                results: [{
+        // Map to expected history format (HistoryBatch)
+        const history = campaigns.map(campaign => {
+            const results = campaign.jobs.map(job => {
+                let email = "Encrypted";
+                try {
+                    email = decrypt(job.recipient, secretKey);
+                } catch (e) {
+                    email = job.recipient; // Legacy fallback
+                }
+
+                return {
                     email: email,
                     status: (job.status === 'PENDING' || job.status === 'SENDING') ? 'waiting' : (job.status === 'SENT' ? 'success' : 'error'),
                     error: job.error,
                     trackingId: job.trackingId,
-                    messageId: undefined, // Not stored in EmailJob currently
+                    messageId: undefined,
                     batchTime: (job.sentAt || job.createdAt).toISOString()
-                }]
+                };
+            });
+
+            // Decrypt campaign name (which contains Subject: ...)
+            let subject = campaign.name || "Untitled";
+            // Check if name starts with "Direct: " (unencrypted) or is encrypted?
+            // Since we set name to `Direct: ${subject}` unencrypted in previous step, we can use it directly?
+            // Actually, `fromName` was set, not `name`. 
+            // Wait, Campaign model has `name` (for internal use) and `fromName` (for SMTP).
+            // In api/send-emails, I set `fromName` to "Direct: ...". I did NOT set `name`.
+            // So `campaign.name` might be null or "Direct Send [Month]" if legacy.
+            // Let's use `fromName` or `name` or subject from first job?
+            // The Subject is stored in `job.subject`. We can get it from first job.
+
+            if (campaign.jobs.length > 0) {
+                try {
+                    subject = decrypt(campaign.jobs[0].subject, secretKey);
+                } catch (e) {
+                    subject = campaign.jobs[0].subject;
+                }
+            }
+
+            return {
+                id: campaign.id,
+                sentAt: campaign.createdAt.toISOString(),
+                total: campaign.jobs.length,
+                success: campaign.jobs.filter(j => j.status === 'SENT').length,
+                failed: campaign.jobs.filter(j => j.status === 'FAILED').length,
+                subject: subject,
+                body: "View details", // Placeholder
+                results: results
             }
         });
 
-        // Return the batch list directly (it is already an array of HistoryBatch-like objects)
         return NextResponse.json(history)
 
     } catch (error) {

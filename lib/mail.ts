@@ -64,8 +64,10 @@ export async function sendEmail({ to, subject, text, html, config, attachments }
             maxConnections: 1,
             rateDelta: 1000,
             rateLimit: 3, // max 3 emails per second
-            // Close connection if idle for too long (e.g. 30s)
-            socketTimeout: 30000,
+            // Timeouts to prevent hanging (Fail fast for cron compatibility)
+            connectionTimeout: 10000, // 10s connection
+            greetingTimeout: 5000,    // 5s greeting
+            socketTimeout: 10000,     // 10s inactive
         });
         transporterCache.set(cacheKey, transporter);
     } else {

@@ -33,34 +33,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
         }
 
-        // 1. Find or Create "Direct Send" Campaign Container
-        // We group direct sends by Month to avoid one giant list
-        const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-        const campaignName = `Direct Send ${currentMonth}`;
-
-        // Try to find existing campaign for this user
-        let campaign = await prisma.campaign.findFirst({
-            where: {
+        // 1. Create a Unique Campaign for this Direct Batch
+        // This ensures that History Sync works correctly (1 Batch = 1 Campaign)
+        const campaign = await prisma.campaign.create({
+            data: {
                 userId: effectiveUserId,
-                host: "DIRECT", // Marker for direct containers
-                fromName: campaignName
+                host: "DIRECT",
+                port: 0,
+                user: "direct-send",
+                pass: encrypt("n/a", encryptionKey),
+                secure: true,
+                fromName: `Direct: ${subject.substring(0, 50)}${subject.length > 50 ? '...' : ''}`,
             }
         });
-
-        if (!campaign) {
-            // Create new container campaign
-            campaign = await prisma.campaign.create({
-                data: {
-                    userId: effectiveUserId,
-                    host: "DIRECT",
-                    port: 0,
-                    user: "direct-send",
-                    pass: encrypt("n/a", encryptionKey),
-                    secure: true,
-                    fromName: campaignName,
-                }
-            });
-        }
 
         // Sequential sending
         // Enforce minimum delay of 1.5s to avoid 450 rate limit errors
@@ -163,7 +148,7 @@ export async function POST(req: Request) {
             });
         }
 
-        return NextResponse.json({ results });
+        return NextResponse.json({ results, campaignId: campaign.id });
     } catch (error: any) {
         console.error('API Error:', error);
         return NextResponse.json(

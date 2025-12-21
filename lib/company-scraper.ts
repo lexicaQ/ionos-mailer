@@ -13,7 +13,7 @@ export async function extractCompanyFromEmail(email: string): Promise<string | n
         // Try to fetch the website
         // Try https first
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout for speed
 
         try {
             const url = `https://${domain}`;

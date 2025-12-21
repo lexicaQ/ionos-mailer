@@ -202,7 +202,7 @@ export function EmailForm() {
                 const successCount = results.filter(r => r.success).length;
 
                 const newBatch: HistoryBatch = {
-                    id: crypto.randomUUID(),
+                    id: resultData.campaignId || crypto.randomUUID(),
                     sentAt: new Date().toISOString(),
                     total: results.length,
                     results: results, // Include results for details
