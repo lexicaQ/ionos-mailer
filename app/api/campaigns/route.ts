@@ -79,33 +79,8 @@ export async function POST(req: Request) {
             data: jobsData
         });
 
-        // 3. AUTO-TRIGGER: Immediately process the first batch of emails
-        // This ensures emails start sending even without external cron
-        try {
-            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-                || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-            // Fire and wait slightly to ensure connection is established before function exit
-            console.log(`Auto-triggering cron at: ${baseUrl}/api/cron/process`);
-
-            // We AWAIT this to ensure the serverless function doesn't freeze before the request is sent.
-            // But we catch errors so we don't block the UI success state if the trigger fails.
-            await fetch(`${baseUrl}/api/cron/process`, {
-                method: 'GET',
-                headers: { 'x-manual-trigger': 'true' }
-            }).then(async (res) => {
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error('Auto-trigger response error:', res.status, text);
-                } else {
-                    console.log('Auto-trigger successful');
-                }
-            }).catch(e => console.error('Auto-trigger failed:', e));
-
-        } catch (triggerError) {
-            console.error('Failed to auto-trigger cron:', triggerError);
-            // Don't fail the campaign creation if trigger fails
-        }
+        // 3. AUTO-TRIGGER REMOVED: Moved to client-side for "Instant" UI response.
+        // The client will trigger the cron job in the background after receiving the success response.
 
         return NextResponse.json({
             success: true,

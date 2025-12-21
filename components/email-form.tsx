@@ -194,6 +194,13 @@ export function EmailForm() {
             if (useBackground) {
                 toast.success(`Campaign started! ${resultData.jobCount} emails scheduled.`);
                 setCurrentResults([]);
+
+                // Trigger Cron Job immediately (Fire & Forget from Client)
+                // This makes the UI feel instant as we don't wait for the first batch to process
+                fetch("/api/cron/process", {
+                    method: 'GET',
+                    headers: { 'x-manual-trigger': 'true' }
+                }).catch(e => console.error("Background trigger failed (harmless):", e));
             } else {
                 const results: SendResult[] = resultData.results;
                 setCurrentResults(results);

@@ -81,10 +81,16 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     // Helper: Check duplicates (excludes whitelisted emails)
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
-        setIsChecking(true);
+        // Delay showing loading spinner to prevent flicker for fast operations
+        const loadingTimer = setTimeout(() => setIsChecking(true), 500);
+
         try {
             const emailList = recipients.map(r => r.email);
-            if (emailList.length === 0) return recipients;
+            if (emailList.length === 0) {
+                clearTimeout(loadingTimer);
+                setIsChecking(false);
+                return recipients;
+            }
 
             const res = await fetch('/api/check-duplicates', {
                 method: 'POST',
@@ -112,6 +118,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             console.error("Duplicate check error", e);
             return recipients;
         } finally {
+            clearTimeout(loadingTimer);
             setIsChecking(false);
         }
     };
