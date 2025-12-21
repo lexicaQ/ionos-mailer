@@ -14,11 +14,12 @@ import {
 } from "@/components/ui/dialog"
 import {
     Activity, CheckCircle, XCircle, Clock, Mail,
-    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText, X
+    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText, X, Loader2
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 interface EmailJob {
     id: string
@@ -53,6 +54,7 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     const [loading, setLoading] = useState(false)
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const [cancelingJobId, setCancelingJobId] = useState<string | null>(null)
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -620,19 +622,35 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto"
+                                            disabled={cancelingJobId === job.id}
+                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto disabled:opacity-50"
                                             onClick={async (e) => {
                                                 e.stopPropagation();
                                                 if (!confirm("Cancel this email?")) return;
+
+                                                setCancelingJobId(job.id);
                                                 try {
-                                                    await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
+                                                    const res = await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
+                                                    if (res.ok) {
+                                                        toast.success("Email canceled");
+                                                        fetchCampaigns();
+                                                    } else {
+                                                        throw new Error("Failed to cancel");
+                                                    }
                                                 } catch (e) {
                                                     console.error(e);
+                                                    toast.error("Failed to cancel email");
+                                                } finally {
+                                                    setCancelingJobId(null);
                                                 }
                                             }}
                                             title="Cancel Email"
                                         >
-                                            <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            {cancelingJobId === job.id ? (
+                                                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                                            ) : (
+                                                <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                            )}
                                         </Button>
                                     )}
                                 </div>

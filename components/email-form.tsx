@@ -558,7 +558,13 @@ export function EmailForm() {
                                     <p className="text-xs text-neutral-500">Emails are sent distributed over time</p>
                                 </div>
                             </div>
-                            <Switch id="bg-mode" checked={useBackground} onCheckedChange={setUseBackground} />
+                            <Switch id="bg-mode" checked={useBackground} onCheckedChange={(checked) => {
+                                setUseBackground(checked);
+                                // Clear direct send results when switching to campaign mode
+                                if (checked) {
+                                    setCurrentResults([]);
+                                }
+                            }} />
                         </div>
 
                         {useBackground && (
@@ -578,32 +584,13 @@ export function EmailForm() {
                                                 />
                                             </FormControl>
 
-                                            {/* Status View: Shows progress and immediate results */}
-                                            <StatusView
-                                                isSending={isSending}
-                                                progress={sendProgress}
-                                                results={currentResults}
-                                            />
 
-                                            {/* "View History" Button - Shows only after successful send */}
-                                            {!isSending && currentResults.length > 0 && (
-                                                <div className="flex justify-center mt-4 animate-in fade-in slide-in-from-bottom-2">
-                                                    <LiveCampaignTracker
-                                                        customTrigger={
-                                                            <Button variant="outline" className="gap-2">
-                                                                <Clock className="h-4 w-4" />
-                                                                View Tracking & History
-                                                            </Button>
-                                                        }
-                                                    />
-                                                </div>
-                                            )}
 
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                <div>
+                                <div className="space-y-3">
                                     <div className="flex items-center justify-between mb-3">
                                         <Label className="text-sm font-medium">Distribution Duration</Label>
                                         <span className="text-sm font-mono bg-white dark:bg-neutral-800 px-3 py-1 rounded-lg shadow-sm">
@@ -620,12 +607,12 @@ export function EmailForm() {
                                         step={1}
                                         onValueChange={(vals) => setDurationMinutes(vals[0])}
                                     />
-                                    <div className="flex justify-between text-xs text-neutral-400">
+                                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
                                         <span>1 min</span>
                                         <span>24 hours</span>
                                     </div>
                                 </div>
-                                <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
+                                <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 space-y-3">
                                     <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-neutral-800">
                                         <p className="text-sm font-semibold">Delivery Schedule</p>
                                         <p className="text-xs font-mono">{recipients.length} Recipients</p>
@@ -688,6 +675,31 @@ export function EmailForm() {
                     </div>
                 </form>
             </Form>
+
+            {/* Status View & History Button - Only shown for DIRECT send mode */}
+            {!useBackground && (
+                <>
+                    <StatusView
+                        isSending={isSending}
+                        progress={sendProgress}
+                        results={currentResults}
+                    />
+
+                    {/* \"View History\" Button - Shows only after successful send */}
+                    {!isSending && currentResults.length > 0 && (
+                        <div className="flex justify-center mt-4 animate-in fade-in slide-in-from-bottom-2">
+                            <LiveCampaignTracker
+                                customTrigger={
+                                    <Button variant="outline" className="gap-2">
+                                        <Clock className="h-4 w-4" />
+                                        View Tracking & History
+                                    </Button>
+                                }
+                            />
+                        </div>
+                    )}
+                </>
+            )}
 
 
 
