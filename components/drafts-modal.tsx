@@ -250,11 +250,11 @@ export function DraftsModal({
                                             <div
                                                 key={draft.id}
                                                 onClick={() => handleLoadDraft(draft)}
-                                                className="group relative flex flex-col p-4 rounded-xl border border-neutral-200/60 dark:border-neutral-800/60 bg-white dark:bg-[#1e1e1e] hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-900 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-sm h-[180px]"
+                                                className="group relative flex flex-col p-4 rounded-xl border border-neutral-200/60 dark:border-neutral-800/60 bg-white dark:bg-[#1e1e1e] hover:shadow-lg hover:border-neutral-300 dark:hover:border-neutral-700 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-sm h-[180px]"
                                             >
                                                 <div className="flex justify-between items-start gap-4 mb-2">
                                                     <div className="min-w-0 flex-1 pr-6 space-y-1.5">
-                                                        <h4 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                        <h4 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1 transition-colors">
                                                             {draft.name}
                                                         </h4>
                                                         {draft.subject ? (
