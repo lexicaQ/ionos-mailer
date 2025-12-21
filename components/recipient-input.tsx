@@ -35,10 +35,17 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     // Helper: Check duplicates
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
-        setIsChecking(true);
+        // Only show animation if it takes longer than 200ms (fast = no spinner)
+        let showLoadingTimer: NodeJS.Timeout | null = setTimeout(() => {
+            setIsChecking(true);
+        }, 200);
+
         try {
             const emailList = recipients.map(r => r.email);
-            if (emailList.length === 0) return recipients;
+            if (emailList.length === 0) {
+                if (showLoadingTimer) clearTimeout(showLoadingTimer);
+                return recipients;
+            }
 
             const res = await fetch('/api/check-duplicates', {
                 method: 'POST',
@@ -51,9 +58,6 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 const email = r.email;
                 if (duplicates.has(email) || duplicates.has(email.toLowerCase())) {
                     return { ...r, valid: true, duplicate: true, reason: "Duplicate: Already sent in previous campaign" };
-                    // Ensure 'valid: true' so they appear in valid tab (but crossed out)
-                    // Wait, if valid: true, they are in onRecipientsChange?
-                    // I filter them out of onRecipientsChange explicitly.
                 }
                 return r;
             });
@@ -61,6 +65,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             console.error("Duplicate check error", e);
             return recipients;
         } finally {
+            if (showLoadingTimer) clearTimeout(showLoadingTimer);
             setIsChecking(false);
         }
     };
@@ -192,8 +197,8 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                 <TabsList className="grid w-fit grid-cols-2">
                                     <TabsTrigger value="valid" className="gap-2">
                                         <Check className="h-4 w-4 text-green-500" />
-                                        Valid ({validEmails.length})
-                                        {duplicateEmails.length > 0 && (
+                                        Valid ({ignoreDuplicates ? validEmails.length + duplicateEmails.length : validEmails.length})
+                                        {duplicateEmails.length > 0 && !ignoreDuplicates && (
                                             <span className="ml-1 text-xs text-red-500 font-semibold line-through decoration-red-500/50 opacity-80 decoration-2 animate-in fade-in slide-in-from-left-1">
                                                 +{duplicateEmails.length}
                                             </span>
@@ -245,16 +250,16 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         return (
                                             <Badge
                                                 key={recipient.id}
-                                                variant={isDuplicate ? "destructive" : "secondary"}
+                                                variant={(isDuplicate && !ignoreDuplicates) ? "destructive" : "secondary"}
                                                 className={cn(
                                                     "flex items-center gap-1 px-3 py-1.5 border transition-all",
-                                                    isDuplicate
+                                                    (isDuplicate && !ignoreDuplicates)
                                                         ? "line-through opacity-70 bg-red-100 text-red-700 hover:bg-red-200 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                                                         : isGeneric
                                                             ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
                                                             : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                                                 )}
-                                                title={isDuplicate ? recipient.reason : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address")}
+                                                title={(isDuplicate && !ignoreDuplicates) ? recipient.reason : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address")}
                                             >
                                                 {isDuplicate && <span className="sr-only">Duplicate: </span>}
                                                 {isGeneric && !isDuplicate && <AlertTriangle className="h-3 w-3 mr-1" />}
