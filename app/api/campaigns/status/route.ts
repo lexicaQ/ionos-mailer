@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
 import { auth } from '@/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         // CRITICAL: Use authenticated session instead of spoofable header

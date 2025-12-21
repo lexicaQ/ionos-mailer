@@ -20,9 +20,10 @@ export interface HistoryBatch {
 
 interface HistoryListProps {
     batches: HistoryBatch[]
+    trackingStatus?: Record<string, { opened: boolean; openedAt: string | null }>
 }
 
-export function HistoryList({ batches }: HistoryListProps) {
+export function HistoryList({ batches, trackingStatus = {} }: HistoryListProps) {
     const [expandedBatch, setExpandedBatch] = useState<string | null>(null)
 
     if (batches.length === 0) return null;
@@ -121,8 +122,13 @@ export function HistoryList({ batches }: HistoryListProps) {
                                                     {result.messageId || '—'}
                                                 </TableCell>
                                                 <TableCell className="w-[120px]">
-                                                    {/* Placeholder for Opened Status - Live data requires Tracker */}
-                                                    <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
+                                                    {result.trackingId && trackingStatus[result.trackingId]?.opened ? (
+                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 text-[10px] px-1.5 py-0 h-5">
+                                                            Opened {new Date(trackingStatus[result.trackingId].openedAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

@@ -92,8 +92,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
     useEffect(() => {
         if (open && trackingIds.length > 0) {
             fetchTrackingStatus()
-            // Poll every 5 seconds for fast open detection
-            const interval = setInterval(fetchTrackingStatus, 5000)
+            // Poll every 2 seconds for instant open detection (Real-time feel)
+            const interval = setInterval(fetchTrackingStatus, 2000)
             return () => clearInterval(interval)
         }
     }, [open, trackingIds, fetchTrackingStatus])
