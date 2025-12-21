@@ -512,7 +512,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 key={job.id}
                                 className={`p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 relative
                                     ${isInQueue ? 'bg-neutral-50 dark:bg-neutral-900/50' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}
-                                    ${isNextUp ? 'border-l-3 border-l-neutral-400 dark:border-l-neutral-500' : ''}`}
+                                    ${isNextUp ? 'border-l-4 border-l-neutral-400 dark:border-l-neutral-500' : ''}`}
                             >
 
                                 {/* Status Pill - FIRST */}
