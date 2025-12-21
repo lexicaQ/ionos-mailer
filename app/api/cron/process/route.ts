@@ -38,8 +38,8 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // BATCH SIZE: Process up to 10 emails per invocation
-        const BATCH_SIZE = 10;
+        // SEQUENTIAL PROCESSING: Process 1 email per invocation for controlled pacing
+        const BATCH_SIZE = 1;
         const now = new Date();
 
         // PRIORITY QUEUE SYSTEM:
