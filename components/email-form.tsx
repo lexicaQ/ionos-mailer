@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,6 +53,7 @@ export function EmailForm() {
     const [fileImportOpen, setFileImportOpen] = useState(false)
 
     const [isHistorySyncing, setIsHistorySyncing] = useState(false)
+    const historyManuallyCleared = useRef(false) // Track if user cleared history
     const [startImmediately, setStartImmediately] = useState(true)
 
     // Reset start time when immediate mode is enabled
@@ -75,7 +76,7 @@ export function EmailForm() {
     }, [])
 
     const syncHistory = useCallback(async () => {
-        if (!session?.user) return
+        if (!session?.user || historyManuallyCleared.current) return // Skip if manually cleared
 
         setIsHistorySyncing(true)
         try {
@@ -308,6 +309,7 @@ export function EmailForm() {
 
     const handleClearAllHistory = () => {
         // Clear ONLY local history (NOT server campaigns!)
+        historyManuallyCleared.current = true; // Set flag to prevent auto-sync
         setHistory([]);
         localStorage.removeItem("ionos-mailer-history");
         toast.success("History cleared", { duration: 1500 });
