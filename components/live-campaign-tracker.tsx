@@ -470,108 +470,122 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                             No emails match "{searchTerm}"
                         </div>
                     )}
-                    {filteredJobs.map((job) => (
-                        <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-3 sm:gap-4">
+                    {filteredJobs.map((job) => {
+                        // Determine if this is the NEXT job to be processed (First PENDING)
+                        const isNextUp = job.status === 'PENDING' && !campaign.jobs.find(j => j.status === 'PENDING' && new Date(j.scheduledFor) < new Date(job.scheduledFor));
 
-                            {/* Status Pill - FIRST */}
-                            <div className="w-[65px] sm:w-[100px] flex-shrink-0">
-                                <Badge
-                                    variant={job.status === 'SENT' ? 'default' : 'secondary'}
-                                    className={`
+                        return (
+                            <div
+                                key={job.id}
+                                className={`p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 relative
+                                    ${isNextUp ? 'bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-blue-500' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}`}
+                            >
+
+                                {/* Status Pill - FIRST */}
+                                <div className="w-[65px] sm:w-[100px] flex-shrink-0">
+                                    <Badge
+                                        variant={job.status === 'SENT' ? 'default' : 'secondary'}
+                                        className={`
                                         h-5 sm:h-6 px-0 text-[8px] sm:text-[10px] border-0 font-bold tracking-wide w-[60px] sm:w-[90px] justify-center shadow-none
                                         ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100' :
-                                            job.status === 'FAILED' ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400' :
-                                                'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
+                                                job.status === 'FAILED' ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400' :
+                                                    'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
                                     `}
-                                >
-                                    {job.status === 'SENT' ? 'SENT' :
-                                        job.status === 'FAILED' ? 'FAILED' :
-                                            'WAITING'}
-                                </Badge>
-                            </div>
-
-                            {/* Opened Status - SECOND */}
-                            <div className="w-[45px] sm:w-[110px] flex-shrink-0">
-                                {job.openedAt ? (
-                                    <div className="flex flex-col leading-none sm:leading-tight">
-                                        <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
-                                            <span className="block sm:inline">{format(new Date(job.openedAt), "dd.MM")}</span>
-                                            <span className="hidden sm:inline"> at </span>
-                                            <span className="block sm:inline">{format(new Date(job.openedAt), "HH:mm")}</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
-                                )}
-                            </div>
-
-                            {/* Recipient - THIRD (aligned with header) */}
-                            <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none">
-                                <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
-                                    {job.recipient}
-                                </div>
-                                <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80 max-w-full" title={job.subject}>
-                                    {job.subject ? (
-                                        <>
-                                            <span className="sm:hidden">{job.subject.length > 25 ? job.subject.slice(0, 25) + "..." : job.subject}</span>
-                                            <span className="hidden sm:inline">{job.subject.length > 50 ? job.subject.slice(0, 50) + "..." : job.subject}</span>
-                                        </>
-                                    ) : "(No Subject)"}
-                                </div>
-                            </div>
-
-                            {/* Times - LAST (wider on mobile to prevent overlap) */}
-                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
-                                <div className="text-right">
-                                    <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
-                                    <div className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>
-                                </div>
-
-                                {job.sentAt && (
-                                    <div className="text-right">
-                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Sent</div>
-                                        <div className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 sm:px-1.5 py-0.5 rounded">
-                                            {format(new Date(job.sentAt), "HH:mm")}
-                                        </div>
-                                        {/* Show delay if sent more than 1 minute after scheduled */}
-                                        {(() => {
-                                            const delayMs = new Date(job.sentAt).getTime() - new Date(job.scheduledFor).getTime();
-                                            const delayMin = Math.round(delayMs / 60000);
-                                            if (delayMin > 1) {
-                                                return (
-                                                    <div className="text-[8px] sm:text-[9px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
-                                                        +{delayMin} min
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
-                                    </div>
-                                )}
-
-                                {/* Cancel Job Button */}
-                                {job.status === 'PENDING' && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto"
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            if (!confirm("Cancel this email?")) return;
-                                            try {
-                                                await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
-                                            } catch (e) {
-                                                console.error(e);
-                                            }
-                                        }}
-                                        title="Cancel Email"
                                     >
-                                        <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                    </Button>
-                                )}
+                                        {job.status === 'SENT' ? 'SENT' :
+                                            job.status === 'FAILED' ? 'FAILED' :
+                                                'WAITING'}
+                                    </Badge>
+                                </div>
+
+                                {/* Opened Status - SECOND */}
+                                <div className="w-[45px] sm:w-[110px] flex-shrink-0">
+                                    {job.openedAt ? (
+                                        <div className="flex flex-col leading-none sm:leading-tight">
+                                            <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
+                                                <span className="block sm:inline">{format(new Date(job.openedAt), "dd.MM")}</span>
+                                                <span className="hidden sm:inline"> at </span>
+                                                <span className="block sm:inline">{format(new Date(job.openedAt), "HH:mm")}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
+                                    )}
+                                </div>
+
+                                {/* Recipient - THIRD (aligned with header) */}
+                                <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none">
+                                    <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
+                                        {job.recipient}
+                                    </div>
+                                    <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80 max-w-full" title={job.subject}>
+                                        {job.subject ? (
+                                            <>
+                                                <span className="sm:hidden">{job.subject.length > 25 ? job.subject.slice(0, 25) + "..." : job.subject}</span>
+                                                <span className="hidden sm:inline">{job.subject.length > 50 ? job.subject.slice(0, 50) + "..." : job.subject}</span>
+                                            </>
+                                        ) : "(No Subject)"}
+                                    </div>
+                                </div>
+
+                                {/* Times - LAST (wider on mobile to prevent overlap) */}
+                                <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
+                                    <div className="text-right">
+                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">
+                                            {job.status === 'PENDING' ? (new Date(job.scheduledFor) < new Date() ? 'Overdue' : 'Scheduled') : 'Scheduled'}
+                                        </div>
+                                        <div className={`font-mono text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded
+                                        ${new Date(job.scheduledFor) < new Date() && job.status === 'PENDING' ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-bold' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
+                                            {format(new Date(job.scheduledFor), "HH:mm")}
+                                        </div>
+                                    </div>
+
+                                    {job.sentAt && (
+                                        <div className="text-right">
+                                            <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Sent</div>
+                                            <div className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 sm:px-1.5 py-0.5 rounded">
+                                                {format(new Date(job.sentAt), "HH:mm")}
+                                            </div>
+                                            {/* Show delay if sent more than 1 minute after scheduled */}
+                                            {(() => {
+                                                const delayMs = new Date(job.sentAt).getTime() - new Date(job.scheduledFor).getTime();
+                                                const delayMin = Math.round(delayMs / 60000);
+                                                if (delayMin > 1) {
+                                                    return (
+                                                        <div className="text-[8px] sm:text-[9px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
+                                                            +{delayMin} min
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* Cancel Job Button */}
+                                    {job.status === 'PENDING' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto"
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (!confirm("Cancel this email?")) return;
+                                                try {
+                                                    await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
+                                                } catch (e) {
+                                                    console.error(e);
+                                                }
+                                            }}
+                                            title="Cancel Email"
+                                        >
+                                            <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </motion.div>
