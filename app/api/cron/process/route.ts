@@ -41,22 +41,51 @@ async function handleCronRequest(req: NextRequest) {
         // SEQUENTIAL PROCESSING: Process 1 email per invocation for controlled pacing
         const BATCH_SIZE = 1;
         const now = new Date();
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-        // PRIORITY QUEUE SYSTEM:
-        // 1. Regular scheduled emails (no nextRetryAt) - HIGHEST PRIORITY
-        // 2. Manual resend queue (nextRetryAt <= now) - SECOND PRIORITY
-        // 3. FAILED emails that haven't exceeded max retries - LOWEST PRIORITY (auto-retry)
+        // PRIORITY QUEUE SYSTEM (REVISED):
+        // 1. "Fresh" Priority Lane: Scheduled in the last 5 minutes.
+        //    Ensure these go out ASAP to keep the schedule "as planned".
+        // 2. Backlog Lane: Overdue by > 5 minutes.
+        //    Processed when no fresh emails are pending.
 
-        const scheduledJobs = await prisma.emailJob.findMany({
+        // 1. Try to fetch a FRESH job first
+        let priorityJob = await prisma.emailJob.findFirst({
             where: {
                 status: 'PENDING',
-                scheduledFor: { lte: now },
-                nextRetryAt: null // NOT a manual resend
+                scheduledFor: {
+                    gte: fiveMinutesAgo,
+                    lte: now
+                },
+                nextRetryAt: null
             },
             include: { campaign: { include: { attachments: true } } },
-            take: BATCH_SIZE,
-            orderBy: { scheduledFor: 'asc' } // Oldest first
+            orderBy: { scheduledFor: 'asc' } // Oldest of the fresh first
         });
+
+        // 2. If no fresh job, fetch from BACKLOG or Retry Queue
+        let scheduledJobs: any[] = [];
+
+        if (priorityJob) {
+            scheduledJobs = [priorityJob];
+        } else {
+            // Fetch One from Backlog (Overdue)
+            // We use 'desc' (Newest First) for backlog to prevent "Infinite Wait" for recent-ish items?
+            // User said: "send as planned".
+            // Actually, for backlog, 'asc' (Oldest First) is standard.
+            // But if we prioritized Fresh Lane, then 'asc' for backlog is fine because Fresh Lane jumps the queue.
+            // So I will stick to 'asc' for backlog to clear oldest debt.
+            scheduledJobs = await prisma.emailJob.findMany({
+                where: {
+                    status: 'PENDING',
+                    scheduledFor: { lte: now }, // This will pick up overdue items since Fresh query failed
+                    nextRetryAt: null
+                },
+                include: { campaign: { include: { attachments: true } } },
+                take: BATCH_SIZE,
+                orderBy: { scheduledFor: 'asc' }
+            });
+        }
 
         let remainingSlots = BATCH_SIZE - scheduledJobs.length;
 

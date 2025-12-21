@@ -7,8 +7,16 @@ import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { encrypt, decrypt } from '@/lib/encryption';
 
+import { auth } from "@/auth";
+
 export async function POST(req: Request) {
     try {
+        const session = await auth();
+        // Allow anonymous if no session? History won't work though. 
+        // User asked to fix history. History requires userID.
+        // Let's enforce auth or fallback nicely but prefer session.
+        const effectiveUserId = session?.user?.id || "anonymous";
+
         const json = await req.json();
         const result = emailFormSchema.safeParse(json);
 
@@ -19,8 +27,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { subject, body, recipients, smtpSettings, attachments, userId } = result.data as any;
-        const effectiveUserId = userId || "anonymous";
+        const { subject, body, recipients, smtpSettings, attachments } = result.data as any;
 
         const encryptionKey = process.env.ENCRYPTION_KEY;
         if (!encryptionKey) {
