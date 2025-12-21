@@ -62,25 +62,24 @@ export async function POST(req: Request) {
             });
         }
 
-        // Sequential sending
-        // Enforce minimum delay of 1.5s to avoid 450 rate limit errors
-        const explicitDelay = smtpSettings?.delay || 0;
-        const delayMs = Math.max(explicitDelay, 5000); // Minimum 5s for IONOS rate limit
-
         // Check if placeholders exist in the template
-        // We use the util regex for detection too
         const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
         const hasPlaceholders = PLACEHOLDER_REGEX.test(body) || PLACEHOLDER_REGEX.test(subject);
 
-        // 2. Schedule Jobs in Database (Queueing)
-        // We do NOT send immediately. We queue them for the Cron Job to pick up.
-        // This ensures reliability, correct 3-min intervals, and background processing.
+        // Rate limiting: minimum 3 seconds between emails for IONOS
+        const explicitDelay = smtpSettings?.delay || 0;
+        const delayMs = Math.max(explicitDelay, 3000);
 
         for (const recipient of recipients) {
+            // Rate limit protection: wait before each send
+            if (results.length > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+
             let finalSubject = subject;
             let finalBody = body;
 
-            // Perform replacement if needed (Synchronous part)
+            // Perform placeholder replacement if needed
             if (hasPlaceholders) {
                 try {
                     const companyName = await extractCompanyFromEmail(recipient.email);
@@ -93,29 +92,71 @@ export async function POST(req: Request) {
                 }
             }
 
-            // Generate unique tracking ID for this email
+            // Generate unique tracking ID
             const trackingId = randomUUID();
 
-            // Create PENDING job in DB
-            await prisma.emailJob.create({
+            // 1. Create PENDING job in DB first
+            const job = await prisma.emailJob.create({
                 data: {
                     campaignId: campaign.id,
                     recipient: encrypt(recipient.email, encryptionKey),
                     subject: encrypt(finalSubject, encryptionKey),
                     body: encrypt(finalBody, encryptionKey),
                     status: 'PENDING',
-                    scheduledFor: new Date(), // Available for pickup immediately by Cron
+                    scheduledFor: new Date(),
                     trackingId: trackingId
                 }
             });
 
-            // We return "success" for the queuing action
+            // 2. Process body with tracking
+            const htmlWithTracking = processBodyWithTracking(finalBody, trackingId, baseUrl);
+
+            let success = false;
+            let errorMsg: string | undefined = undefined;
+            let msgId: string | undefined = undefined;
+
+            try {
+                // Decrypt password for sending
+                const decryptedConfig = {
+                    ...smtpSettings,
+                    pass: decrypt(smtpSettings.pass, encryptionKey)
+                };
+
+                // SEND IMMEDIATELY
+                const sendResponse = await sendEmail({
+                    to: recipient.email,
+                    subject: finalSubject,
+                    text: finalBody,
+                    html: htmlWithTracking,
+                    config: decryptedConfig,
+                    attachments,
+                });
+                success = sendResponse.success;
+                errorMsg = sendResponse.error;
+                msgId = sendResponse.messageId;
+            } catch (e: any) {
+                success = false;
+                errorMsg = e.message;
+            }
+
+            // 3. Update job status in DB
+            await prisma.emailJob.update({
+                where: { id: job.id },
+                data: {
+                    status: success ? 'SENT' : 'FAILED',
+                    sentAt: success ? new Date() : undefined,
+                    error: errorMsg
+                }
+            });
+
+            // 4. Return result for UI feedback
             results.push({
                 email: recipient.email,
-                success: true, // Successfully QUEUED
-                messageId: `queued-${trackingId}`,
+                success: success,
+                messageId: msgId,
+                error: errorMsg,
                 timestamp: new Date().toISOString(),
-                trackingId: trackingId,
+                trackingId: success ? trackingId : undefined,
             });
         }
 
