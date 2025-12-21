@@ -241,7 +241,7 @@ export function DraftsModal({
                                     <p className="text-sm opacity-60 mt-1">Save a draft to see it here</p>
                                 </div>
                             ) : (
-                                <div className="p-6 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                                <div className="p-6 pb-12 grid grid-cols-1 gap-4">
                                     {filteredDrafts.map((draft) => {
                                         const imageCount = countImagesInBody(draft.body);
                                         const attachmentCount = draft.attachments?.length || 0;
