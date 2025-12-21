@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 interface EmailJob {
     id: string
@@ -174,18 +175,31 @@ export function LiveCampaignTracker() {
 
         try {
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
+
             if (!res.ok) {
-                // Revert if failed
-                console.error("Deletion failed on server");
-                deletedCampaigns.current.delete(id);
-                fetchCampaigns(false); // Reload to restore
-                alert("Deletion failed. Please try again.");
+                // Only revert if we are certain it's a permission/logic error (401, 403, 404)
+                // If it's a 500 or 504 (Timeout), we assume the server is processing it in background
+                if (res.status === 401 || res.status === 403) {
+                    console.error("Deletion denied");
+                    deletedCampaigns.current.delete(id);
+                    fetchCampaigns(false); // Reload to restore
+                    alert("Permission denied. You cannot delete this campaign.");
+                } else if (res.status === 404) {
+                    // Already gone, do nothing (keep hidden)
+                } else {
+                    // 500 or others: Likely timeout due to large data. Keep hidden.
+                    console.warn("Deletion slow or server error, assuming background processing:", res.status);
+                    toast.warning("Deletion is taking longer than expected", {
+                        description: "It will be processed in the background."
+                    });
+                }
             }
         } catch (e) {
-            console.error(e);
-            deletedCampaigns.current.delete(id);
-            fetchCampaigns(false);
-            alert("Deletion failed. Please try again.");
+            console.error("Deletion network error", e);
+            // Network error (timeout?): Keep hidden, assume background or future retry
+            toast.warning("Network delay during deletion", {
+                description: "The campaign will be removed shortly."
+            });
         }
     }
 

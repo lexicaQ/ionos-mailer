@@ -217,16 +217,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 />
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
-                        {isChecking ? (
-                            <span className="flex items-center gap-2 text-black dark:text-white animate-in fade-in duration-300">
-                                <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                                <span className="font-medium tracking-wide">Analyzing recipients...</span>
-                            </span>
-                        ) : (
-                            <span className="text-muted-foreground">
-                                Tip: Addresses are automatically analyzed when leaving the field
-                            </span>
-                        )}
+                        <span className="text-xs flex items-center gap-2 text-muted-foreground">
+                            Tip: Addresses are automatically analyzed when leaving the field
+                        </span>
                     </span>
                     <div className="flex items-center gap-2">
                         {customAction}
