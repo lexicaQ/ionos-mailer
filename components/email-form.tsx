@@ -305,22 +305,30 @@ export function EmailForm() {
     }
 
     const handleClearAllHistory = async () => {
-        // Optimistic update: Clear local state immediately for instant feedback
-        const previousHistory = [...history]; // Backup in case of error
+        // Clear ALL local caches immediately (optimistic for speed)
+        const previousHistory = [...history];
         setHistory([]);
         localStorage.removeItem("ionos-mailer-history");
-        localStorage.removeItem("ionos-mailer-campaigns-cache"); // Clear Live Tracker cache
-        localStorage.removeItem("ionos-mailer-deleted-campaigns"); // Clear deletion overrides
-        toast.success("History cleared");
+        localStorage.removeItem("ionos-mailer-campaigns-cache");
+        localStorage.removeItem("ionos-mailer-deleted-campaigns");
 
         try {
-            // Call server to delete history in background
-            await fetch('/api/sync/history', { method: 'DELETE' });
+            // Call server to delete history
+            const res = await fetch('/api/sync/history', { method: 'DELETE' });
+
+            if (!res.ok) {
+                throw new Error("Server returned error");
+            }
+
+            // SUCCESS: Notify Live Tracker to refresh (will return empty)
+            window.dispatchEvent(new Event('campaign-created'));
+            toast.success("History cleared");
+
         } catch (e) {
             console.error("Failed to clear history from server", e);
-            // Optional: Revert if critical, but user usually prefers speed.
-            // setHistory(previousHistory); 
-            // toast.error("Sync failed, history may reappear");
+            // Revert local state since server failed
+            setHistory(previousHistory);
+            toast.error("Failed to clear history. Please try again.");
         }
     }
     const handleLoadDraft = useCallback((draft: EmailDraft) => {

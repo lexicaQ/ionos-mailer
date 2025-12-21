@@ -204,7 +204,7 @@ model CampaignAttachment {
 model EmailJob {
   id           String    @id @default(uuid())
   campaignId   String
-  campaign     Campaign  @relation(fields: [campaignId], references: [id])
+  campaign     Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   
   recipient    String
   subject      String
