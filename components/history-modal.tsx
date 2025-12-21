@@ -376,8 +376,27 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                             {/* Table Header */}
                             <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
                                 <div className="w-[100px]">Status</div>
-                                <div className="w-[110px]">Opened</div>
-                                <div className="flex-1">Recipient</div>
+                                <div className="hidden sm:block w-[110px]">Opened</div> {/* Hide Opened col on mobile to save space? User only mentioned Recipient alignment. Let's start with just alignment. */}
+                                {/* Actually, if the email text is smaller, maybe we just need to ensure the header starts at same X. Flex gap handles this. */}
+                                {/* User said "move the colum title to the left so it starts at the same position as the actual email addresses below".
+                                    The email address is pushed by Status (100px) + Gap?
+                                    Ah, the header structure mirrors the row structure: 100px + (mobile hidden Opened?)
+                                    Wait, line 407 (Status Col 2) is 80px.
+                                    Line 385 (Status Badge) is 100px.
+                                    The "Opened" column in header is 110px.
+                                    The Row has: Badge(100px) + StatusText(80px).
+                                    This mismatch (100+110 vs 100+80) implies misalignment is occurring.
+                                    Let's fix the header columns to match the row columns.
+                                    Row: [100px Badge] [80px Text] [Flex-1 Email]
+                                    Header: [100px Status] [110px "Opened"] [Flex-1 Recipient]
+                                    This is why it's misaligned!
+                                    "Opened" header corresponds to the "StatusText" column? Or is the "StatusText" actually the opened status?
+                                    Line 407 logic shows "Opened" or "Waiting" or "Failed" text.
+                                    So Header "Opened" (110px) should match Row "Status Text" (80px?).
+                                    I will change Header "Opened" width to 80px to match Row.
+                                */}
+                                <div className="w-[80px]">Opened</div>
+                                <div className="flex-1 -ml-2 sm:ml-0">Recipient</div> {/* Slight negative margin on mobile to pull it left as requested */}
                                 <div className="w-[120px] text-right">Sent at</div>
                             </div>
 
@@ -438,7 +457,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
 
                                         {/* Recipient */}
                                         <div className="flex-1 min-w-0 pr-4">
-                                            <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={result.email}>
+                                            <div className="text-[10px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={result.email}>
                                                 {result.email}
                                             </div>
                                         </div>

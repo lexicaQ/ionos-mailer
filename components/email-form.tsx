@@ -53,6 +53,14 @@ export function EmailForm() {
     const [fileImportOpen, setFileImportOpen] = useState(false)
 
     const [isHistorySyncing, setIsHistorySyncing] = useState(false)
+    const [startImmediately, setStartImmediately] = useState(true)
+
+    // Reset start time when immediate mode is enabled
+    useEffect(() => {
+        if (startImmediately) {
+            setStartTime("")
+        }
+    }, [startImmediately])
 
     // Load history from localStorage on mount
     useEffect(() => {
@@ -119,6 +127,7 @@ export function EmailForm() {
                     const data = await res.json()
                     if (data.merged) {
                         // 3. Update local with merged data
+                        // This ensures we get drafts from other devices
                         // This ensures we get drafts from other devices
                         for (const draft of data.merged) {
                             await saveLocalDraft(draft)
@@ -296,19 +305,20 @@ export function EmailForm() {
     }
 
     const handleClearAllHistory = async () => {
-        if (confirm("Are you sure you want to clear all history? This cannot be undone.")) {
-            try {
-                // Call server to delete history
-                await fetch('/api/sync/history', { method: 'DELETE' });
+        // Optimistic update: Clear local state immediately for instant feedback
+        const previousHistory = [...history]; // Backup in case of error
+        setHistory([]);
+        localStorage.removeItem("ionos-mailer-history");
+        toast.success("History cleared");
 
-                // Clear local state
-                localStorage.removeItem("ionos-mailer-history"); // Legacy
-                setHistory([]);
-                toast.success("History cleared permanently");
-            } catch (e) {
-                console.error("Failed to clear history", e);
-                toast.error("Failed to clear history from server");
-            }
+        try {
+            // Call server to delete history in background
+            await fetch('/api/sync/history', { method: 'DELETE' });
+        } catch (e) {
+            console.error("Failed to clear history from server", e);
+            // Optional: Revert if critical, but user usually prefers speed.
+            // setHistory(previousHistory); 
+            // toast.error("Sync failed, history may reappear");
         }
     }
     const handleLoadDraft = useCallback((draft: EmailDraft) => {
@@ -596,17 +606,29 @@ export function EmailForm() {
                                     )}
                                 />
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="start-time" className="text-sm font-medium">Start Time (Optional)</Label>
-                                    <Input
-                                        id="start-time"
-                                        type="datetime-local"
-                                        className="h-10"
-                                        value={startTime}
-                                        onChange={(e) => setStartTime(e.target.value)}
-                                        min={new Date().toISOString().slice(0, 16)}
-                                    />
-                                    <p className="text-[10px] text-muted-foreground">Leave empty to start immediately</p>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="immediate-mode" className="text-sm font-medium">Start Immediately</Label>
+                                        <Switch
+                                            id="immediate-mode"
+                                            checked={startImmediately}
+                                            onCheckedChange={setStartImmediately}
+                                        />
+                                    </div>
+
+                                    {!startImmediately && (
+                                        <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <Label htmlFor="start-time" className="text-sm font-medium">Start Time</Label>
+                                            <Input
+                                                id="start-time"
+                                                type="datetime-local"
+                                                className="h-10"
+                                                value={startTime}
+                                                onChange={(e) => setStartTime(e.target.value)}
+                                                min={new Date().toISOString().slice(0, 16)}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>

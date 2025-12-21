@@ -49,7 +49,19 @@ interface Campaign {
 
 export function LiveCampaignTracker() {
     const [open, setOpen] = useState(false)
-    const [campaigns, setCampaigns] = useState<Campaign[]>([])
+    const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+            if (cached) {
+                try {
+                    return JSON.parse(cached);
+                } catch (e) {
+                    console.error("Cache parse failed", e);
+                }
+            }
+        }
+        return [];
+    })
     const [loading, setLoading] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
@@ -182,7 +194,7 @@ export function LiveCampaignTracker() {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 fetchCampaigns(true);
-            }, 300); // Wait 300ms before fetching after event
+            }, 50); // Almost instant update
         };
         window.addEventListener('campaign-created', handleCreation);
 
@@ -645,7 +657,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                     <div className="text-right flex flex-col items-end">
                                         <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 whitespace-nowrap">
                                             {isPending
-                                                ? (isOverdue ? "Next Schedule" : "Scheduled")
+                                                ? (isOverdue && diffInMinutes > 2 ? "Next Schedule" : "Scheduled")
                                                 : (isFailed ? "Failed At" : "Sent")
                                             }
                                         </div>
@@ -666,23 +678,28 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                             /* DONE (Sent or Failed) */
                                             <div className="flex flex-col items-end gap-1">
                                                 {!isFailed ? (
-                                                    <div className="flex items-center gap-2">
-                                                        {/* Original Schedule (Grey) */}
-                                                        <span className="font-mono text-[9px] sm:text-[10px] text-neutral-400 opacity-70 line-through decoration-neutral-300 dark:decoration-neutral-700" title="Original Schedule">
-                                                            {format(new Date(job.scheduledFor), "HH:mm")}
-                                                        </span>
-
-                                                        {/* Actual Sent Time (Green) */}
-                                                        <span className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
-                                                            {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : "-"}
-                                                        </span>
-
-                                                        {/* Delay Tag (Orange) */}
-                                                        {sentDelay > 0 && (
-                                                            <span className="text-[9px] font-bold text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded whitespace-nowrap">
-                                                                +{sentDelay} min
+                                                    <div className="flex items-center gap-3">
+                                                        {/* Original Schedule Group */}
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-[8px] text-neutral-400 font-medium leading-none mb-0.5">Scheduled</span>
+                                                            <span className="font-mono text-[9px] sm:text-[10px] text-neutral-600 dark:text-neutral-400 font-bold bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
+                                                                {format(new Date(job.scheduledFor), "HH:mm")}
                                                             </span>
-                                                        )}
+                                                        </div>
+
+                                                        {/* Actual Sent Time Group */}
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-[8px] text-green-600/70 dark:text-green-400/70 font-medium leading-none mb-0.5">Sent</span>
+                                                            <span className="font-mono text-[9px] sm:text-[10px] text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
+                                                                {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : "-"}
+                                                            </span>
+                                                            {/* Delay Text (Below) */}
+                                                            {sentDelay > 2 && (
+                                                                <span className="text-[8px] font-medium text-orange-500 dark:text-orange-400 mt-0.5 leading-none">
+                                                                    +{sentDelay} min
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <span className="font-mono text-[9px] sm:text-xs bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded">

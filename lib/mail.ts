@@ -61,13 +61,13 @@ export async function sendEmail({ to, subject, text, html, config, attachments }
             },
             // Connection pooling for better performance
             pool: true,
-            maxConnections: 1,
+            maxConnections: 1, // Keep single connection to avoid blocking
             rateDelta: 1000,
             rateLimit: 3, // max 3 emails per second
-            // Timeouts to prevent hanging (Fail fast for cron compatibility)
-            connectionTimeout: 20000, // 20s connection (increased for reliability)
-            greetingTimeout: 10000,    // 10s greeting
-            socketTimeout: 20000,     // 20s inactive
+            // High Timeouts for reliability (Prevents "Connection Timeout" on weak networks)
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000,
         });
         transporterCache.set(cacheKey, transporter);
     } else {
