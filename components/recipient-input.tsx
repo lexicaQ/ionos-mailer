@@ -94,7 +94,13 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const handleParse = async () => {
         const results = parseRecipients(rawInput);
 
-        // Check for duplicates immediately
+        setParsedRecipients(results);
+
+        // Notify parent immediately about syntactically valid emails (even before dupe check)
+        // This makes the UI feel snappy. We will filter duplicates moment later.
+        onRecipientsChange(results.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
+
+        // 2. Check for duplicates (Async - shows spinner)
         const processed = await processDuplicates(results);
         setParsedRecipients(processed);
 
@@ -106,6 +112,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             });
         }
 
+        // Final update with duplicates removed
         onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
     }
 
@@ -152,9 +159,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
-                            <span className="flex items-center gap-2 text-black dark:text-white animate-in fade-in duration-300">
-                                <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-                                <span className="font-medium tracking-wide">Analyzing recipients...</span>
+                            <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-full animate-in fade-in duration-200">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <span className="font-semibold tracking-wide">Validating & Checking Duplicates...</span>
                             </span>
                         ) : (
                             <span className="text-muted-foreground">
