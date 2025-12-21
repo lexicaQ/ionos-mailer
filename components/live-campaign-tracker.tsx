@@ -471,14 +471,21 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                         </div>
                     )}
                     {filteredJobs.map((job) => {
-                        // Determine if this is the NEXT job to be processed (First PENDING)
-                        const isNextUp = job.status === 'PENDING' && !campaign.jobs.find(j => j.status === 'PENDING' && new Date(j.scheduledFor) < new Date(job.scheduledFor));
+                        // Determine if this is the NEXT job to be processed (Prioritize FAILED, then Oldest PENDING)
+                        // This mirrors the backend Cron logic: orderBy: [{ status: 'asc' }, { scheduledFor: 'asc' }]
+                        // Status 'FAILED' < 'PENDING'
+                        const isNextUp = (job.status === 'PENDING' || job.status === 'FAILED') && !filteredJobs.find(j =>
+                            (j.status === 'PENDING' || j.status === 'FAILED') && (
+                                (j.status < job.status) || // FAILED < PENDING
+                                (j.status === job.status && new Date(j.scheduledFor) < new Date(job.scheduledFor))
+                            )
+                        );
 
                         return (
                             <div
                                 key={job.id}
                                 className={`p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 relative
-                                    ${isNextUp ? 'bg-blue-50/50 dark:bg-blue-950/20 border-l-2 border-blue-500' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}`}
+                                    ${isNextUp ? 'bg-neutral-100 dark:bg-neutral-800' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}`}
                             >
 
                                 {/* Status Pill - FIRST */}
@@ -531,11 +538,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 {/* Times - LAST (wider on mobile to prevent overlap) */}
                                 <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
                                     <div className="text-right">
-                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">
-                                            {job.status === 'PENDING' ? (new Date(job.scheduledFor) < new Date() ? 'Overdue' : 'Scheduled') : 'Scheduled'}
+                                        <div className={`hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 ${isNextUp ? 'font-bold text-neutral-900 dark:text-neutral-100 opacity-100' : ''}`}>
+                                            {isNextUp ? 'Next Schedule' : 'Scheduled'}
                                         </div>
                                         <div className={`font-mono text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded
-                                        ${new Date(job.scheduledFor) < new Date() && job.status === 'PENDING' ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 font-bold' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
+                                        ${new Date(job.scheduledFor) < new Date() && (job.status === 'PENDING' || job.status === 'FAILED') ? 'text-red-600 dark:text-red-400 font-bold' : ''}
+                                        ${isNextUp ? 'bg-white dark:bg-black shadow-sm' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
                                             {format(new Date(job.scheduledFor), "HH:mm")}
                                         </div>
                                     </div>

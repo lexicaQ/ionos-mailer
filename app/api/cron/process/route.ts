@@ -50,7 +50,10 @@ async function handleCronRequest(req: NextRequest) {
             },
             include: { campaign: { include: { attachments: true } } },
             take: BATCH_SIZE,
-            orderBy: { scheduledFor: 'asc' } // Oldest first
+            orderBy: [
+                { status: 'asc' }, // Alphabetical: FAILED comes before PENDING -> Prioritize Failed
+                { scheduledFor: 'asc' } // Then oldest first
+            ]
         });
 
         if (pendingJobs.length === 0) {
