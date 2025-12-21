@@ -677,12 +677,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 {/* Times - LAST (wider on mobile to prevent overlap) */}
                                 <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[80px] sm:w-[160px]">
                                     <div className="text-right flex flex-col items-end">
-                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 whitespace-nowrap">
-                                            {isPending
-                                                ? (isOverdue && diffInMinutes > 2 ? "Next Schedule" : "Scheduled")
-                                                : (isFailed ? "Failed At" : "Sent")
-                                            }
-                                        </div>
+
 
                                         {isPending ? (
                                             /* PENDING (Scheduled or Overdue) */
