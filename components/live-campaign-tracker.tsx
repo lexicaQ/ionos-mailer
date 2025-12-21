@@ -581,9 +581,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                             <div key={job.id} className={`relative p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 ${activeJobClass}`}>
 
                                 {/* Status Pill - FIRST */}
-                                <div className="w-[65px] sm:w-[100px] flex-shrink-0 flex flex-col gap-1 items-start justify-center">
+                                <div className="w-[65px] sm:w-[100px] flex-shrink-0 flex flex-col gap-1 items-center justify-center">
                                     {isNext && (
-                                        <span className="text-[9px] font-black text-neutral-600 dark:text-neutral-400 uppercase tracking-widest leading-none mb-0.5 ml-0.5">
+                                        <span className="text-[8px] font-black text-neutral-600 dark:text-neutral-400 uppercase tracking-widest leading-none mb-0.5">
                                             Next Up
                                         </span>
                                     )}
@@ -639,21 +639,18 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                     <div className="text-right flex flex-col items-end">
                                         <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 whitespace-nowrap">
                                             {isPending
-                                                ? (isOverdue ? "Delayed Schedule" : "Scheduled")
+                                                ? (isOverdue ? "Next Schedule" : "Scheduled")
                                                 : (isFailed ? "Failed At" : "Sent")
                                             }
                                         </div>
 
-                                        {/* Row with Schedule Pill + Status Text */}
-                                        <div className="flex items-center gap-2">
-                                            {/* Scheduled Time Pill - Always separate grey container */}
-                                            <span className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-neutral-600 dark:text-neutral-400" title="Scheduled Time">
-                                                {format(scheduledDate, "HH:mm")}
-                                            </span>
-
-                                            {/* Contextual Time/Delay Info */}
-                                            {isPending ? (
-                                                isOverdue ? (
+                                        {isPending ? (
+                                            /* PENDING (Scheduled or Overdue) */
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-neutral-600 dark:text-neutral-400">
+                                                    {format(scheduledDate, "HH:mm")}
+                                                </span>
+                                                {isOverdue ? (
                                                     <span className="text-[9px] sm:text-xs font-bold text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded whitespace-nowrap">
                                                         +{diffInMinutes} min
                                                     </span>
@@ -661,22 +658,29 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                                     <span className="text-[9px] text-neutral-400 whitespace-nowrap hidden sm:inline">
                                                         in {Math.abs(diffInMinutes)} min
                                                     </span>
-                                                )
-                                            ) : (
-                                                // Sent or Failed
-                                                !isFailed && (
-                                                    sentDelay > 0 ? (
-                                                        <span className="text-[9px] font-bold text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded whitespace-nowrap" title={`Delayed by ${sentDelay} mins`}>
-                                                            +{sentDelay} min
+                                                )}
+                                            </div>
+                                        ) : (
+                                            /* DONE (Sent or Failed) */
+                                            <div className="flex flex-col items-end gap-0.5">
+                                                {!isFailed ? (
+                                                    <>
+                                                        <span className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
+                                                            {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : "-"}
                                                         </span>
-                                                    ) : (
-                                                        <span className="text-[9px] text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 py-0.5 rounded opacity-80">
-                                                            On time
-                                                        </span>
-                                                    )
-                                                )
-                                            )}
-                                        </div>
+                                                        {sentDelay > 0 && (
+                                                            <span className="text-[9px] font-bold text-orange-600 dark:text-orange-500 whitespace-nowrap">
+                                                                +{sentDelay} min
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="font-mono text-[9px] sm:text-xs bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded">
+                                                        {format(new Date(job.scheduledFor), "HH:mm")}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Cancel Job Button */}
