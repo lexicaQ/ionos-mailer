@@ -685,11 +685,11 @@ export function EmailForm() {
                 />
             )}
 
-            {/* History Button - ALWAYS visible */}
-            <div className="flex justify-center mt-4">
+            {/* History Button - ALWAYS visible on all devices */}
+            <div className="flex justify-center mt-6 mb-4 px-2">
                 <LiveCampaignTracker
                     customTrigger={
-                        <Button variant="outline" className="gap-2">
+                        <Button variant="outline" className="gap-2 w-full sm:w-auto">
                             <Clock className="h-4 w-4" />
                             View Tracking & History
                         </Button>
