@@ -53,6 +53,7 @@ export function LiveCampaignTracker() {
     const [loading, setLoading] = useState(false)
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const deletedCampaigns = useRef<Set<string>>(new Set())
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -115,7 +116,7 @@ export function LiveCampaignTracker() {
                     }
                 });
 
-                setCampaigns(data);
+                setCampaigns(data.filter((c: any) => !deletedCampaigns.current.has(c.id)));
                 // Update cache for next time
                 localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
             }
@@ -167,18 +168,23 @@ export function LiveCampaignTracker() {
 
         if (!confirm("Do you really want to delete the campaign? Sending will be stopped immediately.")) return;
 
+        // Optimistic Deletion
+        deletedCampaigns.current.add(id);
+        setCampaigns(prev => prev.filter(c => c.id !== id));
+
         try {
-            // Wait for server deletion FIRST
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-            if (res.ok) {
-                // Only update UI after confirmed deletion
-                setCampaigns(prev => prev.filter(c => c.id !== id));
-            } else {
+            if (!res.ok) {
+                // Revert if failed
                 console.error("Deletion failed on server");
+                deletedCampaigns.current.delete(id);
+                fetchCampaigns(false); // Reload to restore
                 alert("Deletion failed. Please try again.");
             }
         } catch (e) {
             console.error(e);
+            deletedCampaigns.current.delete(id);
+            fetchCampaigns(false);
             alert("Deletion failed. Please try again.");
         }
     }
