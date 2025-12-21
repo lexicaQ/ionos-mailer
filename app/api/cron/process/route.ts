@@ -39,23 +39,40 @@ async function handleCronRequest(req: NextRequest) {
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
         // BATCH SIZE: Process up to 10 emails per invocation
-        // Vercel Limit: 10s (Hobby) / 60s (Pro). 
-        // 10 emails * 0.5s delay = 5s (Safe)
         const BATCH_SIZE = 10;
         const now = new Date();
 
-        const pendingJobs = await prisma.emailJob.findMany({
+        // PRIORITY QUEUE SYSTEM:
+        // 1. Regular scheduled emails (no nextRetryAt) - HIGHEST PRIORITY
+        // 2. Manual resend queue (nextRetryAt <= now) - FILLS REMAINING SLOTS
+
+        const scheduledJobs = await prisma.emailJob.findMany({
             where: {
                 status: 'PENDING',
-                scheduledFor: { lte: now }
+                scheduledFor: { lte: now },
+                nextRetryAt: null // NOT a manual resend
             },
             include: { campaign: { include: { attachments: true } } },
             take: BATCH_SIZE,
-            orderBy: { scheduledFor: 'asc' } // First in, first out
+            orderBy: { scheduledFor: 'asc' } // Oldest first
         });
 
+        // Fill remaining batch slots with resend jobs
+        const resendJobs = scheduledJobs.length < BATCH_SIZE
+            ? await prisma.emailJob.findMany({
+                where: {
+                    status: 'PENDING',
+                    nextRetryAt: { lte: now } // Due for retry
+                },
+                include: { campaign: { include: { attachments: true } } },
+                take: BATCH_SIZE - scheduledJobs.length,
+                orderBy: { scheduledFor: 'asc' } // Still oldest-first
+            })
+            : [];
+
+        const pendingJobs = [...scheduledJobs, ...resendJobs];
+
         if (pendingJobs.length === 0) {
-            // Check future count only if idle, to save massive DB queries on busy loops
             const futureJobs = await prisma.emailJob.count({ where: { status: 'PENDING' } });
             return NextResponse.json({
                 processed: 0,
@@ -78,6 +95,20 @@ async function handleCronRequest(req: NextRequest) {
 
             if (locked.count === 0) {
                 console.log(`Job ${job.id} already picked up by another worker. Skipping.`);
+                continue;
+            }
+
+            // RETRY LIMIT CHECK: Prevent infinite retry loops
+            if (job.retryCount >= job.maxRetries) {
+                console.log(`Job ${job.id} exceeded max retries (${job.maxRetries}). Marking as permanently FAILED.`);
+                await prisma.emailJob.update({
+                    where: { id: job.id },
+                    data: {
+                        status: 'FAILED',
+                        error: `Max retries (${job.maxRetries}) exceeded. Last error: ${job.error || 'Unknown'}`
+                    }
+                });
+                results.push({ id: job.id, success: false, reason: 'max_retries_exceeded' });
                 continue;
             }
 
@@ -183,14 +214,27 @@ async function handleCronRequest(req: NextRequest) {
                         errorMsg.includes('ECONNREFUSED') ||
                         errorMsg.includes('ECONNRESET');
 
-                    await prisma.emailJob.update({
-                        where: { id: job.id },
-                        data: {
-                            status: isRetryable ? 'PENDING' : 'FAILED', // Retry on timeout
-                            error: isRetryable ? `Retrying: ${errorMsg}` : errorMsg
-                        }
-                    });
-                    results.push({ id: job.id, success: false, retrying: isRetryable });
+                    if (isRetryable) {
+                        // Schedule for retry in 1 minute, increment retry count
+                        await prisma.emailJob.update({
+                            where: { id: job.id },
+                            data: {
+                                status: 'PENDING',
+                                retryCount: { increment: 1 },
+                                nextRetryAt: new Date(Date.now() + 60000), // 1 minute later
+                                originalScheduledFor: job.originalScheduledFor ?? job.scheduledFor,
+                                error: `Retry ${job.retryCount + 1}: ${errorMsg}`
+                            }
+                        });
+                        results.push({ id: job.id, success: false, retrying: true });
+                    } else {
+                        // Permanent failure - no retry
+                        await prisma.emailJob.update({
+                            where: { id: job.id },
+                            data: { status: 'FAILED', error: errorMsg }
+                        });
+                        results.push({ id: job.id, success: false, retrying: false });
+                    }
                 }
             }
 

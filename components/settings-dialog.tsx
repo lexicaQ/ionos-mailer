@@ -34,7 +34,8 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [savePassword, setSavePassword] = useState(true)
     const [fromName, setFromName] = useState("")
     const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-    const [testing, setTesting] = useState(false)
+    const [testingConnection, setTestingConnection] = useState(false)
+    const [startingCron, setStartingCron] = useState(false)
     const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
     const [hasLoaded, setHasLoaded] = useState(false)
 
@@ -291,8 +292,9 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             <p>Test SMTP Connection</p>
                             <p>(Checks password and server)</p>
                         </div>
-                        <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
-                            setTesting(true);
+                        <Button variant="outline" size="sm" disabled={testingConnection} onClick={async () => {
+                            if (testingConnection) return; // Idempotency guard
+                            setTestingConnection(true);
                             setStatusMsg(null);
                             try {
                                 const res = await fetch("/api/test-connection", {
@@ -309,10 +311,10 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             } catch (e: any) {
                                 setStatusMsg({ type: 'error', text: "Network error: " + e.message });
                             } finally {
-                                setTesting(false);
+                                setTestingConnection(false);
                             }
                         }}>
-                            {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <Zap className="h-3 w-3 mr-2 text-amber-500" />}
+                            {testingConnection ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <Zap className="h-3 w-3 mr-2 text-amber-500" />}
                             Test Connection
                         </Button>
                     </div>
@@ -322,8 +324,9 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             <p>Manual Cron Start</p>
                             <p>(Processes pending emails)</p>
                         </div>
-                        <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
-                            setTesting(true);
+                        <Button variant="outline" size="sm" disabled={startingCron} onClick={async () => {
+                            if (startingCron) return; // Idempotency guard
+                            setStartingCron(true);
                             setStatusMsg(null);
                             try {
                                 const res = await fetch("/api/cron/process", {
@@ -352,10 +355,10 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             } catch (e: any) {
                                 setStatusMsg({ type: 'error', text: "Connection error: " + e.message });
                             } finally {
-                                setTesting(false);
+                                setStartingCron(false);
                             }
                         }}>
-                            {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
+                            {startingCron ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
                             Start Cron
                         </Button>
                     </div>

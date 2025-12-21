@@ -210,11 +210,17 @@ model EmailJob {
   subject      String
   body         String
   
-  status       String    @default("PENDING") // PENDING, SENT, FAILED
+  status       String    @default("PENDING") // PENDING, SENDING, SENT, FAILED
   error        String?
   
   scheduledFor DateTime
   sentAt       DateTime?
+  
+  // Retry Tracking
+  retryCount           Int       @default(0)     // Number of retry attempts
+  maxRetries           Int       @default(3)     // Max allowed retries
+  nextRetryAt          DateTime?                 // When to retry (for manual cron pacing)
+  originalScheduledFor DateTime?                 // Original time for delay calculation
   
   // Tracking
   trackingId   String    @unique @default(uuid())
@@ -227,6 +233,7 @@ model EmailJob {
   
   @@index([status, scheduledFor])
   @@index([trackingId])
+  @@index([nextRetryAt])
 }
 
 

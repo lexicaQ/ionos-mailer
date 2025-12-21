@@ -26,24 +26,12 @@ export async function DELETE(
             return NextResponse.json({ error: "Campaign not found or access denied" }, { status: 403 });
         }
 
-        // 1. Delete associated clicks
-        const jobs = await prisma.emailJob.findMany({
-            where: { campaignId: id },
-            select: { id: true }
-        });
-        const jobIds = jobs.map((j: { id: string }) => j.id);
-
-
-
-        // 2. Delete jobs
-        await prisma.emailJob.deleteMany({
-            where: { campaignId: id }
-        });
-
-        // 3. Delete campaign
-        await prisma.campaign.delete({
-            where: { id }
-        });
+        // TRANSACTIONAL DELETE: Atomic deletion prevents partial state and false errors
+        await prisma.$transaction([
+            prisma.campaignAttachment.deleteMany({ where: { campaignId: id } }),
+            prisma.emailJob.deleteMany({ where: { campaignId: id } }),
+            prisma.campaign.delete({ where: { id } })
+        ]);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
