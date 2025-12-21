@@ -135,15 +135,12 @@ export function LiveCampaignTracker() {
                 }
             }
 
-            // 2. Show syncing indicator AFTER cache is displayed
-            setIsSyncing(true);
-
-            // 3. Only set loading if NO cached data exists (first time ever)
+            // 2. Only set loading if NO cached data exists (first time ever)
             if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
                 setLoading(true);
             }
 
-            // 4. Fetch fresh data from server in background
+            // 3. Fetch fresh data from server in background
             const res = await fetch("/api/campaigns/status");
             if (res.ok) {
                 const data = await res.json();
@@ -160,19 +157,22 @@ export function LiveCampaignTracker() {
                 // Filter out deleted campaigns
                 const filtered = data.filter((c: any) => !deletedCampaigns.current.has(c.id));
 
-                // Only show sync indicator if data actually changed
+                // Only show sync indicator and update if data actually changed
                 const hasChanges = JSON.stringify(campaignsRef.current) !== JSON.stringify(filtered);
                 if (hasChanges) {
+                    setIsSyncing(true); // Show sync indicator ONLY when changes detected
                     setCampaigns(filtered);
                     // Update cache WITHOUT deleted campaigns
                     localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
+
+                    // Hide sync indicator after short delay
+                    setTimeout(() => setIsSyncing(false), 500);
                 }
             }
         } catch (error) {
             console.error("Failed to fetch campaigns:", error);
         } finally {
             setLoading(false);
-            setIsSyncing(false);
             isFetching.current = false;
         }
     }, []);
