@@ -156,7 +156,8 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     }, [open, fetchCampaigns]);
 
     useEffect(() => {
-        if (open) fetchCampaigns(false);
+        // Force fresh fetch when opening to ensure new campaigns appear instantly
+        if (open) fetchCampaigns(true); // true = skip loading spinner but still fetch fresh
     }, [open, fetchCampaigns]);
 
 
@@ -169,18 +170,25 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
         if (!confirm("Do you really want to delete the campaign? Sending will be stopped immediately.")) return;
 
         try {
-            // Wait for server deletion FIRST
+            // OPTIMISTIC: Update UI immediately
+            setCampaigns(prev => prev.filter(c => c.id !== id));
+
+            // Clear cache
+            localStorage.removeItem("ionos-mailer-campaigns-cache");
+
+            // Then delete on server
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-            if (res.ok) {
-                // Only update UI after confirmed deletion
-                setCampaigns(prev => prev.filter(c => c.id !== id));
-            } else {
+            if (!res.ok) {
                 console.error("Deletion failed on server");
-                alert("Deletion failed. Please try again.");
+                // Refetch to restore correct state
+                fetchCampaigns();
+                alert("Deletion failed. Refreshing...");
             }
         } catch (e) {
             console.error(e);
-            alert("Deletion failed. Please try again.");
+            // Refetch to restore correct state
+            fetchCampaigns();
+            alert("Deletion failed. Refreshing...");
         }
     }
 
@@ -473,21 +481,38 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                         </div>
                     )}
                     {filteredJobs.map((job) => {
-                        // Determine if this is the NEXT job to be processed (Prioritize FAILED, then Oldest PENDING)
-                        // This mirrors the backend Cron logic: orderBy: [{ status: 'asc' }, { scheduledFor: 'asc' }]
-                        // Status 'FAILED' < 'PENDING'
-                        const isNextUp = (job.status === 'PENDING' || job.status === 'FAILED') && !filteredJobs.find(j =>
-                            (j.status === 'PENDING' || j.status === 'FAILED') && (
-                                (j.status < job.status) || // FAILED < PENDING
-                                (j.status === job.status && new Date(j.scheduledFor) < new Date(job.scheduledFor))
-                            )
-                        );
+                        // Get all pending/failed jobs across ALL campaigns for queue calculation
+                        const allPendingJobs = campaign.jobs.filter(j => j.status === 'PENDING' || j.status === 'FAILED');
+
+                        // Sort by priority (FAILED first, then by scheduledFor)
+                        const sortedQueue = [...allPendingJobs].sort((a, b) => {
+                            if (a.status !== b.status) return a.status < b.status ? -1 : 1;
+                            return new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime();
+                        });
+
+                        const queuePosition = sortedQueue.findIndex(j => j.id === job.id);
+                        const isInQueue = queuePosition !== -1;
+                        const isNextUp = queuePosition === 0;
+
+                        // Calculate expected send time based on queue position (3 min per job)
+                        let expectedSendTime = new Date(job.scheduledFor);
+                        if (isInQueue) {
+                            const now = new Date();
+                            const minutesAhead = queuePosition * 3;
+                            expectedSendTime = new Date(now.getTime() + minutesAhead * 60 * 1000);
+
+                            // If scheduledFor is in the future and later than calculated time, use scheduledFor
+                            if (new Date(job.scheduledFor) > expectedSendTime) {
+                                expectedSendTime = new Date(job.scheduledFor);
+                            }
+                        }
 
                         return (
                             <div
                                 key={job.id}
                                 className={`p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 relative
-                                    ${isNextUp ? 'bg-neutral-100 dark:bg-neutral-800' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}`}
+                                    ${isInQueue ? 'bg-neutral-50 dark:bg-neutral-900/50' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}
+                                    ${isNextUp ? 'border-l-3 border-l-neutral-400 dark:border-l-neutral-500' : ''}`}
                             >
 
                                 {/* Status Pill - FIRST */}
@@ -541,12 +566,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
                                     <div className="text-right">
                                         <div className={`hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 ${isNextUp ? 'font-bold text-neutral-900 dark:text-neutral-100 opacity-100' : ''}`}>
-                                            {isNextUp ? 'Next Schedule' : 'Scheduled'}
+                                            {isNextUp ? 'Next Schedule' : (isInQueue ? `Queue +${queuePosition * 3}min` : 'Scheduled')}
                                         </div>
                                         <div className={`font-mono text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded
-                                        ${new Date(job.scheduledFor) < new Date() && (job.status === 'PENDING' || job.status === 'FAILED') ? 'text-red-600 dark:text-red-400 font-bold' : ''}
-                                        ${isNextUp ? 'bg-white dark:bg-black shadow-sm' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
-                                            {format(new Date(job.scheduledFor), "HH:mm")}
+                                        ${expectedSendTime < new Date() && (job.status === 'PENDING' || job.status === 'FAILED') ? 'text-red-600 dark:text-red-400 font-bold' : ''}
+                                        ${isNextUp ? 'bg-neutral-200 dark:bg-neutral-700 font-bold' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
+                                            {format(expectedSendTime, "HH:mm")}
                                         </div>
                                     </div>
 
