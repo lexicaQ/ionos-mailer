@@ -31,21 +31,13 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const [activeTab, setActiveTab] = useState("valid")
     const [isChecking, setIsChecking] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
-    const [ignoreDuplicates, setIgnoreDuplicates] = useState(false) // New state for override
 
     // Helper: Check duplicates
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
-        // Only show animation if it takes longer than 200ms (fast = no spinner)
-        let showLoadingTimer: NodeJS.Timeout | null = setTimeout(() => {
-            setIsChecking(true);
-        }, 200);
-
+        setIsChecking(true);
         try {
             const emailList = recipients.map(r => r.email);
-            if (emailList.length === 0) {
-                if (showLoadingTimer) clearTimeout(showLoadingTimer);
-                return recipients;
-            }
+            if (emailList.length === 0) return recipients;
 
             const res = await fetch('/api/check-duplicates', {
                 method: 'POST',
@@ -58,6 +50,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 const email = r.email;
                 if (duplicates.has(email) || duplicates.has(email.toLowerCase())) {
                     return { ...r, valid: true, duplicate: true, reason: "Duplicate: Already sent in previous campaign" };
+                    // Ensure 'valid: true' so they appear in valid tab (but crossed out)
+                    // Wait, if valid: true, they are in onRecipientsChange?
+                    // I filter them out of onRecipientsChange explicitly.
                 }
                 return r;
             });
@@ -65,7 +60,6 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             console.error("Duplicate check error", e);
             return recipients;
         } finally {
-            if (showLoadingTimer) clearTimeout(showLoadingTimer);
             setIsChecking(false);
         }
     };
@@ -99,15 +93,8 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     const handleParse = async () => {
         const results = parseRecipients(rawInput);
-        setIgnoreDuplicates(false); // Reset override on new parse
 
-        setParsedRecipients(results);
-
-        // Notify parent immediately about syntactically valid emails (even before dupe check)
-        // This makes the UI feel snappy. We will filter duplicates moment later.
-        onRecipientsChange(results.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
-
-        // 2. Check for duplicates (Async - shows spinner)
+        // Check for duplicates immediately
         const processed = await processDuplicates(results);
         setParsedRecipients(processed);
 
@@ -119,16 +106,8 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             });
         }
 
-        // Final update with duplicates removed UNLESS ignored
-        onRecipientsChange(processed.filter(r => r.valid && (!r.duplicate || ignoreDuplicates)).map(r => ({ email: r.email, id: r.id })));
+        onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
     }
-
-    // Effect to re-trigger parent update if toggle changes
-    useEffect(() => {
-        if (parsedRecipients.length > 0) {
-            onRecipientsChange(parsedRecipients.filter(r => r.valid && (!r.duplicate || ignoreDuplicates)).map(r => ({ email: r.email, id: r.id })));
-        }
-    }, [ignoreDuplicates]);
 
     const handleRemove = (id: string) => {
         const updated = parsedRecipients.filter(r => r.id !== id);
@@ -173,9 +152,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
-                            <span className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full animate-in fade-in duration-200">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                <span className="font-medium tracking-wide">Validating & Checking Duplicates...</span>
+                            <span className="flex items-center gap-2 text-black dark:text-white animate-in fade-in duration-300">
+                                <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+                                <span className="font-medium tracking-wide">Analyzing recipients...</span>
                             </span>
                         ) : (
                             <span className="text-muted-foreground">
@@ -197,8 +176,8 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                 <TabsList className="grid w-fit grid-cols-2">
                                     <TabsTrigger value="valid" className="gap-2">
                                         <Check className="h-4 w-4 text-green-500" />
-                                        Valid ({ignoreDuplicates ? validEmails.length + duplicateEmails.length : validEmails.length})
-                                        {duplicateEmails.length > 0 && !ignoreDuplicates && (
+                                        Valid ({validEmails.length})
+                                        {duplicateEmails.length > 0 && (
                                             <span className="ml-1 text-xs text-red-500 font-semibold line-through decoration-red-500/50 opacity-80 decoration-2 animate-in fade-in slide-in-from-left-1">
                                                 +{duplicateEmails.length}
                                             </span>
@@ -215,32 +194,6 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                 </Button>
                             </div>
 
-                            {/* Duplicate Warning & Override */}
-                            {duplicateEmails.length > 0 && (
-                                <div className="mt-3 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-900/20 text-sm flex items-center justify-between animate-in slide-in-from-top-2">
-                                    <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-500">
-                                        <AlertTriangle className="h-4 w-4" />
-                                        <span>
-                                            Found <strong>{duplicateEmails.length}</strong> duplicates (excluded by default).
-                                        </span>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant={ignoreDuplicates ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setIgnoreDuplicates(!ignoreDuplicates)}
-                                        className={cn(
-                                            "h-7 text-xs",
-                                            ignoreDuplicates
-                                                ? "bg-yellow-600 hover:bg-yellow-700 text-white border-transparent"
-                                                : "text-yellow-700 border-yellow-300 hover:bg-yellow-100 dark:text-yellow-500 dark:border-yellow-800 dark:hover:bg-yellow-900/40"
-                                        )}
-                                    >
-                                        {ignoreDuplicates ? "Duplicates Included" : "Include Duplicates"}
-                                    </Button>
-                                </div>
-                            )}
-
                             <TabsContent value="valid" className="mt-4">
                                 <div className={`flex flex-wrap gap-2 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-full' : 'max-h-[140px] overflow-hidden'}`}>
                                     {displayList.map((recipient) => {
@@ -250,16 +203,16 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         return (
                                             <Badge
                                                 key={recipient.id}
-                                                variant={(isDuplicate && !ignoreDuplicates) ? "destructive" : "secondary"}
+                                                variant={isDuplicate ? "destructive" : "secondary"}
                                                 className={cn(
                                                     "flex items-center gap-1 px-3 py-1.5 border transition-all",
-                                                    (isDuplicate && !ignoreDuplicates)
+                                                    isDuplicate
                                                         ? "line-through opacity-70 bg-red-100 text-red-700 hover:bg-red-200 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                                                         : isGeneric
                                                             ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
                                                             : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                                                 )}
-                                                title={(isDuplicate && !ignoreDuplicates) ? recipient.reason : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address")}
+                                                title={isDuplicate ? recipient.reason : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address")}
                                             >
                                                 {isDuplicate && <span className="sr-only">Duplicate: </span>}
                                                 {isGeneric && !isDuplicate && <AlertTriangle className="h-3 w-3 mr-1" />}

@@ -34,8 +34,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [savePassword, setSavePassword] = useState(true)
     const [fromName, setFromName] = useState("")
     const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-    const [testing, setTesting] = useState(false) // For connection test
-    const [cronLoading, setCronLoading] = useState(false) // For cron start
+    const [testing, setTesting] = useState(false)
     const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
     const [hasLoaded, setHasLoaded] = useState(false)
 
@@ -321,58 +320,43 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     <div className="flex items-center justify-between pb-4">
                         <div className="text-xs text-muted-foreground">
                             <p>Manual Cron Start</p>
-                            <p>(Processes ALL pending emails)</p>
+                            <p>(Processes pending emails)</p>
                         </div>
-                        <Button variant="outline" size="sm" disabled={cronLoading} onClick={async () => {
-                            if (cronLoading) {
-                                // Stop logic would need an AbortController or state ref, but specific request is START
-                                // For now, prevent double clicks or just let it run.
-                                return;
-                            }
-
-                            setCronLoading(true);
+                        <Button variant="outline" size="sm" disabled={testing} onClick={async () => {
+                            setTesting(true);
                             setStatusMsg(null);
-
-                            const processOne = async () => {
-                                try {
-                                    // 1. Send request for SINGLE email (no x-process-all means batch size = 1)
-                                    const res = await fetch("/api/cron/process", {
-                                        method: 'POST',
-                                        headers: {
-                                            'x-manual-trigger': 'true',
-                                            // Removed 'x-ignore-schedule' to respect scheduled times
-                                        }
-                                    });
-                                    const data = await res.json();
-
-                                    if (!res.ok) throw new Error(data.error);
-
+                            try {
+                                const res = await fetch("/api/cron/process", {
+                                    headers: { 'x-manual-trigger': 'true' }
+                                });
+                                const data = await res.json();
+                                if (res.ok) {
                                     const processed = data.processed ?? 0;
-                                    const remaining = data.futurePendingCount ?? 0; // Check if more exist (even future ones)
-                                    // Note: API returns futurePendingCount as *pending* jobs. 
-                                    // If processed > 0, we found one. If processed == 0, maybe none due?
+                                    const futureCount = data.futurePendingCount ?? 0;
+                                    const failed = data.failed ?? 0;
 
-                                    if (processed > 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Sent 1 email. Waiting 3 min for next...` });
-
-                                        // Wait 3 minutes then recurse
-                                        setTimeout(() => processOne(), 3 * 60 * 1000);
+                                    if (processed === 0 && futureCount === 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails to process.` });
+                                    } else if (processed === 0 && futureCount > 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ No emails due now. ${futureCount} email${futureCount !== 1 ? 's' : ''} scheduled for later delivery.` });
+                                    } else if (processed > 0 && failed === 0) {
+                                        setStatusMsg({ type: 'success', text: `✓ Successfully sent ${processed} email${processed !== 1 ? 's' : ''}!${futureCount > 0 ? ` ${futureCount} more scheduled for later.` : ' Queue complete.'}` });
+                                    } else if (processed > 0 && failed > 0) {
+                                        setStatusMsg({ type: 'error', text: `Sent ${processed}, failed ${failed}.${futureCount > 0 ? ` ${futureCount} more scheduled.` : ''}` });
                                     } else {
-                                        setStatusMsg({ type: 'success', text: `✓ Queue empty or no emails due now.` });
-                                        setCronLoading(false);
+                                        setStatusMsg({ type: 'success', text: `✓ Processing complete. ${futureCount > 0 ? `${futureCount} emails scheduled.` : 'Queue empty.'}` });
                                     }
-                                } catch (e: any) {
-                                    setStatusMsg({ type: 'error', text: "Error: " + e.message });
-                                    setCronLoading(false);
+                                } else {
+                                    setStatusMsg({ type: 'error', text: "Error: " + data.error });
                                 }
+                            } catch (e: any) {
+                                setStatusMsg({ type: 'error', text: "Connection error: " + e.message });
+                            } finally {
+                                setTesting(false);
                             }
-
-                            // Start the loop
-                            processOne();
-
                         }}>
-                            {cronLoading ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
-                            {cronLoading ? "Running (3m Loop)..." : "Start Cron Loop"}
+                            {testing ? <RefreshCw className="h-3 w-3 mr-2 animate-spin" /> : <RotateCcw className="h-3 w-3 mr-2" />}
+                            Start Cron
                         </Button>
                     </div>
                 </div>

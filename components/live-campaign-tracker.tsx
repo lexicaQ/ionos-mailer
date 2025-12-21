@@ -14,12 +14,11 @@ import {
 } from "@/components/ui/dialog"
 import {
     Activity, CheckCircle, XCircle, Clock, Mail,
-    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText, X, Loader2
+    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText, X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
-import { toast } from "sonner"
 
 interface EmailJob {
     id: string
@@ -48,22 +47,12 @@ interface Campaign {
     }
 }
 
-export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.ReactNode }) {
+export function LiveCampaignTracker() {
     const [open, setOpen] = useState(false)
-    // Initialize lazily from localStorage to avoid loading flash on mount
-    const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
-        if (typeof window !== 'undefined') {
-            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-            if (cached) {
-                try { return JSON.parse(cached); } catch (e) { }
-            }
-        }
-        return [];
-    })
+    const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [loading, setLoading] = useState(false)
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
-    const [cancelingJobId, setCancelingJobId] = useState<string | null>(null)
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -97,12 +86,17 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
     const fetchCampaigns = useCallback(async (isBackground = false) => {
         // 1. ALWAYS load from cache first for INSTANT display
-        // Note: Initial state is already set from cache lazily above
-        // We only re-read here if needed, but primary load is synchronous
+        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                setCampaigns(parsed);
+            } catch (e) { }
+        }
 
-        // 2. NEVER show loading spinner if we have data
+        // 2. NEVER show loading spinner - data is already visible from cache
         // Only set loading if there's NO cached data at all (first time ever)
-        if (campaigns.length === 0 && !isBackground) {
+        if (!cached && !isBackground) {
             setLoading(true);
         }
 
@@ -162,10 +156,8 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     }, [open, fetchCampaigns]);
 
     useEffect(() => {
-        // Force fresh fetch when opening
-        // Show spinner only if we have no cached data yet (first load)
-        if (open) fetchCampaigns(campaigns.length > 0);
-    }, [open, fetchCampaigns, campaigns.length]);
+        if (open) fetchCampaigns(false);
+    }, [open, fetchCampaigns]);
 
 
     const deleteCampaign = async (id: string, e?: React.MouseEvent) => {
@@ -177,25 +169,18 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
         if (!confirm("Do you really want to delete the campaign? Sending will be stopped immediately.")) return;
 
         try {
-            // OPTIMISTIC: Update UI immediately
-            setCampaigns(prev => prev.filter(c => c.id !== id));
-
-            // Clear cache
-            localStorage.removeItem("ionos-mailer-campaigns-cache");
-
-            // Then delete on server
+            // Wait for server deletion FIRST
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-            if (!res.ok) {
+            if (res.ok) {
+                // Only update UI after confirmed deletion
+                setCampaigns(prev => prev.filter(c => c.id !== id));
+            } else {
                 console.error("Deletion failed on server");
-                // Refetch to restore correct state
-                fetchCampaigns();
-                alert("Deletion failed. Refreshing...");
+                alert("Deletion failed. Please try again.");
             }
         } catch (e) {
             console.error(e);
-            // Refetch to restore correct state
-            fetchCampaigns();
-            alert("Deletion failed. Refreshing...");
+            alert("Deletion failed. Please try again.");
         }
     }
 
@@ -281,15 +266,13 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {customTrigger ? customTrigger : (
-                    <Button variant="outline" className="gap-2 relative">
-                        <Activity className="h-4 w-4" />
-                        Live Tracking
-                        {activeCampaigns.length > 0 && (
-                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
-                        )}
-                    </Button>
-                )}
+                <Button variant="outline" className="gap-2 relative">
+                    <Activity className="h-4 w-4" />
+                    Live Tracking
+                    {activeCampaigns.length > 0 && (
+                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
+                    )}
+                </Button>
             </DialogTrigger>
             <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
 
@@ -326,6 +309,9 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
+                                <X className="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
 
@@ -360,13 +346,11 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
                                 <MinimalCampaignRow
                                     key={c.id}
                                     campaign={c}
-                                    index={filteredCampaigns.length - idx}
+                                    index={filteredCampaigns.length - idx} // Reverse index so newest is highest number? Or just 1, 2, 3? User said "5, 4, 3...".
+                                    // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
                                     displayIndex={filteredCampaigns.length - idx}
                                     onDelete={(e) => deleteCampaign(c.id, e)}
                                     searchTerm={searchTerm}
-                                    cancelingJobId={cancelingJobId}
-                                    setCancelingJobId={setCancelingJobId}
-                                    onRefresh={fetchCampaigns}
                                 />
                             ))}
                             {/* Anchor to scroll to bottom if needed in future */}
@@ -379,25 +363,7 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     )
 }
 
-function MinimalCampaignRow({
-    campaign,
-    index,
-    displayIndex,
-    onDelete,
-    searchTerm,
-    cancelingJobId,
-    setCancelingJobId,
-    onRefresh
-}: {
-    campaign: Campaign,
-    index?: number,
-    displayIndex: number,
-    onDelete: (e: React.MouseEvent) => void,
-    searchTerm: string,
-    cancelingJobId: string | null,
-    setCancelingJobId: (id: string | null) => void,
-    onRefresh: () => void
-}) {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, searchTerm: string }) {
     const calculateProgress = (c: Campaign) => c.stats.total > 0
         ? ((c.stats.sent + c.stats.failed) / c.stats.total) * 100
         : 0;
@@ -496,192 +462,101 @@ function MinimalCampaignRow({
             {/* Email List - Minimalist Table */}
             {isOpen && (
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
-                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 sm:px-4 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-3 sm:gap-4">
+                    <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-1">
                         <div className="w-[65px] sm:w-[100px]">Status</div>
                         <div className="w-[45px] sm:w-[110px]">Opened</div>
                         <div className="flex-1 min-w-0">Recipient</div>
-                        <div className="w-[55px] sm:w-[140px] text-right">Time</div>
+                        <div className="w-[45px] sm:w-[140px] text-right">Time</div>
                     </div>
                     {filteredJobs.length === 0 && (
                         <div className="p-4 text-center text-xs text-muted-foreground">
                             No emails match "{searchTerm}"
                         </div>
                     )}
-                    {filteredJobs.map((job) => {
-                        // Detect permanent failures and retry status
-                        const isPermanentlyFailed = job.status === 'FAILED' &&
-                            job.error?.includes('[PERMANENT_FAILURE]');
-                        const isRetrying = job.status === 'PENDING' &&
-                            job.error?.includes('[Retry');
-                        const retryMatch = job.error?.match(/\[Retry (\d+)\/3\]/);
+                    {filteredJobs.map((job) => (
+                        <div key={job.id} className="p-2 sm:p-3 px-2 sm:px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-3 sm:gap-4">
 
-                        // Get all pending/failed jobs (exclude permanent failures from queue)
-                        const allPendingJobs = campaign.jobs.filter(j =>
-                            (j.status === 'PENDING' || j.status === 'FAILED') &&
-                            !j.error?.includes('[PERMANENT_FAILURE]')
-                        );
-
-                        // Sort by priority (FAILED first, then by scheduledFor)
-                        const sortedQueue = [...allPendingJobs].sort((a, b) => {
-                            if (a.status !== b.status) return a.status < b.status ? -1 : 1;
-                            return new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime();
-                        });
-
-                        const queuePosition = sortedQueue.findIndex(j => j.id === job.id);
-                        const isInQueue = queuePosition !== -1;
-                        const isNextUp = queuePosition === 0;
-
-                        // Calculate expected send time based on queue position (3 min per job)
-                        let expectedSendTime = new Date(job.scheduledFor);
-                        if (isInQueue) {
-                            const now = new Date();
-                            const minutesAhead = queuePosition * 3;
-                            expectedSendTime = new Date(now.getTime() + minutesAhead * 60 * 1000);
-
-                            // If scheduledFor is in the future and later than calculated time, use scheduledFor
-                            if (new Date(job.scheduledFor) > expectedSendTime) {
-                                expectedSendTime = new Date(job.scheduledFor);
-                            }
-                        }
-
-                        return (
-                            <div
-                                key={job.id}
-                                className={`p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 relative
-                                    ${isInQueue ? 'bg-neutral-50 dark:bg-neutral-900/50' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50'}
-                                    ${isNextUp ? 'border-l-4 border-l-neutral-400 dark:border-l-neutral-500' : ''}`}
-                            >
-
-                                {/* Status Pill - FIRST */}
-                                <div className="w-[65px] sm:w-[100px] flex-shrink-0">
-                                    <Badge
-                                        variant={job.status === 'SENT' ? 'default' : 'secondary'}
-                                        className={`
+                            {/* Status Pill - FIRST */}
+                            <div className="w-[65px] sm:w-[100px] flex-shrink-0">
+                                <Badge
+                                    variant={job.status === 'SENT' ? 'default' : 'secondary'}
+                                    className={`
                                         h-5 sm:h-6 px-0 text-[8px] sm:text-[10px] border-0 font-bold tracking-wide w-[60px] sm:w-[90px] justify-center shadow-none
                                         ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100' :
-                                                isPermanentlyFailed ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100' :
-                                                    isRetrying ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 hover:bg-amber-100' :
-                                                        'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
+                                            job.status === 'FAILED' ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400' :
+                                                'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
                                     `}
-                                    >
-                                        {job.status === 'SENT' ? 'SENT' :
-                                            isPermanentlyFailed ? 'FAILED' :
-                                                isRetrying ? 'RETRYING' :
-                                                    'WAITING'}
-                                    </Badge>
-                                </div>
+                                >
+                                    {job.status === 'SENT' ? 'SENT' :
+                                        job.status === 'FAILED' ? 'FAILED' :
+                                            'WAITING'}
+                                </Badge>
+                            </div>
 
-                                {/* Opened Status - SECOND */}
-                                <div className="w-[45px] sm:w-[110px] flex-shrink-0">
-                                    {job.openedAt ? (
-                                        <div className="flex flex-col leading-none sm:leading-tight">
-                                            <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
-                                                <span className="block sm:inline">{format(new Date(job.openedAt), "dd.MM")}</span>
-                                                <span className="hidden sm:inline"> at </span>
-                                                <span className="block sm:inline">{format(new Date(job.openedAt), "HH:mm")}</span>
-                                            </div>
+                            {/* Opened Status - SECOND */}
+                            <div className="w-[45px] sm:w-[110px] flex-shrink-0">
+                                {job.openedAt ? (
+                                    <div className="flex flex-col leading-none sm:leading-tight">
+                                        <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
+                                            <span className="block sm:inline">{format(new Date(job.openedAt), "dd.MM")}</span>
+                                            <span className="hidden sm:inline"> at </span>
+                                            <span className="block sm:inline">{format(new Date(job.openedAt), "HH:mm")}</span>
                                         </div>
-                                    ) : (
-                                        <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
-                                    )}
-                                </div>
-
-                                {/* Recipient - THIRD (aligned with header) */}
-                                <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none">
-                                    <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
-                                        {job.recipient}
                                     </div>
-                                    <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80 max-w-full" title={job.subject}>
-                                        {job.subject ? (
-                                            <>
-                                                <span className="sm:hidden">{job.subject.length > 25 ? job.subject.slice(0, 25) + "..." : job.subject}</span>
-                                                <span className="hidden sm:inline">{job.subject.length > 50 ? job.subject.slice(0, 50) + "..." : job.subject}</span>
-                                            </>
-                                        ) : "(No Subject)"}
-                                    </div>
+                                ) : (
+                                    <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
+                                )}
+                            </div>
+
+                            {/* Recipient - THIRD (constrained width on mobile) */}
+                            <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none pr-2">
+                                <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
+                                    {job.recipient}
                                 </div>
-
-                                {/* Times - LAST (wider on mobile to prevent overlap) */}
-                                <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
-                                    <div className="text-right">
-                                        <div className={`hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 ${isNextUp ? 'font-bold text-neutral-900 dark:text-neutral-100 opacity-100' : ''}`}>
-                                            {isNextUp ? 'Next Schedule' : (isInQueue ? `Queue +${queuePosition * 3}min` : 'Scheduled')}
-                                        </div>
-                                        <div className={`font-mono text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded
-                                        ${isPermanentlyFailed ? 'text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/20' :
-                                                expectedSendTime < new Date() && (job.status === 'PENDING' || job.status === 'FAILED') ? 'text-red-600 dark:text-red-400 font-bold' : ''}
-                                        ${isNextUp ? 'bg-neutral-200 dark:bg-neutral-700 font-bold' : isPermanentlyFailed ? '' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
-                                            {format(expectedSendTime, "HH:mm")}
-                                        </div>
-                                        {isRetrying && retryMatch && (
-                                            <div className="text-[8px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
-                                                {retryMatch[0]}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {job.sentAt && (
-                                        <div className="text-right">
-                                            <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Sent</div>
-                                            <div className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 sm:px-1.5 py-0.5 rounded">
-                                                {format(new Date(job.sentAt), "HH:mm")}
-                                            </div>
-                                            {/* Show delay if sent more than 1 minute after scheduled */}
-                                            {(() => {
-                                                const delayMs = new Date(job.sentAt).getTime() - new Date(job.scheduledFor).getTime();
-                                                const delayMin = Math.round(delayMs / 60000);
-                                                if (delayMin > 1) {
-                                                    return (
-                                                        <div className="text-[8px] sm:text-[9px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
-                                                            +{delayMin} min
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
-                                    )}
-
-                                    {/* Cancel Job Button - Hidden on mobile to avoid clutter */}
-                                    {job.status === 'PENDING' && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            disabled={cancelingJobId === job.id}
-                                            className="hidden sm:flex h-6 w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent disabled:opacity-50"
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                if (!confirm("Cancel this email?")) return;
-
-                                                setCancelingJobId(job.id);
-                                                try {
-                                                    const res = await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
-                                                    if (res.ok) {
-                                                        toast.success("Email canceled");
-                                                        onRefresh();
-                                                    } else {
-                                                        throw new Error("Failed to cancel");
-                                                    }
-                                                } catch (e) {
-                                                    console.error(e);
-                                                    toast.error("Failed to cancel email");
-                                                } finally {
-                                                    setCancelingJobId(null);
-                                                }
-                                            }}
-                                            title="Cancel Email"
-                                        >
-                                            {cancelingJobId === job.id ? (
-                                                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                                            ) : (
-                                                <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                            )}
-                                        </Button>
-                                    )}
+                                <div className="text-[8px] sm:text-xs text-muted-foreground truncate opacity-80 max-w-full" title={job.subject}>
+                                    {job.subject ? (job.subject.length > 30 ? job.subject.slice(0, 30) + "..." : job.subject) : "(No Subject)"}
                                 </div>
                             </div>
-                        );
-                    })}
+
+                            {/* Times - LAST (wider on mobile to prevent overlap) */}
+                            <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[55px] sm:w-[140px]">
+                                <div className="text-right">
+                                    <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Scheduled</div>
+                                    <div className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">{format(new Date(job.scheduledFor), "HH:mm")}</div>
+                                </div>
+
+                                {job.sentAt && (
+                                    <div className="text-right">
+                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">Sent</div>
+                                        <div className="font-mono text-[9px] sm:text-xs text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 sm:px-1.5 py-0.5 rounded">
+                                            {format(new Date(job.sentAt), "HH:mm")}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Cancel Job Button */}
+                                {job.status === 'PENDING' && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto"
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            if (!confirm("Cancel this email?")) return;
+                                            try {
+                                                await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
+                                            } catch (e) {
+                                                console.error(e);
+                                            }
+                                        }}
+                                        title="Cancel Email"
+                                    >
+                                        <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
         </motion.div>

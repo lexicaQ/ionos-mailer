@@ -193,10 +193,6 @@ export function EmailForm() {
 
             if (useBackground) {
                 toast.success(`Campaign started! ${resultData.jobCount} emails scheduled.`);
-
-                // Clear cache so the new campaign shows up immediately
-                localStorage.removeItem("ionos-mailer-campaigns-cache");
-
                 setCurrentResults([]);
             } else {
                 const results: SendResult[] = resultData.results;
@@ -224,9 +220,6 @@ export function EmailForm() {
                     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
                     return updated;
                 });
-
-                // Clear Campaign Cache to force refresh on next view
-                localStorage.removeItem("ionos-mailer-campaigns-cache");
 
                 // Push to cloud if logged in
                 saveHistoryToServer(newBatch);
@@ -558,13 +551,7 @@ export function EmailForm() {
                                     <p className="text-xs text-neutral-500">Emails are sent distributed over time</p>
                                 </div>
                             </div>
-                            <Switch id="bg-mode" checked={useBackground} onCheckedChange={(checked) => {
-                                setUseBackground(checked);
-                                // Clear direct send results when switching to campaign mode
-                                if (checked) {
-                                    setCurrentResults([]);
-                                }
-                            }} />
+                            <Switch id="bg-mode" checked={useBackground} onCheckedChange={setUseBackground} />
                         </div>
 
                         {useBackground && (
@@ -583,14 +570,11 @@ export function EmailForm() {
                                                     className="h-10"
                                                 />
                                             </FormControl>
-
-
-
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                <div className="space-y-3">
+                                <div>
                                     <div className="flex items-center justify-between mb-3">
                                         <Label className="text-sm font-medium">Distribution Duration</Label>
                                         <span className="text-sm font-mono bg-white dark:bg-neutral-800 px-3 py-1 rounded-lg shadow-sm">
@@ -607,12 +591,12 @@ export function EmailForm() {
                                         step={1}
                                         onValueChange={(vals) => setDurationMinutes(vals[0])}
                                     />
-                                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                                    <div className="flex justify-between text-xs text-neutral-400">
                                         <span>1 min</span>
                                         <span>24 hours</span>
                                     </div>
                                 </div>
-                                <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 space-y-3">
+                                <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
                                     <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-neutral-800">
                                         <p className="text-sm font-semibold">Delivery Schedule</p>
                                         <p className="text-xs font-mono">{recipients.length} Recipients</p>
@@ -675,27 +659,6 @@ export function EmailForm() {
                     </div>
                 </form>
             </Form>
-
-            {/* Status View - Only shown for DIRECT send mode */}
-            {!useBackground && (
-                <StatusView
-                    isSending={isSending}
-                    progress={sendProgress}
-                    results={currentResults}
-                />
-            )}
-
-            {/* History Button - ALWAYS visible on all devices (Hidden on mobile, only top-right visible) */}
-            <div className="hidden sm:flex justify-center mt-6 mb-4 px-2">
-                <LiveCampaignTracker
-                    customTrigger={
-                        <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                            <Clock className="h-4 w-4" />
-                            View Tracking & History
-                        </Button>
-                    }
-                />
-            </div>
 
 
 

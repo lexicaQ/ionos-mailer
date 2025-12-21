@@ -62,40 +62,43 @@ export async function POST(req: Request) {
             });
         }
 
+        // Sequential sending
+        // Enforce minimum delay of 1.5s to avoid 450 rate limit errors
+        const explicitDelay = smtpSettings?.delay || 0;
+        const delayMs = Math.max(explicitDelay, 5000); // Minimum 5s for IONOS rate limit
+
         // Check if placeholders exist in the template
+        // We use the util regex for detection too
         const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
         const hasPlaceholders = PLACEHOLDER_REGEX.test(body) || PLACEHOLDER_REGEX.test(subject);
 
-        // Rate limiting: minimum 3 seconds between emails for IONOS
-        const explicitDelay = smtpSettings?.delay || 0;
-        const delayMs = Math.max(explicitDelay, 3000);
-
         for (const recipient of recipients) {
-            // Rate limit protection: wait before each send
-            if (results.length > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
+            // Always wait before sending (rate limit protection)
+            await new Promise(resolve => setTimeout(resolve, delayMs));
 
             let finalSubject = subject;
             let finalBody = body;
 
-            // Perform placeholder replacement if needed
+            // Perform replacement if needed
             if (hasPlaceholders) {
                 try {
                     const companyName = await extractCompanyFromEmail(recipient.email);
+                    // Use centralized logic
                     finalSubject = replacePlaceholders(finalSubject, companyName);
                     finalBody = replacePlaceholders(finalBody, companyName);
                 } catch (e) {
                     console.error(`Failed to extract company for ${recipient.email}`, e);
+                    // In error case, treat as generic (remove placeholder)
                     finalSubject = replacePlaceholders(finalSubject, null);
                     finalBody = replacePlaceholders(finalBody, null);
                 }
             }
 
-            // Generate unique tracking ID
+            // Generate unique tracking ID for this email
             const trackingId = randomUUID();
 
-            // 1. Create PENDING job in DB first
+            // 2. Persist Job to Database
+            // We save it BEFORE sending, so we have the record. Status PENDING -> SENT/FAILED
             const job = await prisma.emailJob.create({
                 data: {
                     campaignId: campaign.id,
@@ -108,7 +111,7 @@ export async function POST(req: Request) {
                 }
             });
 
-            // 2. Process body with tracking
+            // Process body with tracking (adds pixel and wraps links)
             const htmlWithTracking = processBodyWithTracking(finalBody, trackingId, baseUrl);
 
             let success = false;
@@ -116,19 +119,20 @@ export async function POST(req: Request) {
             let msgId: string | undefined = undefined;
 
             try {
-                // Decrypt password for sending
-                const decryptedConfig = {
+                // Ensure we use the raw password, not the encrypted blob
+                // If it's plain text, decrypt() returns it as-is (thanks to our fallback)
+                // If it's encrypted (from saved settings), this unwraps it
+                const decrypedConfig = {
                     ...smtpSettings,
                     pass: decrypt(smtpSettings.pass, encryptionKey)
                 };
 
-                // SEND IMMEDIATELY
                 const sendResponse = await sendEmail({
                     to: recipient.email,
                     subject: finalSubject,
                     text: finalBody,
                     html: htmlWithTracking,
-                    config: decryptedConfig,
+                    config: decrypedConfig,
                     attachments,
                 });
                 success = sendResponse.success;
@@ -139,7 +143,7 @@ export async function POST(req: Request) {
                 errorMsg = e.message;
             }
 
-            // 3. Update job status in DB
+            // 3. Update Job Status
             await prisma.emailJob.update({
                 where: { id: job.id },
                 data: {
@@ -149,7 +153,6 @@ export async function POST(req: Request) {
                 }
             });
 
-            // 4. Return result for UI feedback
             results.push({
                 email: recipient.email,
                 success: success,

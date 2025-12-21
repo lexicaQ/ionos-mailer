@@ -26,8 +26,16 @@ export async function DELETE(
             return NextResponse.json({ error: "Campaign not found or access denied" }, { status: 403 });
         }
 
-        // 1. Delete jobs explicitly (Schema does not have onDelete: Cascade)
-        // Note: Tracking data (opens, clicks) is embedded in EmailJob, so deleting jobs handles it.
+        // 1. Delete associated clicks
+        const jobs = await prisma.emailJob.findMany({
+            where: { campaignId: id },
+            select: { id: true }
+        });
+        const jobIds = jobs.map((j: { id: string }) => j.id);
+
+
+
+        // 2. Delete jobs
         await prisma.emailJob.deleteMany({
             where: { campaignId: id }
         });

@@ -38,30 +38,20 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // SINGLE EMAIL: Process 1 email per invocation
-        // cron-job.org runs every 3 minutes = 1 email every 3 minutes
-        const BATCH_SIZE = 1;
+        // BATCH SIZE: Process up to 10 emails per invocation
+        // Vercel Limit: 10s (Hobby) / 60s (Pro). 
+        // 10 emails * 0.5s delay = 5s (Safe)
+        const BATCH_SIZE = 10;
         const now = new Date();
-
-        // Check if manual trigger should ignore schedule
-        const ignoreSchedule = req.headers.get('x-ignore-schedule') === 'true';
 
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
-                status: { in: ['PENDING', 'FAILED'] },
-                // Ignore scheduledFor if manual trigger with ignore flag
-                ...(ignoreSchedule ? {} : { scheduledFor: { lte: now } }),
-                // Exclude permanent failures
-                NOT: {
-                    error: { contains: '[PERMANENT_FAILURE]' }
-                }
+                status: 'PENDING',
+                scheduledFor: { lte: now }
             },
             include: { campaign: { include: { attachments: true } } },
             take: BATCH_SIZE,
-            orderBy: [
-                { status: 'asc' }, // Alphabetical: FAILED comes before PENDING -> Prioritize Failed
-                { scheduledFor: 'asc' } // Then oldest first
-            ]
+            orderBy: { scheduledFor: 'asc' } // First in, first out
         });
 
         if (pendingJobs.length === 0) {
@@ -82,8 +72,8 @@ async function handleCronRequest(req: NextRequest) {
         for (const job of pendingJobs) {
             // CONCURRENCY LOCK: Atomic update to ensure no double-processing
             const locked = await prisma.emailJob.updateMany({
-                where: { id: job.id, status: { in: ['PENDING', 'FAILED'] } },
-                data: { status: 'SENDING', error: null } // Clear previous error on retry
+                where: { id: job.id, status: 'PENDING' },
+                data: { status: 'SENDING' }
             });
 
             if (locked.count === 0) {
@@ -193,32 +183,14 @@ async function handleCronRequest(req: NextRequest) {
                         errorMsg.includes('ECONNREFUSED') ||
                         errorMsg.includes('ECONNRESET');
 
-                    // Parse retry count from current error
-                    const currentError = job.error || '';
-                    const retryMatch = currentError.match(/\[Retry (\d+)\/3\]/);
-                    const retryCount = retryMatch ? parseInt(retryMatch[1]) : 0;
-
-                    if (retryCount >= 3 || !isRetryable) {
-                        // Mark as permanent failure after 3 retries or if not retryable
-                        await prisma.emailJob.update({
-                            where: { id: job.id },
-                            data: {
-                                status: 'FAILED',
-                                error: `[PERMANENT_FAILURE] ${errorMsg}`
-                            }
-                        });
-                        results.push({ id: job.id, success: false, retrying: false });
-                    } else {
-                        // Increment retry counter and reset to PENDING
-                        await prisma.emailJob.update({
-                            where: { id: job.id },
-                            data: {
-                                status: 'PENDING',
-                                error: `[Retry ${retryCount + 1}/3] ${errorMsg}`
-                            }
-                        });
-                        results.push({ id: job.id, success: false, retrying: true });
-                    }
+                    await prisma.emailJob.update({
+                        where: { id: job.id },
+                        data: {
+                            status: isRetryable ? 'PENDING' : 'FAILED', // Retry on timeout
+                            error: isRetryable ? `Retrying: ${errorMsg}` : errorMsg
+                        }
+                    });
+                    results.push({ id: job.id, success: false, retrying: isRetryable });
                 }
             }
 
@@ -227,13 +199,31 @@ async function handleCronRequest(req: NextRequest) {
             // await delay(500);
         }
 
-        // NOTE: No recursive trigger - cron-job.org handles timing (every 3 minutes)
-        // Manual loop is now handled client-side in SettingsDialog
+        // RECURSION: If we processed a full batch, there might be more.
+        // Trigger immediately. If we processed < BATCH_SIZE, we are done until next cron.
+        if (pendingJobs.length === BATCH_SIZE) {
+            console.log("Full batch processed. Triggering next batch immediately.");
+            const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
+
+            // Fire-and-forget (fetch without await, but handled carefully)
+            // Note: In Vercel serverless, unawaited promises can be cancelled when function freezes.
+            // We use waitUntil or just await it with short timeout.
+            // But standard await fetch is safest for reliable chaining.
+            await fetch(triggerUrl, {
+                method: 'POST',
+                headers: {
+                    'x-manual-trigger': 'true',
+                    'User-Agent': 'vercel-cron/1.0',
+                    ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
+                    ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
+                },
+                signal: AbortSignal.timeout(5000)
+            }).catch(e => console.error('Recursive trigger failed:', e));
+        }
 
         return NextResponse.json({
             processed: results.length,
             batchSize: BATCH_SIZE,
-            remaining: undefined, // Client uses futurePendingCount
             results
         });
 

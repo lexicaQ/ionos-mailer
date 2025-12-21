@@ -33,14 +33,12 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
                 <div className="flex gap-4 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-sm font-medium">
                     <div className="flex items-center gap-2 text-green-600 dark:text-green-500">
                         <CheckCircle className="h-5 w-5" />
-                        {successful} Sent Successfully
+                        {successful} Successful
                     </div>
-                    {failed > 0 && (
-                        <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
-                            <XCircle className="h-5 w-5" />
-                            {failed} Failed
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
+                        <XCircle className="h-5 w-5" />
+                        {failed} Failed
+                    </div>
                 </div>
             )}
 
