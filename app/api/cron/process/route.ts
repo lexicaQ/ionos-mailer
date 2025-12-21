@@ -44,7 +44,8 @@ async function handleCronRequest(req: NextRequest) {
 
         // PRIORITY QUEUE SYSTEM:
         // 1. Regular scheduled emails (no nextRetryAt) - HIGHEST PRIORITY
-        // 2. Manual resend queue (nextRetryAt <= now) - FILLS REMAINING SLOTS
+        // 2. Manual resend queue (nextRetryAt <= now) - SECOND PRIORITY
+        // 3. FAILED emails that haven't exceeded max retries - LOWEST PRIORITY (auto-retry)
 
         const scheduledJobs = await prisma.emailJob.findMany({
             where: {
@@ -57,27 +58,46 @@ async function handleCronRequest(req: NextRequest) {
             orderBy: { scheduledFor: 'asc' } // Oldest first
         });
 
-        // Fill remaining batch slots with resend jobs
-        const resendJobs = scheduledJobs.length < BATCH_SIZE
+        let remainingSlots = BATCH_SIZE - scheduledJobs.length;
+
+        // Fill remaining batch slots with resend jobs (PENDING with nextRetryAt)
+        const resendJobs = remainingSlots > 0
             ? await prisma.emailJob.findMany({
                 where: {
                     status: 'PENDING',
                     nextRetryAt: { lte: now } // Due for retry
                 },
                 include: { campaign: { include: { attachments: true } } },
-                take: BATCH_SIZE - scheduledJobs.length,
+                take: remainingSlots,
                 orderBy: { scheduledFor: 'asc' } // Still oldest-first
             })
             : [];
 
-        const pendingJobs = [...scheduledJobs, ...resendJobs];
+        remainingSlots -= resendJobs.length;
+
+        // AUTO-RETRY: Pick up FAILED emails that haven't maxed out retries
+        const failedJobs = remainingSlots > 0
+            ? await prisma.emailJob.findMany({
+                where: {
+                    status: 'FAILED',
+                    retryCount: { lt: 3 } // Below max retries
+                },
+                include: { campaign: { include: { attachments: true } } },
+                take: remainingSlots,
+                orderBy: { scheduledFor: 'asc' } // Oldest first
+            })
+            : [];
+
+        const pendingJobs = [...scheduledJobs, ...resendJobs, ...failedJobs];
 
         if (pendingJobs.length === 0) {
             const futureJobs = await prisma.emailJob.count({ where: { status: 'PENDING' } });
+            const failedCount = await prisma.emailJob.count({ where: { status: 'FAILED', retryCount: { lt: 3 } } });
             return NextResponse.json({
                 processed: 0,
                 message: "No pending jobs due.",
-                futurePendingCount: futureJobs
+                futurePendingCount: futureJobs,
+                failedRetryableCount: failedCount
             });
         }
 
