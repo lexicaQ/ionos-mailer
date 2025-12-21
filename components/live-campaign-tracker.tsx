@@ -87,6 +87,15 @@ export function LiveCampaignTracker() {
 
     // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
     const fetchCampaigns = useCallback(async (isBackground = false) => {
+        // Load deleted campaign IDs from localStorage
+        const deletedIds = localStorage.getItem("ionos-mailer-deleted-campaigns");
+        if (deletedIds) {
+            try {
+                const parsed: string[] = JSON.parse(deletedIds);
+                parsed.forEach(id => deletedCampaigns.current.add(id));
+            } catch (e) { }
+        }
+
         // 1. Load from cache ONLY on initial load (not during background polling)
         // This prevents state thrashing/flickering during updates
         if (!isBackground) {
@@ -94,7 +103,9 @@ export function LiveCampaignTracker() {
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
-                    setCampaigns(parsed);
+                    // Filter out deleted campaigns from cache
+                    const filtered = parsed.filter((c: any) => !deletedCampaigns.current.has(c.id));
+                    setCampaigns(filtered);
                 } catch (e) { }
             }
         }
@@ -120,9 +131,12 @@ export function LiveCampaignTracker() {
                     }
                 });
 
-                setCampaigns(data.filter((c: any) => !deletedCampaigns.current.has(c.id)));
-                // Update cache for next time
-                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(data));
+                // Filter out deleted campaigns
+                const filtered = data.filter((c: any) => !deletedCampaigns.current.has(c.id));
+                setCampaigns(filtered);
+
+                // Update cache WITHOUT deleted campaigns
+                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
             }
         } catch (error) {
             console.error("Failed to fetch campaigns:", error);
@@ -181,6 +195,20 @@ export function LiveCampaignTracker() {
         deletedCampaigns.current.add(id);
         setCampaigns(prev => prev.filter(c => c.id !== id));
 
+        // Persist deleted IDs to localStorage
+        const deletedIds = Array.from(deletedCampaigns.current);
+        localStorage.setItem("ionos-mailer-deleted-campaigns", JSON.stringify(deletedIds));
+
+        // Also remove from cache immediately
+        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                const filtered = parsed.filter((c: any) => c.id !== id);
+                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
+            } catch (e) { }
+        }
+
         try {
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
 
@@ -190,6 +218,9 @@ export function LiveCampaignTracker() {
                 if (res.status === 401 || res.status === 403) {
                     console.error("Deletion denied");
                     deletedCampaigns.current.delete(id);
+                    // Update persisted list
+                    const updatedIds = Array.from(deletedCampaigns.current);
+                    localStorage.setItem("ionos-mailer-deleted-campaigns", JSON.stringify(updatedIds));
                     fetchCampaigns(false); // Reload to restore
                     alert("Permission denied. You cannot delete this campaign.");
                 } else if (res.status === 404) {

@@ -207,36 +207,27 @@ export function EmailForm() {
                     window.dispatchEvent(new Event('campaign-created'));
                 }
             } else {
+                // Direct Send Mode: Server creates Campaign with jobs
+                // Don't create local history - sync from server instead
                 const results: SendResult[] = resultData.results;
                 setCurrentResults(results);
                 setSendProgress(100);
 
-                const successCount = results.filter(r => r.success).length;
+                // Sync history from server to get the actual campaign data
+                await syncHistory();
 
-                const newBatch: HistoryBatch = {
-                    id: resultData.campaignId || crypto.randomUUID(),
-                    sentAt: new Date().toISOString(),
-                    total: results.length,
-                    results: results, // Include results for details
-                    success: successCount,
-                    failed: results.length - successCount,
-                    subject: data.subject,
-                    status: 'completed',
-                    body: data.body, // Use passed data
-                    recipientList: data.recipients // Use passed data
-                };
+                // Trigger cron to process the pending jobs immediately
+                fetch("/api/cron/process", {
+                    method: 'GET',
+                    headers: { 'x-manual-trigger': 'true' }
+                }).catch(e => console.error("Cron trigger failed:", e));
 
-                // Update local state and storage
-                setHistory(prev => {
-                    const updated = [newBatch, ...prev];
-                    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
-                    return updated;
-                });
+                // Signal Live Tracker to update  
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('campaign-created'));
+                }
 
-                // Push to cloud if logged in
-                saveHistoryToServer(newBatch);
-
-                toast.success("Delivery completed");
+                toast.success("Delivery queued - emails will be sent shortly. Check History for status.");
             }
 
         } catch (error: any) {

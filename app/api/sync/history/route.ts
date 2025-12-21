@@ -17,14 +17,15 @@ export async function GET(req: Request) {
         if (!secretKey) throw new Error("Encryption key missing");
 
         // Fetch Campaigns (Direct Batches)
-        // Now that we create a unique Campaign for each Direct Send batch,
-        // we can fetch the campaigns and their jobs to reconstruct the history batch.
+        // Direct sends have name="DIRECT" (unencrypted)
+        // Background campaigns may have encrypted names
+        // Legacy direct sends used host="DIRECT"
         const campaigns = await prisma.campaign.findMany({
             where: {
                 userId: session.user.id,
                 OR: [
-                    { host: "DIRECT" }, // Legacy Direct Sends
-                    { name: "DIRECT" }  // New Async Direct Sends
+                    { host: "DIRECT" },  // Legacy Direct Sends
+                    { name: "DIRECT" }   // New Async Direct Sends (unencrypted marker)
                 ]
             },
             take: 20, // Limit to 20 most recent batches
