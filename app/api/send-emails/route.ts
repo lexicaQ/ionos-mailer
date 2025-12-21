@@ -72,23 +72,22 @@ export async function POST(req: Request) {
         const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
         const hasPlaceholders = PLACEHOLDER_REGEX.test(body) || PLACEHOLDER_REGEX.test(subject);
 
-        for (const recipient of recipients) {
-            // Always wait before sending (rate limit protection)
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+        // 2. Schedule Jobs in Database (Queueing)
+        // We do NOT send immediately. We queue them for the Cron Job to pick up.
+        // This ensures reliability, correct 3-min intervals, and background processing.
 
+        for (const recipient of recipients) {
             let finalSubject = subject;
             let finalBody = body;
 
-            // Perform replacement if needed
+            // Perform replacement if needed (Synchronous part)
             if (hasPlaceholders) {
                 try {
                     const companyName = await extractCompanyFromEmail(recipient.email);
-                    // Use centralized logic
                     finalSubject = replacePlaceholders(finalSubject, companyName);
                     finalBody = replacePlaceholders(finalBody, companyName);
                 } catch (e) {
                     console.error(`Failed to extract company for ${recipient.email}`, e);
-                    // In error case, treat as generic (remove placeholder)
                     finalSubject = replacePlaceholders(finalSubject, null);
                     finalBody = replacePlaceholders(finalBody, null);
                 }
@@ -97,69 +96,26 @@ export async function POST(req: Request) {
             // Generate unique tracking ID for this email
             const trackingId = randomUUID();
 
-            // 2. Persist Job to Database
-            // We save it BEFORE sending, so we have the record. Status PENDING -> SENT/FAILED
-            const job = await prisma.emailJob.create({
+            // Create PENDING job in DB
+            await prisma.emailJob.create({
                 data: {
                     campaignId: campaign.id,
                     recipient: encrypt(recipient.email, encryptionKey),
                     subject: encrypt(finalSubject, encryptionKey),
                     body: encrypt(finalBody, encryptionKey),
                     status: 'PENDING',
-                    scheduledFor: new Date(),
+                    scheduledFor: new Date(), // Available for pickup immediately by Cron
                     trackingId: trackingId
                 }
             });
 
-            // Process body with tracking (adds pixel and wraps links)
-            const htmlWithTracking = processBodyWithTracking(finalBody, trackingId, baseUrl);
-
-            let success = false;
-            let errorMsg: string | undefined = undefined;
-            let msgId: string | undefined = undefined;
-
-            try {
-                // Ensure we use the raw password, not the encrypted blob
-                // If it's plain text, decrypt() returns it as-is (thanks to our fallback)
-                // If it's encrypted (from saved settings), this unwraps it
-                const decrypedConfig = {
-                    ...smtpSettings,
-                    pass: decrypt(smtpSettings.pass, encryptionKey)
-                };
-
-                const sendResponse = await sendEmail({
-                    to: recipient.email,
-                    subject: finalSubject,
-                    text: finalBody,
-                    html: htmlWithTracking,
-                    config: decrypedConfig,
-                    attachments,
-                });
-                success = sendResponse.success;
-                errorMsg = sendResponse.error;
-                msgId = sendResponse.messageId;
-            } catch (e: any) {
-                success = false;
-                errorMsg = e.message;
-            }
-
-            // 3. Update Job Status
-            await prisma.emailJob.update({
-                where: { id: job.id },
-                data: {
-                    status: success ? 'SENT' : 'FAILED',
-                    sentAt: success ? new Date() : undefined,
-                    error: errorMsg
-                }
-            });
-
+            // We return "success" for the queuing action
             results.push({
                 email: recipient.email,
-                success: success,
-                messageId: msgId,
-                error: errorMsg,
+                success: true, // Successfully QUEUED
+                messageId: `queued-${trackingId}`,
                 timestamp: new Date().toISOString(),
-                trackingId: success ? trackingId : undefined,
+                trackingId: trackingId,
             });
         }
 

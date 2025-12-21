@@ -31,13 +31,9 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
 
             {!isSending && results.length > 0 && (
                 <div className="flex gap-4 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-sm font-medium">
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-500">
-                        <CheckCircle className="h-5 w-5" />
-                        {successful} Successful
-                    </div>
-                    <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
-                        <XCircle className="h-5 w-5" />
-                        {failed} Failed
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-500">
+                        <Clock className="h-5 w-5" />
+                        {successful} Scheduled for Cron
                     </div>
                 </div>
             )}
@@ -59,8 +55,8 @@ export function StatusView({ isSending, progress, results }: StatusViewProps) {
                                     <TableCell className="font-medium">{result.email}</TableCell>
                                     <TableCell>
                                         {result.success ? (
-                                            <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800">
-                                                Sent
+                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                                                Queued
                                             </Badge>
                                         ) : (
                                             <Badge variant="outline" className="bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800">
