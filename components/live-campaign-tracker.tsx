@@ -689,7 +689,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
 
                                                         {/* Actual Sent Time Group */}
                                                         <div className="flex flex-col items-center">
-                                                            <span className="text-[10px] text-green-600/70 dark:text-green-400/70 font-medium leading-none mb-0.5">Sent</span>
+                                                            {/* Removed duplicate "Sent" label */}
                                                             <span className="font-mono text-[10px] sm:text-xs text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
                                                                 {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : "-"}
                                                             </span>
