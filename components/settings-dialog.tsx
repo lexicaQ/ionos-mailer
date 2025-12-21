@@ -340,7 +340,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                         method: 'POST',
                                         headers: {
                                             'x-manual-trigger': 'true',
-                                            'x-ignore-schedule': 'true' // Ignore scheduledFor for manual sends
+                                            // Removed 'x-ignore-schedule' to respect scheduled times
                                         }
                                     });
                                     const data = await res.json();

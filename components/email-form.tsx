@@ -685,8 +685,8 @@ export function EmailForm() {
                 />
             )}
 
-            {/* History Button - ALWAYS visible on all devices */}
-            <div className="flex justify-center mt-6 mb-4 px-2">
+            {/* History Button - ALWAYS visible on all devices (Hidden on mobile, only top-right visible) */}
+            <div className="hidden sm:flex justify-center mt-6 mb-4 px-2">
                 <LiveCampaignTracker
                     customTrigger={
                         <Button variant="outline" className="gap-2 w-full sm:w-auto">

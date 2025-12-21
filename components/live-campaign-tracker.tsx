@@ -50,7 +50,16 @@ interface Campaign {
 
 export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
-    const [campaigns, setCampaigns] = useState<Campaign[]>([])
+    // Initialize lazily from localStorage to avoid loading flash on mount
+    const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+            if (cached) {
+                try { return JSON.parse(cached); } catch (e) { }
+            }
+        }
+        return [];
+    })
     const [loading, setLoading] = useState(false)
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -88,16 +97,14 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
     const fetchCampaigns = useCallback(async (isBackground = false) => {
         // 1. ALWAYS load from cache first for INSTANT display
-        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-        if (cached) {
-            try {
-                const parsed = JSON.parse(cached);
-                setCampaigns(parsed);
-            } catch (e) { }
-        }
+        // Note: Initial state is already set from cache lazily above
+        // We only re-read here if needed, but primary load is synchronous
 
-        // 2. NEVER show loading spinner - always use cached data instantly
-        // This ensures instant display on all devices
+        // 2. NEVER show loading spinner if we have data
+        // Only set loading if there's NO cached data at all (first time ever)
+        if (campaigns.length === 0 && !isBackground) {
+            setLoading(true);
+        }
 
         // 3. Fetch fresh data from server in background
         try {
