@@ -577,6 +577,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                         const isNext = job.id === nextJobId;
                         const isFailed = job.status === 'FAILED';
                         const isPending = job.status === 'PENDING';
+                        const isCancelled = job.status === 'CANCELLED';
 
                         const scheduledDate = new Date(job.scheduledFor);
                         const now = new Date();
@@ -599,7 +600,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                             : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border-l-4 border-transparent';
 
                         return (
-                            <div key={job.id} className={`relative p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 ${activeJobClass}`}>
+                            <div key={job.id} className={`relative p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 ${isCancelled ? 'opacity-60' : ''} ${activeJobClass}`}>
 
                                 {/* Status Pill - FIRST */}
                                 <div className="w-[65px] sm:w-[100px] flex-shrink-0 flex flex-col gap-1 items-center justify-center">
@@ -614,12 +615,14 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         h-5 sm:h-6 px-0 text-[8px] sm:text-[10px] border-0 font-bold tracking-wide w-[60px] sm:w-[90px] justify-center shadow-none
                                         ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100' :
                                                 job.status === 'FAILED' ? 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400' :
-                                                    'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
+                                                    job.status === 'CANCELLED' ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 line-through' :
+                                                        'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
                                     `}
                                     >
                                         {job.status === 'SENT' ? 'SENT' :
                                             job.status === 'FAILED' ? 'FAILED' :
-                                                'WAITING'}
+                                                job.status === 'CANCELLED' ? 'CANCELLED' :
+                                                    'WAITING'}
                                     </Badge>
                                     {/* Retry Badge */}
                                     {(job as any).retryCount > 0 && (

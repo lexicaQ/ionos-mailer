@@ -322,13 +322,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                 <FileText className="h-3.5 w-3.5" />
                                 PDF
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => {
-                                if (confirm("Are you sure you want to clear all history? This cannot be undone.")) {
-                                    onClearAll();
-                                }
-                            }} className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600">
+                            <Button variant="outline" size="sm" onClick={onClearAll} className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600">
                                 <Trash2 className="h-3.5 w-3.5" />
-                                Clear
+                                Clear All
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
                                 <X className="h-4 w-4" />

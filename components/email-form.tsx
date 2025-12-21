@@ -326,6 +326,11 @@ export function EmailForm() {
     }
 
     const handleClearAllHistory = async () => {
+        // Confirm first
+        if (!confirm("Are you sure you want to clear all history? This cannot be undone.")) {
+            return;
+        }
+
         // Optimistic: Clear local immediately
         historyManuallyCleared.current = true; // Prevent auto-sync refill
         const previousHistory = [...history];
