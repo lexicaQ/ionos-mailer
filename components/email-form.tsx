@@ -309,6 +309,8 @@ export function EmailForm() {
         const previousHistory = [...history]; // Backup in case of error
         setHistory([]);
         localStorage.removeItem("ionos-mailer-history");
+        localStorage.removeItem("ionos-mailer-campaigns-cache"); // Clear Live Tracker cache
+        localStorage.removeItem("ionos-mailer-deleted-campaigns"); // Clear deletion overrides
         toast.success("History cleared");
 
         try {

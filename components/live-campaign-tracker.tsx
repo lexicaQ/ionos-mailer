@@ -681,16 +681,16 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                                     <div className="flex items-center gap-3">
                                                         {/* Original Schedule Group */}
                                                         <div className="flex flex-col items-center">
-                                                            <span className="text-[8px] text-neutral-400 font-medium leading-none mb-0.5">Scheduled</span>
-                                                            <span className="font-mono text-[9px] sm:text-[10px] text-neutral-600 dark:text-neutral-400 font-bold bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
+                                                            <span className="text-[10px] text-neutral-400 font-medium leading-none mb-0.5">Scheduled</span>
+                                                            <span className="font-mono text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400 font-bold bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
                                                                 {format(new Date(job.scheduledFor), "HH:mm")}
                                                             </span>
                                                         </div>
 
                                                         {/* Actual Sent Time Group */}
                                                         <div className="flex flex-col items-center">
-                                                            <span className="text-[8px] text-green-600/70 dark:text-green-400/70 font-medium leading-none mb-0.5">Sent</span>
-                                                            <span className="font-mono text-[9px] sm:text-[10px] text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
+                                                            {/* Removed redundant "Sent" label */}
+                                                            <span className="font-mono text-[10px] sm:text-xs text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
                                                                 {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : "-"}
                                                             </span>
                                                             {/* Delay Text (Below) */}
@@ -715,7 +715,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto"
+                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute top-auto bottom-1 right-1 sm:relative sm:top-auto sm:right-auto"
                                             onClick={async (e) => {
                                                 e.stopPropagation();
                                                 if (!confirm("Cancel this email?")) return;

@@ -376,7 +376,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                             {/* Table Header */}
                             <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
                                 <div className="w-[100px]">Status</div>
-                                <div className="hidden sm:block w-[110px]">Opened</div> {/* Hide Opened col on mobile to save space? User only mentioned Recipient alignment. Let's start with just alignment. */}
+
                                 {/* Actually, if the email text is smaller, maybe we just need to ensure the header starts at same X. Flex gap handles this. */}
                                 {/* User said "move the colum title to the left so it starts at the same position as the actual email addresses below".
                                     The email address is pushed by Status (100px) + Gap?
