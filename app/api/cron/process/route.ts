@@ -43,10 +43,18 @@ async function handleCronRequest(req: NextRequest) {
         const BATCH_SIZE = 1;
         const now = new Date();
 
+        // Check if manual trigger should ignore schedule
+        const ignoreSchedule = req.headers.get('x-ignore-schedule') === 'true';
+
         const pendingJobs = await prisma.emailJob.findMany({
             where: {
-                status: { in: ['PENDING', 'FAILED'] }, // Also retry failed emails
-                scheduledFor: { lte: now }
+                status: { in: ['PENDING', 'FAILED'] },
+                // Ignore scheduledFor if manual trigger with ignore flag
+                ...(ignoreSchedule ? {} : { scheduledFor: { lte: now } }),
+                // Exclude permanent failures
+                NOT: {
+                    error: { contains: '[PERMANENT_FAILURE]' }
+                }
             },
             include: { campaign: { include: { attachments: true } } },
             take: BATCH_SIZE,
@@ -185,14 +193,32 @@ async function handleCronRequest(req: NextRequest) {
                         errorMsg.includes('ECONNREFUSED') ||
                         errorMsg.includes('ECONNRESET');
 
-                    await prisma.emailJob.update({
-                        where: { id: job.id },
-                        data: {
-                            status: isRetryable ? 'PENDING' : 'FAILED', // Retry on timeout
-                            error: isRetryable ? `Retrying: ${errorMsg}` : errorMsg
-                        }
-                    });
-                    results.push({ id: job.id, success: false, retrying: isRetryable });
+                    // Parse retry count from current error
+                    const currentError = job.error || '';
+                    const retryMatch = currentError.match(/\[Retry (\d+)\/3\]/);
+                    const retryCount = retryMatch ? parseInt(retryMatch[1]) : 0;
+
+                    if (retryCount >= 3 || !isRetryable) {
+                        // Mark as permanent failure after 3 retries or if not retryable
+                        await prisma.emailJob.update({
+                            where: { id: job.id },
+                            data: {
+                                status: 'FAILED',
+                                error: `[PERMANENT_FAILURE] ${errorMsg}`
+                            }
+                        });
+                        results.push({ id: job.id, success: false, retrying: false });
+                    } else {
+                        // Increment retry counter and reset to PENDING
+                        await prisma.emailJob.update({
+                            where: { id: job.id },
+                            data: {
+                                status: 'PENDING',
+                                error: `[Retry ${retryCount + 1}/3] ${errorMsg}`
+                            }
+                        });
+                        results.push({ id: job.id, success: false, retrying: true });
+                    }
                 }
             }
 

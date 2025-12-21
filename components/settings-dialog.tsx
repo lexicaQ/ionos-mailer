@@ -338,7 +338,10 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                     // 1. Send request for SINGLE email (no x-process-all means batch size = 1)
                                     const res = await fetch("/api/cron/process", {
                                         method: 'POST',
-                                        headers: { 'x-manual-trigger': 'true' } // Just manual, NOT all at once
+                                        headers: {
+                                            'x-manual-trigger': 'true',
+                                            'x-ignore-schedule': 'true' // Ignore scheduledFor for manual sends
+                                        }
                                     });
                                     const data = await res.json();
 

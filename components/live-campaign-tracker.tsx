@@ -481,8 +481,18 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                         </div>
                     )}
                     {filteredJobs.map((job) => {
-                        // Get all pending/failed jobs across ALL campaigns for queue calculation
-                        const allPendingJobs = campaign.jobs.filter(j => j.status === 'PENDING' || j.status === 'FAILED');
+                        // Detect permanent failures and retry status
+                        const isPermanentlyFailed = job.status === 'FAILED' &&
+                            job.error?.includes('[PERMANENT_FAILURE]');
+                        const isRetrying = job.status === 'PENDING' &&
+                            job.error?.includes('[Retry');
+                        const retryMatch = job.error?.match(/\[Retry (\d+)\/3\]/);
+
+                        // Get all pending/failed jobs (exclude permanent failures from queue)
+                        const allPendingJobs = campaign.jobs.filter(j =>
+                            (j.status === 'PENDING' || j.status === 'FAILED') &&
+                            !j.error?.includes('[PERMANENT_FAILURE]')
+                        );
 
                         // Sort by priority (FAILED first, then by scheduledFor)
                         const sortedQueue = [...allPendingJobs].sort((a, b) => {
@@ -522,13 +532,15 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         className={`
                                         h-5 sm:h-6 px-0 text-[8px] sm:text-[10px] border-0 font-bold tracking-wide w-[60px] sm:w-[90px] justify-center shadow-none
                                         ${job.status === 'SENT' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100' :
-                                                job.status === 'FAILED' ? 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400' :
-                                                    'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
+                                                isPermanentlyFailed ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100' :
+                                                    isRetrying ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 hover:bg-amber-100' :
+                                                        'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'}
                                     `}
                                     >
                                         {job.status === 'SENT' ? 'SENT' :
-                                            job.status === 'FAILED' ? 'FAILED' :
-                                                'WAITING'}
+                                            isPermanentlyFailed ? 'FAILED' :
+                                                isRetrying ? 'RETRYING' :
+                                                    'WAITING'}
                                     </Badge>
                                 </div>
 
@@ -569,10 +581,16 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                             {isNextUp ? 'Next Schedule' : (isInQueue ? `Queue +${queuePosition * 3}min` : 'Scheduled')}
                                         </div>
                                         <div className={`font-mono text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded
-                                        ${expectedSendTime < new Date() && (job.status === 'PENDING' || job.status === 'FAILED') ? 'text-red-600 dark:text-red-400 font-bold' : ''}
-                                        ${isNextUp ? 'bg-neutral-200 dark:bg-neutral-700 font-bold' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
+                                        ${isPermanentlyFailed ? 'text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/20' :
+                                                expectedSendTime < new Date() && (job.status === 'PENDING' || job.status === 'FAILED') ? 'text-red-600 dark:text-red-400 font-bold' : ''}
+                                        ${isNextUp ? 'bg-neutral-200 dark:bg-neutral-700 font-bold' : isPermanentlyFailed ? '' : 'bg-neutral-100 dark:bg-neutral-800'}`}>
                                             {format(expectedSendTime, "HH:mm")}
                                         </div>
+                                        {isRetrying && retryMatch && (
+                                            <div className="text-[8px] text-amber-600 dark:text-amber-400 font-medium mt-0.5">
+                                                {retryMatch[0]}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {job.sentAt && (
