@@ -9,12 +9,30 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 
-type ExtendedRecipientStatus = RecipientStatus & { duplicate?: boolean; reason?: string };
+type ExtendedRecipientStatus = RecipientStatus & { duplicate?: boolean; reason?: string; whitelisted?: boolean };
 
+const WHITELIST_KEY = 'ionos-mailer-email-whitelist';
+
+// Load whitelist from localStorage
+const loadWhitelist = (): Set<string> => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+        const saved = localStorage.getItem(WHITELIST_KEY);
+        return new Set(saved ? JSON.parse(saved) : []);
+    } catch {
+        return new Set();
+    }
+};
+
+// Save whitelist to localStorage
+const saveWhitelist = (whitelist: Set<string>) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(WHITELIST_KEY, JSON.stringify([...whitelist]));
+};
 
 interface RecipientInputProps {
     onRecipientsChange: (recipients: { email: string; id: string }[]) => void;
@@ -31,8 +49,37 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const [activeTab, setActiveTab] = useState("valid")
     const [isChecking, setIsChecking] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
+    const [whitelist, setWhitelist] = useState<Set<string>>(new Set())
 
-    // Helper: Check duplicates
+    // Load whitelist on mount
+    useEffect(() => {
+        setWhitelist(loadWhitelist());
+    }, []);
+
+    // Helper: Whitelist an email permanently
+    const handleWhitelist = (email: string) => {
+        const normalizedEmail = email.toLowerCase();
+        const newWhitelist = new Set(whitelist);
+        newWhitelist.add(normalizedEmail);
+        setWhitelist(newWhitelist);
+        saveWhitelist(newWhitelist);
+
+        // Update parsed recipients to mark as whitelisted
+        const updated = parsedRecipients.map(r => {
+            if (r.email.toLowerCase() === normalizedEmail) {
+                return { ...r, duplicate: false, whitelisted: true, reason: undefined };
+            }
+            return r;
+        });
+        setParsedRecipients(updated);
+        onRecipientsChange(updated.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
+
+        toast.success(`${email} whitelisted permanently`, {
+            description: "This address will never be flagged as duplicate again."
+        });
+    };
+
+    // Helper: Check duplicates (excludes whitelisted emails)
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
         setIsChecking(true);
         try {
@@ -45,14 +92,19 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             });
             const data = await res.json();
             const duplicates = new Set(data.duplicates || []);
+            const currentWhitelist = loadWhitelist(); // Fresh load
 
             return recipients.map((r) => {
                 const email = r.email;
-                if (duplicates.has(email) || duplicates.has(email.toLowerCase())) {
-                    return { ...r, valid: true, duplicate: true, reason: "Duplicate: Already sent in previous campaign" };
-                    // Ensure 'valid: true' so they appear in valid tab (but crossed out)
-                    // Wait, if valid: true, they are in onRecipientsChange?
-                    // I filter them out of onRecipientsChange explicitly.
+                const normalizedEmail = email.toLowerCase();
+
+                // Skip whitelist check - these are permanently allowed
+                if (currentWhitelist.has(normalizedEmail)) {
+                    return { ...r, valid: true, duplicate: false, whitelisted: true };
+                }
+
+                if (duplicates.has(email) || duplicates.has(normalizedEmail)) {
+                    return { ...r, valid: true, duplicate: true, reason: "Already contacted in previous campaign" };
                 }
                 return r;
             });
@@ -199,6 +251,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                     {displayList.map((recipient) => {
                                         const isGeneric = isGenericDomain(recipient.email);
                                         const isDuplicate = recipient.duplicate;
+                                        const isWhitelisted = recipient.whitelisted;
 
                                         return (
                                             <Badge
@@ -208,21 +261,44 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                     "flex items-center gap-1 px-3 py-1.5 border transition-all",
                                                     isDuplicate
                                                         ? "line-through opacity-70 bg-red-100 text-red-700 hover:bg-red-200 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                                                        : isGeneric
-                                                            ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
-                                                            : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+                                                        : isWhitelisted
+                                                            ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                                                            : isGeneric
+                                                                ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
+                                                                : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                                                 )}
-                                                title={isDuplicate ? recipient.reason : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address")}
+                                                title={isDuplicate ? recipient.reason : (isWhitelisted ? "Whitelisted - Always allowed" : (isGeneric ? "Generic Address: Automatic 'XXX' replacement not possible" : "Valid Business Address"))}
                                             >
+                                                {isWhitelisted && <ShieldCheck className="h-3 w-3 mr-1" />}
                                                 {isDuplicate && <span className="sr-only">Duplicate: </span>}
-                                                {isGeneric && !isDuplicate && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                                {isGeneric && !isDuplicate && !isWhitelisted && <AlertTriangle className="h-3 w-3 mr-1" />}
                                                 {recipient.email}
+
+                                                {/* Allow button for duplicates */}
+                                                {isDuplicate && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleWhitelist(recipient.email);
+                                                        }}
+                                                        className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-white/50 hover:bg-white text-green-700 border border-green-300 transition-colors"
+                                                        title="Allow permanently - never flag as duplicate again"
+                                                    >
+                                                        Allow
+                                                    </button>
+                                                )}
+
                                                 <button
                                                     type="button"
                                                     onClick={() => handleRemove(recipient.id)}
-                                                    className={`ml-1 rounded-full p-0.5 transition-colors ${isGeneric
-                                                        ? "hover:bg-orange-200 dark:hover:bg-orange-800"
-                                                        : "hover:bg-green-200 dark:hover:bg-green-800"
+                                                    className={`ml-1 rounded-full p-0.5 transition-colors ${isDuplicate
+                                                            ? "hover:bg-red-300 dark:hover:bg-red-700"
+                                                            : isWhitelisted
+                                                                ? "hover:bg-blue-200 dark:hover:bg-blue-800"
+                                                                : isGeneric
+                                                                    ? "hover:bg-orange-200 dark:hover:bg-orange-800"
+                                                                    : "hover:bg-green-200 dark:hover:bg-green-800"
                                                         }`}
                                                 >
                                                     <X className="h-3 w-3" />
