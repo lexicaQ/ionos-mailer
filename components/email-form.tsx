@@ -300,8 +300,10 @@ export function EmailForm() {
     }
 
     const handleDeleteBatch = (id: string) => {
-        setHistory(prev => prev.filter(b => b.id !== id));
-        toast.success("Campaign deleted");
+        // OPTIMISTIC: Remove from UI instantly
+        const updated = history.filter(b => b.id !== id);
+        setHistory(updated);
+        toast.success("Campaign deleted", { duration: 1500 });
     }
 
     const handleClearAllHistory = async () => {

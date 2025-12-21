@@ -108,9 +108,8 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     // Helper: Check duplicates (excludes whitelisted emails)
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
-        // Delay showing loading spinner to prevent flicker for fast operations
-        // Lower threshold for smoother feel
-        const loadingTimer = setTimeout(() => setIsChecking(true), 200);
+        // Show loading spinner quickly for near-instant feedback
+        const loadingTimer = setTimeout(() => setIsChecking(true), 100);
 
         try {
             const emailList = recipients.map(r => r.email);
@@ -246,7 +245,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
                             <span className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100 font-medium animate-pulse">
-                                <ScanSearch className="h-4 w-4 animate-spin duration-1000" />
+                                <ScanSearch className="h-4 w-4 animate-spin duration-700" />
                                 Analyzing recipients...
                             </span>
                         ) : (
