@@ -58,8 +58,10 @@ export function LiveCampaignTracker() {
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
-        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
+        !c.isDirect && (
+            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
     );
 
     // Data Migration (One-time check for orphaned data)

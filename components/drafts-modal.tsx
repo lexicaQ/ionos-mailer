@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-    Save, FolderOpen, Trash2, FileText, Clock, Users, Paperclip, Mail, ImageIcon, AlertCircle, Search, Loader2, Image as ImageIconLucide, AlertTriangle
+    Save, FolderOpen, Trash2, FileText, Clock, Users, Paperclip, Mail, ImageIcon, AlertCircle, Search, Loader2, Image as ImageIconLucide, AlertTriangle, RefreshCw
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { EmailDraft, loadDrafts, saveDraft, deleteDraft } from '@/lib/drafts'
@@ -201,16 +201,16 @@ export function DraftsModal({
 
             {/* Load Drafts - styled as Full Popup Dialog */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-xl bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800 data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100 subpixel-antialiased">
-                    <DialogHeader className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#181818] space-y-4">
-                        <DialogTitle className="text-lg font-semibold">My Drafts</DialogTitle>
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-200">
+                    <DialogHeader className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-white/50 dark:bg-[#181818]/50 backdrop-blur-sm space-y-4 shrink-0 z-10">
+                        <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
                         {/* Search and Filters inside Header */}
                         <div className="flex gap-2 pt-1">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <div className="relative flex-1 group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
                                 <Input
                                     placeholder="Search subject, name or recipient..."
-                                    className="pl-9 h-9 text-sm bg-neutral-100 dark:bg-[#252525] border-transparent focus:bg-white dark:focus:bg-[#252525] transition-colors w-full"
+                                    className="pl-9 h-10 text-sm bg-neutral-100/50 dark:bg-[#252525]/50 border-transparent focus:bg-white dark:focus:bg-[#252525] focus:ring-2 focus:ring-blue-500/20 transition-all w-full"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -218,19 +218,22 @@ export function DraftsModal({
                         </div>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-[#0f0f0f]">
+                    <div className="flex-1 overflow-hidden flex flex-col bg-neutral-50/30 dark:bg-[#0f0f0f]/30">
                         <ScrollArea className="flex-1 h-full">
                             {isLoading && drafts.length === 0 ? (
-                                <div className="flex items-center justify-center py-8">
+                                <div className="flex items-center justify-center py-20">
                                     <SecurityLoader />
                                 </div>
                             ) : filteredDrafts.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                    <p className="text-sm font-medium">No drafts found</p>
+                                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                                    <div className="h-16 w-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-4">
+                                        <FolderOpen className="h-8 w-8 opacity-40" />
+                                    </div>
+                                    <p className="text-base font-medium text-foreground">No drafts found</p>
+                                    <p className="text-sm opacity-60 mt-1">Save a draft to see it here</p>
                                 </div>
                             ) : (
-                                <div className="p-6 pb-12 space-y-4">
+                                <div className="p-6 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                                     {filteredDrafts.map((draft) => {
                                         const imageCount = countImagesInBody(draft.body);
                                         const attachmentCount = draft.attachments?.length || 0;
@@ -239,59 +242,59 @@ export function DraftsModal({
                                             <div
                                                 key={draft.id}
                                                 onClick={() => handleLoadDraft(draft)}
-                                                className="group relative flex flex-col p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#1e1e1e] hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-700 transition-all cursor-pointer shadow-sm"
+                                                className="group relative flex flex-col p-4 rounded-xl border border-neutral-200/60 dark:border-neutral-800/60 bg-white dark:bg-[#1e1e1e] hover:shadow-lg hover:border-blue-200 dark:hover:border-blue-900 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-sm h-[180px]"
                                             >
                                                 <div className="flex justify-between items-start gap-4 mb-2">
-                                                    <div className="min-w-0 flex-1 pr-8 space-y-1">
-                                                        <h4 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1">{draft.name}</h4>
-                                                        {draft.subject && <p className="text-xs font-medium text-neutral-700 dark:text-neutral-300 line-clamp-1">{draft.subject}</p>}
+                                                    <div className="min-w-0 flex-1 pr-6 space-y-1.5">
+                                                        <h4 className="font-semibold text-base text-neutral-900 dark:text-neutral-100 line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                            {draft.name}
+                                                        </h4>
+                                                        {draft.subject ? (
+                                                            <p className="text-xs font-medium text-neutral-600 dark:text-neutral-400 line-clamp-1">
+                                                                {draft.subject}
+                                                            </p>
+                                                        ) : (
+                                                            <p className="text-xs font-medium text-neutral-400 italic">No subject</p>
+                                                        )}
                                                         <div
-                                                            className="text-xs text-muted-foreground line-clamp-2 leading-relaxed opacity-80"
+                                                            className="text-xs text-muted-foreground line-clamp-2 leading-relaxed opacity-70 h-[32px]"
                                                             dangerouslySetInnerHTML={{
                                                                 __html: draft.body
                                                                     .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
                                                                     .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-                                                                    .replace(/<(img|iframe|object|embed)[^>]*>/gi, "")
+                                                                    .replace(/<(img|iframe|object|embed)[^>]*>/gi, "") || "No content"
                                                             }}
                                                         />
                                                     </div>
-                                                    <Badge variant="outline" className="shrink-0 text-[10px] font-mono bg-neutral-50 dark:bg-[#252525] border-neutral-200 dark:border-neutral-800 text-neutral-500">
-                                                        {format(new Date(draft.updatedAt), 'MMM dd')}
-                                                    </Badge>
                                                 </div>
 
-                                                {/* Enhanced Meta Data display */}
-                                                <div className="flex flex-wrap items-center gap-3 pt-3 mt-1 border-t border-neutral-100 dark:border-neutral-800/50">
-                                                    {/* Recipients */}
-                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium" title={draft.recipients?.map(r => r.email).join(', ')}>
-                                                        <Users className="h-3.5 w-3.5" />
-                                                        {draft.recipients?.length || 0}
+                                                <div className="mt-auto pt-3 border-t border-dashed border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-mono bg-neutral-100 dark:bg-neutral-800 text-neutral-500">
+                                                            {format(new Date(draft.updatedAt), 'MMM dd, HH:mm')}
+                                                        </Badge>
+                                                        {draft.recipients && draft.recipients.length > 0 && (
+                                                            <div className="flex items-center gap-1 text-xs text-muted-foreground" title={`${draft.recipients.length} recipients`}>
+                                                                <Users className="h-3 w-3" />
+                                                                {draft.recipients.length}
+                                                            </div>
+                                                        )}
+                                                        {(attachmentCount > 0 || imageCount > 0) && (
+                                                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                <Paperclip className="h-3 w-3" />
+                                                                {attachmentCount + imageCount}
+                                                            </div>
+                                                        )}
                                                     </div>
-
-                                                    {/* Attachments */}
-                                                    {attachmentCount > 0 && (
-                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400 font-medium" title={draft.attachments?.map(a => a.name).join(', ')}>
-                                                            <Paperclip className="h-3.5 w-3.5" />
-                                                            {attachmentCount} File{attachmentCount !== 1 ? 's' : ''}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Images */}
-                                                    {imageCount > 0 && (
-                                                        <div className="flex items-center gap-1.5 text-xs text-neutral-600 dark:text-neutral-400 font-medium">
-                                                            <ImageIconLucide className="h-3.5 w-3.5" />
-                                                            {imageCount} Image{imageCount !== 1 ? 's' : ''}
-                                                        </div>
-                                                    )}
 
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={(e) => handleDeleteDraft(draft.id, e)}
-                                                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 absolute right-3 bottom-3"
-                                                        title="Delete"
+                                                        className="h-7 w-7 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors -mr-1"
+                                                        title="Delete Draft"
                                                     >
-                                                        <Trash2 className="h-4 w-4" />
+                                                        <Trash2 className="h-3.5 w-3.5" />
                                                     </Button>
                                                 </div>
                                             </div>
@@ -304,67 +307,63 @@ export function DraftsModal({
                 </DialogContent>
             </Dialog>
 
-            {/* Save Dialog - Also converted to Dialog for consistency */}
+            {/* Save Dialog */}
             <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-                <DialogContent className="sm:max-w-[425px] bg-white dark:bg-[#121212] border-neutral-200 dark:border-neutral-800 data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100 subpixel-antialiased">
+                <DialogContent className="sm:max-w-[425px] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle>{selectedDraftId ? "Update Draft" : "Save Draft"}</DialogTitle>
-                        <div className="text-sm text-muted-foreground">Save your current progress to resume later.</div>
+                        <DialogTitle className="text-lg font-bold">{selectedDraftId ? "Update Draft" : "Save Draft"}</DialogTitle>
+                        <div className="text-sm text-muted-foreground">Name your draft to easily find it later.</div>
                     </DialogHeader>
                     <div className="py-6 space-y-6">
                         {selectedDraftId && (
-                            <Badge variant="outline" className="mb-2 bg-neutral-50 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700">
-                                Overwrite existing draft
-                            </Badge>
+                            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">
+                                <RefreshCw className="h-3.5 w-3.5" />
+                                Updating existing version
+                            </div>
                         )}
 
-                        {/* Warning about limited sync */}
+                        {/* Explicit info about content */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-lg bg-neutral-50 dark:bg-[#181818] border border-neutral-100 dark:border-neutral-800">
+                                <span className="text-xs text-muted-foreground block mb-1">Recipients</span>
+                                <div className="flex items-center gap-1.5 font-medium text-sm">
+                                    <Users className="h-3.5 w-3.5 text-blue-500" />
+                                    {currentRecipients.length}
+                                </div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-neutral-50 dark:bg-[#181818] border border-neutral-100 dark:border-neutral-800">
+                                <span className="text-xs text-muted-foreground block mb-1">Attachments</span>
+                                <div className="flex items-center gap-1.5 font-medium text-sm">
+                                    <Paperclip className="h-3.5 w-3.5 text-orange-500" />
+                                    {currentAttachments.length} <span className="text-xs text-muted-foreground font-normal">(removed)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Warning about stripped content */}
                         <div className="flex gap-3 p-3 text-xs bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-500 rounded-lg">
-                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                             <p>
-                                <strong>Note:</strong> Images and attachments are <span className="underline">not saved</span> with drafts. Only text and recipients will be preserved.
+                                <strong>Note:</strong> Images and attachments are <span className="underline">not saved</span> with drafts to save space. They must be re-added.
                             </p>
                         </div>
-                        {/* Explicit info about content */}
-                        <div className="flex flex-wrap gap-3 text-xs text-neutral-500 bg-neutral-50 dark:bg-neutral-900 p-3 rounded-lg border border-neutral-100 dark:border-neutral-800">
-                            <div className="flex items-center gap-1.5">
-                                <Users className="h-3.5 w-3.5" />
-                                <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                                    {currentRecipients.length}
-                                </span> Recipient{currentRecipients.length !== 1 ? 's' : ''}
-                            </div>
-                            {countImagesInBody(currentBody) > 0 && (
-                                <div className="flex items-center gap-1.5">
-                                    <ImageIconLucide className="h-3.5 w-3.5" />
-                                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                                        {countImagesInBody(currentBody)}
-                                    </span> Image{countImagesInBody(currentBody) !== 1 ? 's' : ''}
-                                </div>
-                            )}
-                            {currentAttachments.length > 0 && (
-                                <div className="flex items-center gap-1.5">
-                                    <Paperclip className="h-3.5 w-3.5" />
-                                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                                        {currentAttachments.length}
-                                    </span> File{currentAttachments.length !== 1 ? 's' : ''}
-                                </div>
-                            )}
-                        </div>
+
                         <div className="space-y-2">
+                            <label className="text-xs font-medium text-muted-foreground ml-1">Draft Name</label>
                             <Input
-                                placeholder="Enter name..."
+                                placeholder="e.g. Summer Party Invite v1"
                                 value={draftName}
                                 onChange={(e) => setDraftName(e.target.value)}
                                 autoFocus
-                                className="bg-neutral-50 dark:bg-[#1e1e1e] border-neutral-200 dark:border-neutral-800"
+                                className="bg-white dark:bg-[#181818] border-neutral-200 dark:border-neutral-800 h-10"
                             />
                         </div>
                     </div>
                     <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveDraft} disabled={!draftName.trim() || isSaving}>
-                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                            Save
+                        <Button variant="ghost" onClick={() => setSaveDialogOpen(false)} className="hover:bg-neutral-100 dark:hover:bg-neutral-800">Cancel</Button>
+                        <Button onClick={handleSaveDraft} disabled={!draftName.trim() || isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Save Draft
                         </Button>
                     </div>
                 </DialogContent>

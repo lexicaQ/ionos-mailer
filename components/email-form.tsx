@@ -290,11 +290,22 @@ export function EmailForm() {
         toast.success("Campaign deleted");
     }
 
-    const handleClearAllHistory = () => {
-        setHistory([]);
-        toast.success("History cleared");
-    }
+    const handleClearAllHistory = async () => {
+        if (confirm("Are you sure you want to clear all history? This cannot be undone.")) {
+            try {
+                // Call server to delete history
+                await fetch('/api/sync/history', { method: 'DELETE' });
 
+                // Clear local state
+                localStorage.removeItem("ionos-mailer-history"); // Legacy
+                setHistory([]);
+                toast.success("History cleared permanently");
+            } catch (e) {
+                console.error("Failed to clear history", e);
+                toast.error("Failed to clear history from server");
+            }
+        }
+    }
     const handleLoadDraft = useCallback((draft: EmailDraft) => {
         try {
             // console.log('[EmailForm] Loading draft:', draft.name);

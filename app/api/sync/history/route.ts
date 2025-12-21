@@ -111,37 +111,38 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Invalid data" }, { status: 400 })
         }
 
-        const synced: any[] = []
-
-        for (const batch of batches) {
-            // Upsert based on ID if provided, or create new?
-            // Local history might have IDs like "batch_..."
-            // We should try to match or create.
-            // Since history is immutable mostly, we can just create if not exists?
-            // Or use the ID from local as unique?
-
-            // Simple approach: Check if exists by ID, if not create.
-            // But local IDs might conflict if they are just random strings.
-            // Let's blindly create for now? No, duplication risk.
-            // Let's assume the client sends "id" which matches DB id if verified, or local ID if not.
-
-            // Actually, simplest is: Client pushes NEW items.
-            // But syncing implies two-way.
-
-            // Legacy: Client-side history push is no longer needed as we use server-side EmailJob.
-            // We return success to keep the frontend happy if it still calls this.
-            return NextResponse.json({ synced: 0, message: "History sync is deprecated (Server-side authoritative)" })
-
-            /* 
-            Legacy Logic Removed:
-            const { batches } = await req.json()
-            if (Array.isArray(batches)) {
-                 ...
-            }
-            */
-        }
+        // Legacy: Client-side history push is no longer needed as we use server-side EmailJob.
+        // We return success to keep the frontend happy if it still calls this.
+        return NextResponse.json({ synced: 0, message: "History sync is deprecated (Server-side authoritative)" })
     } catch (error) {
         console.error("Failed to sync history:", error)
         return NextResponse.json({ error: "Failed to sync history" }, { status: 500 })
+    }
+}
+
+// DELETE: Clear all history for user
+export async function DELETE(req: Request) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        // Delete ALL campaigns for this user
+        // This cascades to EmailJobs usually if relations are set up, but let's be sure.
+        // If strict delete is needed, we might delete jobs first. 
+        // Prisma 'Cascase' delete should handle it if configured in schema.
+        // Assuming schema has onDelete: Cascade for Campaign -> Jobs.
+
+        const deleted = await prisma.campaign.deleteMany({
+            where: {
+                userId: session.user.id
+            }
+        });
+
+        return NextResponse.json({ success: true, count: deleted.count });
+    } catch (error) {
+        console.error("Failed to clear history:", error);
+        return NextResponse.json({ error: "Failed to clear history" }, { status: 500 });
     }
 }

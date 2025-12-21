@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
             return {
                 id: campaign.id,
                 name: decryptedName,
-                isDirect: campaign.host === 'DIRECT',
+                isDirect: campaign.host === 'DIRECT' || campaign.name === 'DIRECT',
                 createdAt: campaign.createdAt.toISOString(),
                 jobs: campaign.jobs.map((job: any) => ({
                     id: job.id,
