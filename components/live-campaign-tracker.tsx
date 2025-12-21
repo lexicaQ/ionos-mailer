@@ -87,18 +87,21 @@ export function LiveCampaignTracker() {
 
     // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
     const fetchCampaigns = useCallback(async (isBackground = false) => {
-        // 1. ALWAYS load from cache first for INSTANT display
-        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-        if (cached) {
-            try {
-                const parsed = JSON.parse(cached);
-                setCampaigns(parsed);
-            } catch (e) { }
+        // 1. Load from cache ONLY on initial load (not during background polling)
+        // This prevents state thrashing/flickering during updates
+        if (!isBackground) {
+            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    setCampaigns(parsed);
+                } catch (e) { }
+            }
         }
 
         // 2. NEVER show loading spinner - data is already visible from cache
         // Only set loading if there's NO cached data at all (first time ever)
-        if (!cached && !isBackground) {
+        if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
             setLoading(true);
         }
 
@@ -145,7 +148,7 @@ export function LiveCampaignTracker() {
         // Refresh Data Interval (display only - fast polling for instant updates)
         const refreshInterval = setInterval(() => {
             fetchCampaigns(true); // Always background refresh, no spinner
-        }, 2000); // 2 second interval for fast status updates
+        }, 1000); // 1 second interval for ULTRA FAST updates as requested
 
         // NOTE: Auto-process trigger REMOVED to reduce Fluid Active CPU usage
         // Email processing is now handled ONLY by external cron-job.org (1x/minute)

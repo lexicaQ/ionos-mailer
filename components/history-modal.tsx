@@ -80,7 +80,13 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
     const fetchTrackingStatus = useCallback(async () => {
         if (trackingIds.length === 0) return
         try {
-            const res = await fetch(`/api/track/status?ids=${trackingIds.join(',')}`)
+            // Use POST to handle large number of IDs (avoids URL length limits)
+            const res = await fetch(`/api/track/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: trackingIds })
+            });
+
             if (res.ok) {
                 const data = await res.json()
                 setTrackingStatus(data)
@@ -97,8 +103,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
 
             if (trackingIds.length > 0) {
                 fetchTrackingStatus()
-                // Poll every 2 seconds for instant open detection (Real-time feel)
-                const interval = setInterval(fetchTrackingStatus, 2000)
+                // Poll every 1 second for instant open detection (Real-time feel)
+                const interval = setInterval(fetchTrackingStatus, 1000)
                 return () => clearInterval(interval)
             }
         }

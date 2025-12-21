@@ -9,6 +9,55 @@ export const dynamic = 'force-dynamic';
  * 
  * GET /api/track/status?ids=id1,id2,id3
  */
+const getTrackingStatus = async (trackingIds: string[]) => {
+    if (trackingIds.length === 0) {
+        return {};
+    }
+
+    // Query the database for tracking info
+    // Check EmailJob table first (for campaign tracking)
+    const jobs = await prisma.emailJob.findMany({
+        where: {
+            trackingId: { in: trackingIds }
+        },
+        select: {
+            trackingId: true,
+            openedAt: true,
+            openCount: true,
+        }
+    });
+
+    // Build response map
+    const statusMap: Record<string, {
+        opened: boolean;
+        openedAt: string | null;
+        openCount: number;
+    }> = {};
+
+    for (const job of jobs) {
+        if (job.trackingId) {
+            statusMap[job.trackingId] = {
+                opened: !!job.openedAt,
+                openedAt: job.openedAt?.toISOString() || null,
+                openCount: job.openCount,
+            };
+        }
+    }
+
+    // Fill missing
+    for (const id of trackingIds) {
+        if (!statusMap[id]) {
+            statusMap[id] = {
+                opened: false,
+                openedAt: null,
+                openCount: 0,
+            };
+        }
+    }
+
+    return statusMap;
+};
+
 export async function GET(req: Request) {
     try {
         const url = new URL(req.url);
@@ -19,53 +68,27 @@ export async function GET(req: Request) {
         }
 
         const trackingIds = idsParam.split(',').filter(id => id.trim().length > 0);
+        const result = await getTrackingStatus(trackingIds);
+        return NextResponse.json(result);
 
-        if (trackingIds.length === 0) {
-            return NextResponse.json({});
+    } catch (error: any) {
+        console.error('Track status API error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
+export async function POST(req: Request) {
+    try {
+        const body = await req.json();
+        const { ids } = body;
+
+        if (!Array.isArray(ids)) {
+            return NextResponse.json({ error: 'ids must be an array' }, { status: 400 });
         }
 
-        // Query the database for tracking info
-        // Check EmailJob table first (for campaign tracking)
-        const jobs = await prisma.emailJob.findMany({
-            where: {
-                trackingId: { in: trackingIds }
-            },
-            select: {
-                trackingId: true,
-                openedAt: true,
-                openCount: true,
-            }
-        });
-
-        // Build response map
-        const statusMap: Record<string, {
-            opened: boolean;
-            openedAt: string | null;
-            openCount: number;
-        }> = {};
-
-        for (const job of jobs) {
-            statusMap[job.trackingId] = {
-                opened: !!job.openedAt,
-                openedAt: job.openedAt?.toISOString() || null,
-                openCount: job.openCount,
-            };
-        }
-
-        // For tracking IDs not in DB (immediate sends), check if they've been opened
-        // by looking at the tracking API's in-memory or checking cookies/logs
-        // For now, we return "unknown" for these
-        for (const id of trackingIds) {
-            if (!statusMap[id]) {
-                statusMap[id] = {
-                    opened: false,
-                    openedAt: null,
-                    openCount: 0,
-                };
-            }
-        }
-
-        return NextResponse.json(statusMap);
+        const trackingIds = ids.filter(id => typeof id === 'string' && id.trim().length > 0);
+        const result = await getTrackingStatus(trackingIds);
+        return NextResponse.json(result);
 
     } catch (error: any) {
         console.error('Track status API error:', error);
