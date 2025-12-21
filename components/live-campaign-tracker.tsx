@@ -83,11 +83,8 @@ export function LiveCampaignTracker() {
             }
         };
         migrateData();
-    }, []); // Run once on mount
 
-    // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
-    const fetchCampaigns = useCallback(async (isBackground = false) => {
-        // Load deleted campaign IDs from localStorage
+        // Load deleted campaign IDs ONCE on mount
         const deletedIds = localStorage.getItem("ionos-mailer-deleted-campaigns");
         if (deletedIds) {
             try {
@@ -95,29 +92,42 @@ export function LiveCampaignTracker() {
                 parsed.forEach(id => deletedCampaigns.current.add(id));
             } catch (e) { }
         }
+    }, []); // Run once on mount
 
-        // 1. Load from cache ONLY on initial load (not during background polling)
-        // This prevents state thrashing/flickering during updates
-        if (!isBackground) {
-            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-            if (cached) {
-                try {
-                    const parsed = JSON.parse(cached);
-                    // Filter out deleted campaigns from cache
-                    const filtered = parsed.filter((c: any) => !deletedCampaigns.current.has(c.id));
-                    setCampaigns(filtered);
-                } catch (e) { }
-            }
+    const isFetching = useRef(false);
+
+    // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
+    const fetchCampaigns = useCallback(async (isBackground = false) => {
+        // Prevent concurrent fetches
+        if (isFetching.current) {
+            console.log('Fetch already in progress, skipping...');
+            return;
         }
 
-        // 2. NEVER show loading spinner - data is already visible from cache
-        // Only set loading if there's NO cached data at all (first time ever)
-        if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
-            setLoading(true);
-        }
+        isFetching.current = true;
 
-        // 3. Fetch fresh data from server in background
         try {
+            // 1. Load from cache ONLY on initial load (not during background polling)
+            // This prevents state thrashing/flickering during updates
+            if (!isBackground) {
+                const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        // Filter out deleted campaigns from cache
+                        const filtered = parsed.filter((c: any) => !deletedCampaigns.current.has(c.id));
+                        setCampaigns(filtered);
+                    } catch (e) { }
+                }
+            }
+
+            // 2. NEVER show loading spinner - data is already visible from cache
+            // Only set loading if there's NO cached data at all (first time ever)
+            if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
+                setLoading(true);
+            }
+
+            // 3. Fetch fresh data from server in background
             const res = await fetch("/api/campaigns/status");
             if (res.ok) {
                 const data = await res.json();
@@ -142,6 +152,7 @@ export function LiveCampaignTracker() {
             console.error("Failed to fetch campaigns:", error);
         } finally {
             setLoading(false);
+            isFetching.current = false;
         }
     }, []);
 
@@ -159,8 +170,14 @@ export function LiveCampaignTracker() {
         // Initial fetch
         fetchCampaigns(false);
 
-        // Listen for creation events for instant updates
-        const handleCreation = () => fetchCampaigns(true);
+        // Debounce handler for creation events (prevent multiple rapid calls)
+        let debounceTimer: NodeJS.Timeout | null = null;
+        const handleCreation = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchCampaigns(true);
+            }, 300); // Wait 300ms before fetching after event
+        };
         window.addEventListener('campaign-created', handleCreation);
 
         // Refresh Data Interval (display only - fast polling for instant updates)
@@ -174,6 +191,7 @@ export function LiveCampaignTracker() {
 
         return () => {
             window.removeEventListener('campaign-created', handleCreation);
+            if (debounceTimer) clearTimeout(debounceTimer);
             clearInterval(refreshInterval);
         }
     }, [fetchCampaigns]);
