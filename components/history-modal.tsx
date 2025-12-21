@@ -408,13 +408,13 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                         {/* Status */}
                                         <div className="w-[100px] flex-shrink-0">
                                             <Badge
-                                                variant={result.status === 'success' ? 'default' : (result.status === 'waiting' ? 'secondary' : 'secondary')}
+                                                variant={result.status === 'success' ? 'default' : 'secondary'}
                                                 className={`
                                                     h-6 px-0 text-[10px] border-0 font-bold tracking-wide w-[90px] justify-center shadow-none
                                                     ${result.status === 'success'
                                                         ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
                                                         : result.status === 'waiting'
-                                                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 hover:bg-blue-50 border-blue-200 dark:border-blue-800'
+                                                            ? 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 hover:bg-neutral-100'
                                                             : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}
                                                 `}
                                             >
@@ -434,7 +434,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                                 const isOpened = result.trackingId && trackingStatus[result.trackingId]?.opened;
 
                                                 if (status === 'waiting') {
-                                                    return <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Waiting</span>;
+                                                    return <span className="text-[10px] font-mono text-neutral-400">---</span>;
                                                 }
                                                 if (status === 'error') {
                                                     return <span className="text-[10px] uppercase font-bold text-red-500 tracking-wider">Failed</span>;
