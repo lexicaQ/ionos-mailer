@@ -31,6 +31,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const [activeTab, setActiveTab] = useState("valid")
     const [isChecking, setIsChecking] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
+    const [ignoreDuplicates, setIgnoreDuplicates] = useState(false) // New state for override
 
     // Helper: Check duplicates
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
@@ -93,6 +94,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     const handleParse = async () => {
         const results = parseRecipients(rawInput);
+        setIgnoreDuplicates(false); // Reset override on new parse
 
         setParsedRecipients(results);
 
@@ -112,9 +114,16 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             });
         }
 
-        // Final update with duplicates removed
-        onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
+        // Final update with duplicates removed UNLESS ignored
+        onRecipientsChange(processed.filter(r => r.valid && (!r.duplicate || ignoreDuplicates)).map(r => ({ email: r.email, id: r.id })));
     }
+
+    // Effect to re-trigger parent update if toggle changes
+    useEffect(() => {
+        if (parsedRecipients.length > 0) {
+            onRecipientsChange(parsedRecipients.filter(r => r.valid && (!r.duplicate || ignoreDuplicates)).map(r => ({ email: r.email, id: r.id })));
+        }
+    }, [ignoreDuplicates]);
 
     const handleRemove = (id: string) => {
         const updated = parsedRecipients.filter(r => r.id !== id);
@@ -159,9 +168,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
-                            <span className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2 py-0.5 rounded-full animate-in fade-in duration-200">
+                            <span className="flex items-center gap-2 text-neutral-800 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full animate-in fade-in duration-200">
                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                <span className="font-semibold tracking-wide">Validating & Checking Duplicates...</span>
+                                <span className="font-medium tracking-wide">Validating & Checking Duplicates...</span>
                             </span>
                         ) : (
                             <span className="text-muted-foreground">
@@ -200,6 +209,32 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                     Clear all
                                 </Button>
                             </div>
+
+                            {/* Duplicate Warning & Override */}
+                            {duplicateEmails.length > 0 && (
+                                <div className="mt-3 p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-900/20 text-sm flex items-center justify-between animate-in slide-in-from-top-2">
+                                    <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-500">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <span>
+                                            Found <strong>{duplicateEmails.length}</strong> duplicates (excluded by default).
+                                        </span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant={ignoreDuplicates ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setIgnoreDuplicates(!ignoreDuplicates)}
+                                        className={cn(
+                                            "h-7 text-xs",
+                                            ignoreDuplicates
+                                                ? "bg-yellow-600 hover:bg-yellow-700 text-white border-transparent"
+                                                : "text-yellow-700 border-yellow-300 hover:bg-yellow-100 dark:text-yellow-500 dark:border-yellow-800 dark:hover:bg-yellow-900/40"
+                                        )}
+                                    >
+                                        {ignoreDuplicates ? "Duplicates Included" : "Include Duplicates"}
+                                    </Button>
+                                </div>
+                            )}
 
                             <TabsContent value="valid" className="mt-4">
                                 <div className={`flex flex-wrap gap-2 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-full' : 'max-h-[140px] overflow-hidden'}`}>
