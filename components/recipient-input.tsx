@@ -146,7 +146,13 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const handleParse = async () => {
         const results = parseRecipients(rawInput);
 
-        // Check for duplicates immediately
+        // OPTIMISTIC UPDATE: Show valid emails instantly (assume no duplicates)
+        // This makes the UI feel "ultra fast" as requested
+        const optimistic = results.map(r => ({ ...r, valid: r.valid, duplicate: false }));
+        setParsedRecipients(optimistic);
+        onRecipientsChange(optimistic.filter(r => r.valid).map(r => ({ email: r.email, id: r.id })));
+
+        // Check for duplicates in background
         const processed = await processDuplicates(results);
         setParsedRecipients(processed);
 
@@ -154,10 +160,11 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
         const duplicateCount = processed.filter(r => r.duplicate).length;
         if (duplicateCount > 0) {
             toast.warning(`Found ${duplicateCount} duplicate recipient${duplicateCount === 1 ? '' : 's'}`, {
-                description: "Addresses marked in red have been contacted before."
+                description: "Addresses marked in red were found in previous campaigns."
             });
         }
 
+        // Final confirmed update (excludes duplicates)
         onRecipientsChange(processed.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
     }
 
@@ -260,7 +267,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                 className={cn(
                                                     "flex items-center gap-1 px-3 py-1.5 border transition-all",
                                                     isDuplicate
-                                                        ? "line-through opacity-70 bg-red-100 text-red-700 hover:bg-red-200 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                                                        ? "opacity-90 bg-red-100 text-red-700 hover:bg-red-200 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                                                         : isWhitelisted
                                                             ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
                                                             : isGeneric
@@ -272,7 +279,10 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                 {isWhitelisted && <ShieldCheck className="h-3 w-3 mr-1" />}
                                                 {isDuplicate && <span className="sr-only">Duplicate: </span>}
                                                 {isGeneric && !isDuplicate && !isWhitelisted && <AlertTriangle className="h-3 w-3 mr-1" />}
-                                                {recipient.email}
+
+                                                <span className={cn(isDuplicate && "line-through decoration-red-700/50 dark:decoration-red-400/50")}>
+                                                    {recipient.email}
+                                                </span>
 
                                                 {/* Allow button for duplicates */}
                                                 {isDuplicate && (
@@ -293,12 +303,12 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                     type="button"
                                                     onClick={() => handleRemove(recipient.id)}
                                                     className={`ml-1 rounded-full p-0.5 transition-colors ${isDuplicate
-                                                            ? "hover:bg-red-300 dark:hover:bg-red-700"
-                                                            : isWhitelisted
-                                                                ? "hover:bg-blue-200 dark:hover:bg-blue-800"
-                                                                : isGeneric
-                                                                    ? "hover:bg-orange-200 dark:hover:bg-orange-800"
-                                                                    : "hover:bg-green-200 dark:hover:bg-green-800"
+                                                        ? "hover:bg-red-300 dark:hover:bg-red-700"
+                                                        : isWhitelisted
+                                                            ? "hover:bg-blue-200 dark:hover:bg-blue-800"
+                                                            : isGeneric
+                                                                ? "hover:bg-orange-200 dark:hover:bg-orange-800"
+                                                                : "hover:bg-green-200 dark:hover:bg-green-800"
                                                         }`}
                                                 >
                                                     <X className="h-3 w-3" />
