@@ -13,9 +13,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Activity, CheckCircle, XCircle, Clock, Mail,
-    RefreshCw, Zap, Trash2, Search, FileSpreadsheet, FileText, X
-} from "lucide-react"
+    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail
+} from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
@@ -52,6 +51,7 @@ export function LiveCampaignTracker() {
     const [open, setOpen] = useState(false)
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [loading, setLoading] = useState(false)
+    const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const deletedCampaigns = useRef<Set<string>>(new Set())
@@ -108,6 +108,9 @@ export function LiveCampaignTracker() {
 
         isFetching.current = true;
 
+        // Show syncing indicator even for background updates
+        setIsSyncing(true);
+
         try {
             // 1. Load from cache ONLY on initial load (not during background polling)
             // This prevents state thrashing/flickering during updates
@@ -123,7 +126,7 @@ export function LiveCampaignTracker() {
                 }
             }
 
-            // 2. NEVER show loading spinner - data is already visible from cache
+            // 2. NEVER show full screen loading spinner - data is already visible from cache
             // Only set loading if there's NO cached data at all (first time ever)
             if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
                 setLoading(true);
@@ -154,6 +157,7 @@ export function LiveCampaignTracker() {
             console.error("Failed to fetch campaigns:", error);
         } finally {
             setLoading(false);
+            setIsSyncing(false);
             isFetching.current = false;
         }
     }, []);
@@ -364,9 +368,9 @@ export function LiveCampaignTracker() {
                             <div>
                                 <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                                    {isAutoProcessing ? (
+                                    {(isAutoProcessing || isSyncing) ? (
                                         <span className="text-green-600 flex items-center gap-1">
-                                            <RefreshCw className="h-3 w-3 animate-spin" /> Processing background jobs...
+                                            <RefreshCw className="h-3 w-3 animate-spin" /> {isSyncing ? "Syncing..." : "Processing background jobs..."}
                                         </span>
                                     ) : (
                                         <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>

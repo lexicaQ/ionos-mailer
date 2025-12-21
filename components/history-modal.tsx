@@ -50,6 +50,7 @@ interface HistoryModalProps {
     onDeleteBatch: (id: string) => void
     onClearAll: () => void
     onRefresh?: () => void
+    isSyncing?: boolean
 }
 
 // Shorten ID to first 8 characters
@@ -57,7 +58,7 @@ function shortId(id: string): string {
     return id.substring(0, 8)
 }
 
-export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: HistoryModalProps) {
+export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, isSyncing = false }: HistoryModalProps) {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
@@ -297,7 +298,12 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                 <History className="h-5 w-5 text-white dark:text-black" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold tracking-tight">Email History</h2>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-xl font-bold tracking-tight">Email History</h2>
+                                    {isSyncing && (
+                                        <RefreshCw className="h-4 w-4 animate-spin text-neutral-400" />
+                                    )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                     {stats.totalEmails} Emails • {stats.totalSuccess} Successful • {stats.totalOpened} Opened
                                 </p>

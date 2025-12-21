@@ -52,6 +52,8 @@ export function EmailForm() {
     const [editorKey, setEditorKey] = useState(0) // Logic to force-reset editor on draft load
     const [fileImportOpen, setFileImportOpen] = useState(false)
 
+    const [isHistorySyncing, setIsHistorySyncing] = useState(false)
+
     // Load history from localStorage on mount
     useEffect(() => {
         try {
@@ -67,6 +69,7 @@ export function EmailForm() {
     const syncHistory = useCallback(async () => {
         if (!session?.user) return
 
+        setIsHistorySyncing(true)
         try {
             // 1. Fetch server history
             // We use 'no-store' or timestamp to ensure fresh data
@@ -91,6 +94,8 @@ export function EmailForm() {
             })
         } catch (error) {
             console.error("History sync failed", error)
+        } finally {
+            setIsHistorySyncing(false)
         }
     }, [session])
 
@@ -476,6 +481,7 @@ export function EmailForm() {
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                         onRefresh={syncHistory}
+                        isSyncing={isHistorySyncing}
                     />
                     <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <div className="hidden md:flex items-center gap-2 shrink-0">

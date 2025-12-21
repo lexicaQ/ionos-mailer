@@ -36,6 +36,7 @@ export function DraftsModal({
     const [open, setOpen] = useState(false)
     const [drafts, setDrafts] = useState<EmailDraft[]>([])
     const [isLoading, setIsLoading] = useState(false)
+    const [isBackgroundSyncing, setIsBackgroundSyncing] = useState(false) // Visual State
     const [isSaving, setIsSaving] = useState(false)
     const [saveDialogOpen, setSaveDialogOpen] = useState(false)
     const [draftName, setDraftName] = useState('')
@@ -52,6 +53,7 @@ export function DraftsModal({
             setIsLoading(false) // Show data immediately
 
             // 2. Background Sync (Cloud)
+            setIsBackgroundSyncing(true)
             // Dynamically import to safely call new function without breaking if file not fully reloaded (though in agent mode it is)
             const { syncDrafts } = await import('@/lib/drafts');
             await syncDrafts();
@@ -64,6 +66,7 @@ export function DraftsModal({
             toast.error("Error loading drafts.")
         } finally {
             setIsLoading(false)
+            setIsBackgroundSyncing(false)
         }
     }
 
@@ -203,7 +206,12 @@ export function DraftsModal({
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-200">
                     <DialogHeader className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-white/50 dark:bg-[#181818]/50 backdrop-blur-sm space-y-4 shrink-0 z-10">
-                        <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
+                        <div className="flex items-center gap-3">
+                            <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
+                            {isBackgroundSyncing && (
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+                            )}
+                        </div>
                         {/* Search and Filters inside Header */}
                         <div className="flex gap-2 pt-1">
                             <div className="relative flex-1 group">
