@@ -44,6 +44,7 @@ export function EmailForm() {
     const [history, setHistory] = useState<HistoryBatch[]>([])
     const [smtpSettings, setSmtpSettings] = useState<SmtpConfig | undefined>(undefined)
     const [durationMinutes, setDurationMinutes] = useState(60)
+    const [startTime, setStartTime] = useState<string>("")
     const [useBackground, setUseBackground] = useState(false)
     const [currentAttachments, setCurrentAttachments] = useState<Attachment[]>([])
     const [loadedRecipients, setLoadedRecipients] = useState<{ email: string; id?: string }[]>([])
@@ -171,6 +172,7 @@ export function EmailForm() {
             ...data,
             smtpSettings,
             durationMinutes: useBackground ? durationMinutes : 0,
+            startTime: useBackground && startTime ? new Date(startTime).toISOString() : undefined,
         };
 
         try {
@@ -199,6 +201,11 @@ export function EmailForm() {
                     method: 'GET',
                     headers: { 'x-manual-trigger': 'true' }
                 }).catch(e => console.error("Background trigger failed (harmless):", e));
+
+                // Signal Live Tracker to update INSTANTLY
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('campaign-created'));
+                }
             } else {
                 const results: SendResult[] = resultData.results;
                 setCurrentResults(results);
@@ -580,6 +587,20 @@ export function EmailForm() {
                                         </FormItem>
                                     )}
                                 />
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="start-time" className="text-sm font-medium">Start Time (Optional)</Label>
+                                    <Input
+                                        id="start-time"
+                                        type="datetime-local"
+                                        className="h-10"
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        min={new Date().toISOString().slice(0, 16)}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Leave empty to start immediately</p>
+                                </div>
+
                                 <div>
                                     <div className="flex items-center justify-between mb-3">
                                         <Label className="text-sm font-medium">Distribution Duration</Label>
@@ -618,16 +639,18 @@ export function EmailForm() {
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Start:</span>
-                                            <span className="font-mono">Immediate</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">End approx.:</span>
                                             <span className="font-mono">
-                                                {recipients.length > 1
-                                                    ? format(new Date(Date.now() + durationMinutes * 60000), "HH:mm")
-                                                    : "Immediate"}
+                                                {startTime ? format(new Date(startTime), "HH:mm") : "Immediate"}
                                             </span>
                                         </div>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">End approx.:</span>
+                                        <span className="font-mono">
+                                            {recipients.length > 1
+                                                ? format(new Date((startTime ? new Date(startTime).getTime() : Date.now()) + durationMinutes * 60000), "HH:mm")
+                                                : (startTime ? format(new Date(startTime), "HH:mm") : "Immediate")}
+                                        </span>
                                     </div>
                                     <p className="text-[10px] text-muted-foreground pt-2 border-t border-neutral-200 dark:border-neutral-800">
                                         The browser does not need to stay open. The server handles the delivery.
@@ -665,8 +688,6 @@ export function EmailForm() {
                     </div>
                 </form>
             </Form>
-
-
 
             {/* File Import Modal */}
             <FileImportModal

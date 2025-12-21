@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
         const json = await req.json();
 
-        const { recipients, subject, body, smtpSettings, durationMinutes, name } = json;
+        const { recipients, subject, body, smtpSettings, durationMinutes, name, startTime: startTimeIso } = json;
 
         if (!smtpSettings || !recipients || !subject || !body) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -53,16 +53,17 @@ export async function POST(req: Request) {
 
         // 2. Schedule Jobs
         const totalDurationMs = (durationMinutes || 0) * 60 * 1000;
-        // Start immediately - the cron job will process with delay between emails
-        const startTime = Date.now();
+
+        // Determine start time: User provided or Now
+        const startTimestamp = startTimeIso ? new Date(startTimeIso).getTime() : Date.now();
 
         const jobsData = recipients.map((r: any, index: number) => {
-            let scheduleTime = startTime;
+            let scheduleTime = startTimestamp;
 
             if (totalDurationMs > 0 && recipients.length > 1) {
                 const distinctSteps = recipients.length - 1;
                 const stepSize = totalDurationMs / (distinctSteps || 1);
-                scheduleTime = startTime + (index * stepSize);
+                scheduleTime = startTimestamp + (index * stepSize);
             }
 
             return {

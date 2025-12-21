@@ -145,6 +145,10 @@ export function LiveCampaignTracker() {
         // Initial fetch
         fetchCampaigns(false);
 
+        // Listen for creation events for instant updates
+        const handleCreation = () => fetchCampaigns(true);
+        window.addEventListener('campaign-created', handleCreation);
+
         // Refresh Data Interval (display only - fast polling for instant updates)
         const refreshInterval = setInterval(() => {
             fetchCampaigns(true); // Always background refresh, no spinner
@@ -155,6 +159,7 @@ export function LiveCampaignTracker() {
         // or manual "Start Cron" button in Settings
 
         return () => {
+            window.removeEventListener('campaign-created', handleCreation);
             clearInterval(refreshInterval);
         }
     }, [fetchCampaigns]);
