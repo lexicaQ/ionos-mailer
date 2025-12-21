@@ -309,9 +309,6 @@ export function LiveCampaignTracker() {
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
-                                <X className="h-4 w-4" />
-                            </Button>
                         </div>
                     </div>
 
