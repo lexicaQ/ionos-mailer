@@ -557,33 +557,33 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                         const isFailed = job.status === 'FAILED';
                         const isPending = job.status === 'PENDING';
 
-                        // Time calculations
-                        const performTimeCalc = () => {
-                            const scheduledDate = new Date(job.scheduledFor);
-                            const now = new Date();
-                            const diffInMinutes = Math.floor((now.getTime() - scheduledDate.getTime()) / 60000);
+                        const scheduledDate = new Date(job.scheduledFor);
+                        const now = new Date();
+                        const diffInMinutes = Math.floor((now.getTime() - scheduledDate.getTime()) / 60000);
+                        const isOverdue = isPending && diffInMinutes > 0;
 
-                            if (isPending) {
-                                if (diffInMinutes > 0) {
-                                    return <span className="text-amber-600 dark:text-amber-500 font-bold whitespace-nowrap">+{diffInMinutes} min</span>
-                                } else {
-                                    // Future
-                                    return <span className="text-neutral-500 whitespace-nowrap">in {formatDistanceToNow(scheduledDate)}</span>
-                                }
-                            }
-                            return null;
-                        };
+                        // Calculate delay for sent items if data exists, otherwise approximate
+                        let sentDelay = 0;
+                        if (job.status === 'SENT' && job.sentAt) {
+                            sentDelay = Math.floor((new Date(job.sentAt).getTime() - scheduledDate.getTime()) / 60000);
+                        }
+
+                        // Colors for Overdue/Next (User requested non-blue, darker/brighter based on mode)
+                        // Dark mode: Brighter bg? "darker or brighter based on white or dark mode"
+                        // Interpretation: Stand out, but neutral/grey scale.
+                        // Light: Checkered/Striped or just darker grey? "darker or brighter"
+                        // Let's use a specific neutral shade that pops.
+                        const activeJobClass = isNext
+                            ? 'bg-neutral-100 dark:bg-neutral-800 border-l-4 border-neutral-600 dark:border-neutral-400'
+                            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border-l-4 border-transparent';
 
                         return (
-                            <div key={job.id} className={`relative p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 
-                                ${isNext
-                                    ? 'bg-blue-50/80 dark:bg-blue-900/30 border-l-4 border-blue-600 dark:border-blue-400'
-                                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border-l-4 border-transparent'}`}>
+                            <div key={job.id} className={`relative p-2 sm:p-3 px-2 sm:px-4 flex items-center transition-colors text-sm gap-3 sm:gap-4 ${activeJobClass}`}>
 
                                 {/* Status Pill - FIRST */}
                                 <div className="w-[65px] sm:w-[100px] flex-shrink-0 flex flex-col gap-1 items-start justify-center">
                                     {isNext && (
-                                        <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none mb-0.5 ml-0.5">
+                                        <span className="text-[9px] font-black text-neutral-600 dark:text-neutral-400 uppercase tracking-widest leading-none mb-0.5 ml-0.5">
                                             Next Up
                                         </span>
                                     )}
@@ -635,35 +635,48 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                 </div>
 
                                 {/* Times - LAST (wider on mobile to prevent overlap) */}
-                                <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[60px] sm:w-[150px]">
-                                    <div className="text-right">
-                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5">
-                                            {isPending ? "Scheduled" : (isFailed ? "Failed At" : "Sent")}
+                                <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[80px] sm:w-[160px]">
+                                    <div className="text-right flex flex-col items-end">
+                                        <div className="hidden sm:block uppercase text-[9px] tracking-wider opacity-50 mb-0.5 whitespace-nowrap">
+                                            {isPending
+                                                ? (isOverdue ? "Delayed Schedule" : "Scheduled")
+                                                : (isFailed ? "Failed At" : "Sent")
+                                            }
                                         </div>
-                                        {isPending ? (
-                                            <div className="flex flex-col items-end">
-                                                <span className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1 sm:px-1.5 py-0.5 rounded">
-                                                    {format(new Date(job.scheduledFor), "HH:mm")}
-                                                </span>
-                                                <span className="text-[9px] block sm:inline mt-0.5 sm:mt-0">
-                                                    {performTimeCalc()}
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-end">
-                                                <span className={`font-mono text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded ${isFailed ? 'bg-red-50 text-red-600' : 'text-green-600 bg-green-50'}`}>
-                                                    {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : format(new Date(job.scheduledFor), "HH:mm")}
-                                                </span>
-                                                {/* Show scheduled time for sent emails too if requested, but space is tight. 
-                                                    User: "see the scheduled time anymore for sent emails". 
-                                                    Let's add it small. */}
-                                                {!isFailed && (
-                                                    <span className="text-[8px] text-muted-foreground hidden sm:block opacity-70" title="Originally Scheduled">
-                                                        Sch: {format(new Date(job.scheduledFor), "HH:mm")}
+
+                                        {/* Row with Schedule Pill + Status Text */}
+                                        <div className="flex items-center gap-2">
+                                            {/* Scheduled Time Pill - Always separate grey container */}
+                                            <span className="font-mono text-[9px] sm:text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-neutral-600 dark:text-neutral-400" title="Scheduled Time">
+                                                {format(scheduledDate, "HH:mm")}
+                                            </span>
+
+                                            {/* Contextual Time/Delay Info */}
+                                            {isPending ? (
+                                                isOverdue ? (
+                                                    <span className="text-[9px] sm:text-xs font-bold text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded whitespace-nowrap">
+                                                        +{diffInMinutes} min
                                                     </span>
-                                                )}
-                                            </div>
-                                        )}
+                                                ) : (
+                                                    <span className="text-[9px] text-neutral-400 whitespace-nowrap hidden sm:inline">
+                                                        in {Math.abs(diffInMinutes)} min
+                                                    </span>
+                                                )
+                                            ) : (
+                                                // Sent or Failed
+                                                !isFailed && (
+                                                    sentDelay > 0 ? (
+                                                        <span className="text-[9px] font-bold text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded whitespace-nowrap" title={`Delayed by ${sentDelay} mins`}>
+                                                            +{sentDelay} min
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[9px] text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-1 py-0.5 rounded opacity-80">
+                                                            On time
+                                                        </span>
+                                                    )
+                                                )
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Cancel Job Button */}
