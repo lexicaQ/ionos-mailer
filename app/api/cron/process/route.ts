@@ -80,7 +80,7 @@ async function handleCronRequest(req: NextRequest) {
             ? await prisma.emailJob.findMany({
                 where: {
                     status: 'FAILED',
-                    retryCount: { lt: 3 } // Below max retries
+                    ...(isManualTrigger ? {} : { retryCount: { lt: 3 } }) // Allow manual retry of ANY failed job
                 },
                 include: { campaign: { include: { attachments: true } } },
                 take: remainingSlots,
@@ -122,8 +122,8 @@ async function handleCronRequest(req: NextRequest) {
                 continue;
             }
 
-            // RETRY LIMIT CHECK: Prevent infinite retry loops
-            if (job.retryCount >= job.maxRetries) {
+            // RETRY LIMIT CHECK: Prevent infinite retry loops (unless manual trigger)
+            if (job.retryCount >= job.maxRetries && !isManualTrigger) {
                 console.log(`Job ${job.id} exceeded max retries (${job.maxRetries}). Marking as permanently FAILED.`);
                 await prisma.emailJob.update({
                     where: { id: job.id },
@@ -255,7 +255,11 @@ async function handleCronRequest(req: NextRequest) {
                         // Permanent failure - no retry
                         await prisma.emailJob.update({
                             where: { id: job.id },
-                            data: { status: 'FAILED', error: errorMsg }
+                            data: {
+                                status: 'FAILED',
+                                error: errorMsg,
+                                retryCount: { increment: 1 } // Increment even on permanent fail to prevent infinite loops
+                            }
                         });
                         results.push({ id: job.id, success: false, retrying: false });
                     }

@@ -50,6 +50,7 @@ export async function GET(req: Request) {
                 return {
                     email: email,
                     status: (job.status === 'PENDING' || job.status === 'SENDING') ? 'waiting' : (job.status === 'SENT' ? 'success' : 'error'),
+                    success: job.status === 'SENT',
                     error: job.error,
                     trackingId: job.trackingId,
                     messageId: undefined,

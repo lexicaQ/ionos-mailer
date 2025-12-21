@@ -60,7 +60,7 @@ function shortId(id: string): string {
 export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: HistoryModalProps) {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
-    const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed">("all")
+    const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
     const [trackingStatus, setTrackingStatus] = useState<Record<string, { opened: boolean; openedAt: string | null }>>({})
 
     // REMOVED: Fake 2s loading animation - data displays immediately from cache
@@ -148,9 +148,11 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
         }
 
         if (statusFilter === "success") {
-            results = results.filter(r => r.success)
+            results = results.filter(r => r.status === 'success')
         } else if (statusFilter === "failed") {
-            results = results.filter(r => !r.success)
+            results = results.filter(r => r.status === 'error' || (!r.success && r.status !== 'waiting'))
+        } else if (statusFilter === "waiting") {
+            results = results.filter(r => r.status === 'waiting')
         }
         return results
     }, [batches, searchTerm, statusFilter])
@@ -172,7 +174,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
             itemSheet.addRow({
                 no: idx + 1,
                 email: r.email,
-                status: r.success ? "Successful" : "Failed",
+                status: r.status === 'waiting' ? "Waiting" : (r.success ? "Successful" : "Failed"),
                 time: format(new Date(r.batchTime), "yyyy-MM-dd HH:mm:ss"),
                 error: r.error || "—"
             });
@@ -251,7 +253,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
             body: allResults.map((r, idx) => [
                 (idx + 1).toString(),
                 r.email,
-                r.success ? "OK" : "Error",
+                r.status === 'waiting' ? "Waiting" : (r.success ? "OK" : "Error"),
                 format(new Date(r.batchTime), "yyyy-MM-dd HH:mm"),
                 r.error ? r.error.substring(0, 30) : "—",
             ]),
@@ -349,6 +351,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                     <SelectItem value="all">All</SelectItem>
                                     <SelectItem value="success">Successful</SelectItem>
                                     <SelectItem value="failed">Failed</SelectItem>
+                                    <SelectItem value="waiting">Waiting</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -380,15 +383,17 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         {/* Status */}
                                         <div className="w-[100px] flex-shrink-0">
                                             <Badge
-                                                variant={result.success ? 'default' : 'secondary'}
+                                                variant={result.status === 'success' ? 'default' : (result.status === 'waiting' ? 'secondary' : 'secondary')}
                                                 className={`
                                                     h-6 px-0 text-[10px] border-0 font-bold tracking-wide w-[90px] justify-center shadow-none
-                                                    ${result.success
+                                                    ${result.status === 'success'
                                                         ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
-                                                        : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}
+                                                        : result.status === 'waiting'
+                                                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 hover:bg-blue-50 border-blue-200 dark:border-blue-800'
+                                                            : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}
                                                 `}
                                             >
-                                                {result.success ? 'SENT' : 'FAILED'}
+                                                {result.status === 'success' ? 'SENT' : (result.status === 'waiting' ? 'WAITING' : 'FAILED')}
                                             </Badge>
                                             {result.error && (
                                                 <div className="text-[9px] text-red-500 mt-1 truncate max-w-[90px]" title={result.error}>
