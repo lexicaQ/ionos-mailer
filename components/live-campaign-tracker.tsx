@@ -654,9 +654,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                     </div>
                                     <div className={`text-[8px] sm:text-xs truncate max-w-full ${isFailed ? 'text-red-500 font-medium' : 'text-muted-foreground opacity-80'}`} title={isFailed ? (job.error || "Unknown Failure") : job.subject}>
                                         {isFailed ? (
-                                            <span className="flex items-center gap-1">
-                                                <XCircle className="h-3 w-3" />
-                                                {job.error || "Delivery Failed"}
+                                            <span className="flex items-start">
+                                                <XCircle className="h-3 w-3 mr-1 flex-shrink-0 mt-0.5" />
+                                                <span className="truncate">{job.error || "Delivery Failed"}</span>
                                             </span>
                                         ) : (
                                             job.subject ? (job.subject.length > 30 ? job.subject.slice(0, 30) + "..." : job.subject) : "(No Subject)"
