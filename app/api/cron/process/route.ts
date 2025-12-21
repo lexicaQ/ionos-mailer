@@ -108,8 +108,12 @@ async function handleCronRequest(req: NextRequest) {
         // Process Batch
         for (const job of pendingJobs) {
             // CONCURRENCY LOCK: Atomic update to ensure no double-processing
+            // Accept both PENDING and FAILED status (for auto-retry of failed emails)
             const locked = await prisma.emailJob.updateMany({
-                where: { id: job.id, status: 'PENDING' },
+                where: {
+                    id: job.id,
+                    status: { in: ['PENDING', 'FAILED'] } // Allow FAILED for retry
+                },
                 data: { status: 'SENDING' }
             });
 
