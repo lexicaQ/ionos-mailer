@@ -96,11 +96,8 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
             } catch (e) { }
         }
 
-        // 2. NEVER show loading spinner - data is already visible from cache
-        // Only set loading if there's NO cached data at all (first time ever)
-        if (!cached && !isBackground) {
-            setLoading(true);
-        }
+        // 2. NEVER show loading spinner - always use cached data instantly
+        // This ensures instant display on all devices
 
         // 3. Fetch fresh data from server in background
         try {

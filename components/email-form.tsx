@@ -676,30 +676,26 @@ export function EmailForm() {
                 </form>
             </Form>
 
-            {/* Status View & History Button - Only shown for DIRECT send mode */}
+            {/* Status View - Only shown for DIRECT send mode */}
             {!useBackground && (
-                <>
-                    <StatusView
-                        isSending={isSending}
-                        progress={sendProgress}
-                        results={currentResults}
-                    />
-
-                    {/* \"View History\" Button - Shows only after successful send */}
-                    {!isSending && currentResults.length > 0 && (
-                        <div className="flex justify-center mt-4 animate-in fade-in slide-in-from-bottom-2">
-                            <LiveCampaignTracker
-                                customTrigger={
-                                    <Button variant="outline" className="gap-2">
-                                        <Clock className="h-4 w-4" />
-                                        View Tracking & History
-                                    </Button>
-                                }
-                            />
-                        </div>
-                    )}
-                </>
+                <StatusView
+                    isSending={isSending}
+                    progress={sendProgress}
+                    results={currentResults}
+                />
             )}
+
+            {/* History Button - ALWAYS visible */}
+            <div className="flex justify-center mt-4">
+                <LiveCampaignTracker
+                    customTrigger={
+                        <Button variant="outline" className="gap-2">
+                            <Clock className="h-4 w-4" />
+                            View Tracking & History
+                        </Button>
+                    }
+                />
+            </div>
 
 
 
