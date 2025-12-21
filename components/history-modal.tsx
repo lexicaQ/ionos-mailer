@@ -262,7 +262,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll }: HistoryModa
         doc.save(`ionos-mailer-bericht-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`)
     }
 
-    if (batches.length === 0) return null
+    // ALWAYS show button (removed: if (batches.length === 0) return null)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

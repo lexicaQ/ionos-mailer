@@ -67,9 +67,14 @@ export function DraftsModal({
         }
     }
 
+    // Load drafts on mount to show count, and refresh when modal opens
+    useEffect(() => {
+        safeLoadDrafts(); // Load immediately on mount
+    }, []);
+
     useEffect(() => {
         if (open) {
-            safeLoadDrafts()
+            safeLoadDrafts() // Refresh when modal opens
         }
     }, [open])
 
