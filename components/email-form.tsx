@@ -223,13 +223,31 @@ export function EmailForm() {
                 }
             } else {
                 // Direct Send Mode: Server creates Campaign with jobs
-                // Don't create local history - sync from server instead
                 const results: SendResult[] = resultData.results;
                 setCurrentResults(results);
                 setSendProgress(100);
 
-                // Sync history from server to get the actual campaign data
-                await syncHistory();
+                // OPTIMISTIC: Create local history batch immediately for instant display
+                const optimisticBatch: HistoryBatch = {
+                    id: resultData.campaignId || crypto.randomUUID(),
+                    sentAt: new Date().toISOString(),
+                    results: results,
+                    total: results.length,
+                    success: results.filter(r => r.success || r.status === 'success').length,
+                    failed: results.filter(r => !r.success && r.status !== 'waiting').length,
+                    subject: data.subject,
+                    status: 'processing'
+                };
+
+                // Add to history instantly
+                setHistory(prev => [optimisticBatch, ...prev]);
+                localStorage.setItem("ionos-mailer-history", JSON.stringify([optimisticBatch, ...history]));
+
+                // Reset manual clear flag to allow sync
+                historyManuallyCleared.current = false;
+
+                // Sync from server in background to get final status
+                syncHistory().catch(e => console.error('History sync failed:', e));
 
                 // Trigger cron to process the pending jobs immediately
                 fetch("/api/cron/process", {
