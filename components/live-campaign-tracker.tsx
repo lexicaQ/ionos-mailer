@@ -110,7 +110,7 @@ export function LiveCampaignTracker() {
 
     const isFetching = useRef(false);
 
-    // FETCH CAMPAIGNS - INSTANT LOADING, NO ANIMATION
+    // FETCH CAMPAIGNS - INSTANT CACHE DISPLAY (LIKE HISTORY)
     const fetchCampaigns = useCallback(async (isBackground = false) => {
         // Prevent concurrent fetches
         if (isFetching.current) {
@@ -120,31 +120,30 @@ export function LiveCampaignTracker() {
 
         isFetching.current = true;
 
-        // Show syncing indicator even for background updates
-        setIsSyncing(true);
-
         try {
-            // 1. Load from cache ONLY on initial load (not during background polling)
-            // This prevents state thrashing/flickering during updates
+            // 1. INSTANT CACHE LOAD FIRST (synchronous, before any async operations)
             if (!isBackground) {
                 const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
                 if (cached) {
                     try {
                         const parsed = JSON.parse(cached);
-                        // Filter out deleted campaigns from cache
                         const filtered = parsed.filter((c: any) => !deletedCampaigns.current.has(c.id));
-                        setCampaigns(filtered);
-                    } catch (e) { }
+                        setCampaigns(filtered); // Instant display!
+                    } catch (e) {
+                        console.error('Cache parse failed:', e);
+                    }
                 }
             }
 
-            // 2. NEVER show full screen loading spinner - data is already visible from cache
-            // Only set loading if there's NO cached data at all (first time ever)
+            // 2. Show syncing indicator AFTER cache is displayed
+            setIsSyncing(true);
+
+            // 3. Only set loading if NO cached data exists (first time ever)
             if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
                 setLoading(true);
             }
 
-            // 3. Fetch fresh data from server in background
+            // 4. Fetch fresh data from server in background
             const res = await fetch("/api/campaigns/status");
             if (res.ok) {
                 const data = await res.json();

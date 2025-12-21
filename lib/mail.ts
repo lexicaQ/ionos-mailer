@@ -123,7 +123,7 @@ export async function sendEmail({ to, subject, text, html, config, attachments }
             return { success: false, error: "Authentication failed (535). Check username/password." };
         }
         if (error.responseCode === 550) {
-            return { success: false, error: "Recipient rejected (550). Email address invalid or blocked." };
+            return { success: false, error: `Recipient rejected (550): ${to} - Email address invalid or blocked.` };
         }
         if (error.code === 'ECONNREFUSED') {
             return { success: false, error: "Connection refused. Check host/port." };
