@@ -47,7 +47,7 @@ interface Campaign {
     }
 }
 
-export function LiveCampaignTracker() {
+export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
     const [campaigns, setCampaigns] = useState<Campaign[]>([])
     const [loading, setLoading] = useState(false)
@@ -266,13 +266,15 @@ export function LiveCampaignTracker() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 relative">
-                    <Activity className="h-4 w-4" />
-                    Live Tracking
-                    {activeCampaigns.length > 0 && (
-                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
-                    )}
-                </Button>
+                {customTrigger ? customTrigger : (
+                    <Button variant="outline" className="gap-2 relative">
+                        <Activity className="h-4 w-4" />
+                        Live Tracking
+                        {activeCampaigns.length > 0 && (
+                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
+                        )}
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
 

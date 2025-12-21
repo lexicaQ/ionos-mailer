@@ -193,6 +193,10 @@ export function EmailForm() {
 
             if (useBackground) {
                 toast.success(`Campaign started! ${resultData.jobCount} emails scheduled.`);
+
+                // Clear cache so the new campaign shows up immediately
+                localStorage.removeItem("ionos-mailer-campaigns-cache");
+
                 setCurrentResults([]);
             } else {
                 const results: SendResult[] = resultData.results;
@@ -220,6 +224,9 @@ export function EmailForm() {
                     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
                     return updated;
                 });
+
+                // Clear Campaign Cache to force refresh on next view
+                localStorage.removeItem("ionos-mailer-campaigns-cache");
 
                 // Push to cloud if logged in
                 saveHistoryToServer(newBatch);
@@ -570,6 +577,28 @@ export function EmailForm() {
                                                     className="h-10"
                                                 />
                                             </FormControl>
+
+                                            {/* Status View: Shows progress and immediate results */}
+                                            <StatusView
+                                                isSending={isSending}
+                                                progress={sendProgress}
+                                                results={currentResults}
+                                            />
+
+                                            {/* "View History" Button - Shows only after successful send */}
+                                            {!isSending && currentResults.length > 0 && (
+                                                <div className="flex justify-center mt-4 animate-in fade-in slide-in-from-bottom-2">
+                                                    <LiveCampaignTracker
+                                                        customTrigger={
+                                                            <Button variant="outline" className="gap-2">
+                                                                <Clock className="h-4 w-4" />
+                                                                View Tracking & History
+                                                            </Button>
+                                                        }
+                                                    />
+                                                </div>
+                                            )}
+
                                             <FormMessage />
                                         </FormItem>
                                     )}
