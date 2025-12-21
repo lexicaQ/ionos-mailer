@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 
@@ -79,10 +79,38 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
         });
     };
 
+    // Helper: Whitelist ALL currently detected duplicates
+    const handleWhitelistAll = () => {
+        const newWhitelist = new Set(whitelist);
+        let count = 0;
+
+        const updated = parsedRecipients.map(r => {
+            if (r.duplicate) {
+                const normalized = r.email.toLowerCase();
+                newWhitelist.add(normalized);
+                count++;
+                return { ...r, duplicate: false, whitelisted: true, reason: undefined };
+            }
+            return r;
+        });
+
+        if (count === 0) return;
+
+        setWhitelist(newWhitelist);
+        saveWhitelist(newWhitelist);
+        setParsedRecipients(updated);
+        onRecipientsChange(updated.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
+
+        toast.success(`Allowed all ${count} duplicates`, {
+            description: "They have been added to the whitelist for future campaigns."
+        });
+    };
+
     // Helper: Check duplicates (excludes whitelisted emails)
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
         // Delay showing loading spinner to prevent flicker for fast operations
-        const loadingTimer = setTimeout(() => setIsChecking(true), 500);
+        // Lower threshold for smoother feel
+        const loadingTimer = setTimeout(() => setIsChecking(true), 200);
 
         try {
             const emailList = recipients.map(r => r.email);
@@ -123,7 +151,6 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
         }
     };
 
-    // Sync external recipients from parent (e.g., when loading draft)
     // Sync external recipients from parent (e.g., when loading draft)
     useEffect(() => {
         if (externalRecipients && externalRecipients.length > 0) {
@@ -218,13 +245,13 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
-                            <span className="flex items-center gap-2 text-blue-600 dark:text-blue-400 animate-pulse">
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                            <span className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100 font-medium animate-pulse">
+                                <ScanSearch className="h-4 w-4 animate-spin duration-1000" />
                                 Analyzing recipients...
                             </span>
                         ) : (
                             <span className="text-xs flex items-center gap-2 text-muted-foreground">
-                                Tip: Addresses are automatically analyzed when leaving the field
+                                Tip: Automatically checks for duplicates
                             </span>
                         )}
                     </span>
@@ -244,9 +271,22 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         <Check className="h-4 w-4 text-green-500" />
                                         Valid ({validEmails.length})
                                         {duplicateEmails.length > 0 && (
-                                            <span className="ml-1 text-xs text-red-500 font-semibold line-through decoration-red-500/50 opacity-80 decoration-2 animate-in fade-in slide-in-from-left-1">
-                                                +{duplicateEmails.length}
-                                            </span>
+                                            <div className="flex items-center gap-2 ml-1">
+                                                <span className="text-xs text-red-500 font-semibold line-through decoration-red-500/50 opacity-80 decoration-2 animate-in fade-in slide-in-from-left-1">
+                                                    +{duplicateEmails.length}
+                                                </span>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleWhitelistAll();
+                                                    }}
+                                                    className="h-5 text-[10px] px-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-800"
+                                                >
+                                                    Allow All
+                                                </Button>
+                                            </div>
                                         )}
                                     </TabsTrigger>
                                     <TabsTrigger value="invalid" className="gap-2" disabled={invalidEmails.length === 0}>
