@@ -600,7 +600,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
 
                                 {/* Status Pill - FIRST */}
                                 <div className="w-[65px] sm:w-[100px] flex-shrink-0 flex flex-col gap-1 items-center justify-center">
-                                    {isNext && (
+                                    {isNext && isOverdue && (
                                         <span className="text-[8px] font-black text-neutral-600 dark:text-neutral-400 uppercase tracking-widest leading-none mb-0.5">
                                             Next Up
                                         </span>
