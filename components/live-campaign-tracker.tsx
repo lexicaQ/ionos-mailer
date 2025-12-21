@@ -120,6 +120,9 @@ export function LiveCampaignTracker() {
 
         isFetching.current = true;
 
+        // Track if this is the very first sync (to show animation once)
+        const hasInitialData = campaignsRef.current.length > 0;
+
         try {
             // 1. INSTANT CACHE LOAD FIRST (synchronous, before any async operations)
             if (!isBackground) {
@@ -158,15 +161,22 @@ export function LiveCampaignTracker() {
                 const filtered = data.filter((c: any) => !deletedCampaigns.current.has(c.id));
 
                 // Only show sync indicator and update if data actually changed
-                const hasChanges = JSON.stringify(campaignsRef.current) !== JSON.stringify(filtered);
-                if (hasChanges) {
-                    setIsSyncing(true); // Show sync indicator ONLY when changes detected
+                const currentDataString = JSON.stringify(campaignsRef.current);
+                const newDataString = JSON.stringify(filtered);
+                const hasChanges = currentDataString !== newDataString;
+
+                if (hasChanges || !hasInitialData) {
+                    // Show sync indicator only if:
+                    // 1. Real changes detected OR
+                    // 2. First time loading (no initial data)
+                    if (hasChanges && hasInitialData) {
+                        setIsSyncing(true);
+                        setTimeout(() => setIsSyncing(false), 500);
+                    }
+
                     setCampaigns(filtered);
                     // Update cache WITHOUT deleted campaigns
                     localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
-
-                    // Hide sync indicator after short delay
-                    setTimeout(() => setIsSyncing(false), 500);
                 }
             }
         } catch (error) {
