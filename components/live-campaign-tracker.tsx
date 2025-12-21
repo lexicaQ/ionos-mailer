@@ -709,10 +709,10 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                                             </span>
                                                         </div>
 
-                                                        {/* Actual Sent Time Group - GREEN DESIGN */}
+                                                        {/* Actual Sent Time Group - GREEN */}
                                                         <div className="flex flex-col items-center">
-                                                            {/* Sent label - only on MOBILE to avoid duplicate with Badge */}
-                                                            <span className="text-[9px] text-green-600/70 dark:text-green-400/70 font-medium leading-none mb-0.5 sm:hidden">Sent</span>
+                                                            {/* Sent label - green to match time */}
+                                                            <span className="text-[9px] sm:text-[10px] text-green-600/70 dark:text-green-400/70 font-medium leading-none mb-0.5">Sent</span>
                                                             <span className="font-mono text-[10px] sm:text-xs text-green-600 dark:text-green-500 font-bold bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
                                                                 {job.sentAt ? format(new Date(job.sentAt), "HH:mm") : "-"}
                                                             </span>
