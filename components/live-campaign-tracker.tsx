@@ -158,9 +158,10 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     }, [open, fetchCampaigns]);
 
     useEffect(() => {
-        // Force fresh fetch when opening to ensure new campaigns appear instantly
-        if (open) fetchCampaigns(true); // true = skip loading spinner but still fetch fresh
-    }, [open, fetchCampaigns]);
+        // Force fresh fetch when opening
+        // Show spinner only if we have no cached data yet (first load)
+        if (open) fetchCampaigns(campaigns.length > 0);
+    }, [open, fetchCampaigns, campaigns.length]);
 
 
     const deleteCampaign = async (id: string, e?: React.MouseEvent) => {
@@ -355,11 +356,13 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
                                 <MinimalCampaignRow
                                     key={c.id}
                                     campaign={c}
-                                    index={filteredCampaigns.length - idx} // Reverse index so newest is highest number? Or just 1, 2, 3? User said "5, 4, 3...".
-                                    // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
+                                    index={filteredCampaigns.length - idx}
                                     displayIndex={filteredCampaigns.length - idx}
                                     onDelete={(e) => deleteCampaign(c.id, e)}
                                     searchTerm={searchTerm}
+                                    cancelingJobId={cancelingJobId}
+                                    setCancelingJobId={setCancelingJobId}
+                                    onRefresh={fetchCampaigns}
                                 />
                             ))}
                             {/* Anchor to scroll to bottom if needed in future */}
@@ -372,7 +375,25 @@ export function LiveCampaignTracker({ customTrigger }: { customTrigger?: React.R
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, searchTerm: string }) {
+function MinimalCampaignRow({
+    campaign,
+    index,
+    displayIndex,
+    onDelete,
+    searchTerm,
+    cancelingJobId,
+    setCancelingJobId,
+    onRefresh
+}: {
+    campaign: Campaign,
+    index?: number,
+    displayIndex: number,
+    onDelete: (e: React.MouseEvent) => void,
+    searchTerm: string,
+    cancelingJobId: string | null,
+    setCancelingJobId: (id: string | null) => void,
+    onRefresh: () => void
+}) {
     const calculateProgress = (c: Campaign) => c.stats.total > 0
         ? ((c.stats.sent + c.stats.failed) / c.stats.total) * 100
         : 0;
@@ -617,13 +638,13 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         </div>
                                     )}
 
-                                    {/* Cancel Job Button */}
+                                    {/* Cancel Job Button - Hidden on mobile to avoid clutter */}
                                     {job.status === 'PENDING' && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             disabled={cancelingJobId === job.id}
-                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute -top-1 -right-1 sm:relative sm:top-auto sm:right-auto disabled:opacity-50"
+                                            className="hidden sm:flex h-6 w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent disabled:opacity-50"
                                             onClick={async (e) => {
                                                 e.stopPropagation();
                                                 if (!confirm("Cancel this email?")) return;
@@ -633,7 +654,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                                     const res = await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
                                                     if (res.ok) {
                                                         toast.success("Email canceled");
-                                                        fetchCampaigns();
+                                                        onRefresh();
                                                     } else {
                                                         throw new Error("Failed to cancel");
                                                     }
