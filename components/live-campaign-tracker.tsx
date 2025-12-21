@@ -24,7 +24,7 @@ interface EmailJob {
     id: string
     recipient: string
     subject: string
-    status: "PENDING" | "SENT" | "FAILED"
+    status: "PENDING" | "SENT" | "FAILED" | "CANCELLED"
     scheduledFor: string
     sentAt: string | null
     error: string | null
