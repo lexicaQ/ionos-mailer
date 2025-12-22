@@ -65,19 +65,18 @@ export function SecurityInfoPanel() {
         <>
             {/* Trigger Button - Fixed Bottom */}
             <motion.div
-                className="fixed top-4 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:top-auto sm:left-4 sm:bottom-4 z-50"
+                className="fixed bottom-4 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-4 z-50"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
             >
                 <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={() => setIsOpen(true)}
-                    className="gap-2 bg-white dark:bg-black border-neutral-200 dark:border-neutral-800 shadow-lg hover:shadow-xl transition-shadow"
+                    className="shadow-lg hover:shadow-xl transition-shadow"
                 >
                     <Shield className="h-4 w-4" />
-                    <span className="inline">Security</span>
                 </Button>
             </motion.div>
 
