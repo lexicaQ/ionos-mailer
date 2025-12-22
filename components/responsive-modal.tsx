@@ -59,7 +59,7 @@ export function ResponsiveModal({
                         </div>
                     )}
                     {(title || description) && (
-                        <DialogHeader>
+                        <DialogHeader className="text-left">
                             {title && <DialogTitle>{title}</DialogTitle>}
                             {description && <DialogDescription>{description}</DialogDescription>}
                         </DialogHeader>
