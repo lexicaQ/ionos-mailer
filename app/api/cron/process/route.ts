@@ -38,8 +38,10 @@ async function handleCronRequest(req: NextRequest) {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
             || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-        // SEQUENTIAL PROCESSING: Process 1 email per invocation for controlled pacing
-        const BATCH_SIZE = 1;
+        // SEQUENTIAL PROCESSING: Process multiple emails per invocation
+        // Increased from 1 to 10 to handle campaign batches efficiently
+        // This ensures all emails in a campaign get processed even if browser closes
+        const BATCH_SIZE = 10;
         const now = new Date();
         const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
@@ -301,25 +303,42 @@ async function handleCronRequest(req: NextRequest) {
         }
 
         // RECURSION: If we processed a full batch, there might be more.
-        // Trigger immediately. If we processed < BATCH_SIZE, we are done until next cron.
+        // Trigger immediately with retry logic for reliability
         if (pendingJobs.length === BATCH_SIZE) {
             console.log("Full batch processed. Triggering next batch immediately.");
             const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
 
-            // Fire-and-forget (fetch without await, but handled carefully)
-            // Note: In Vercel serverless, unawaited promises can be cancelled when function freezes.
-            // We use waitUntil or just await it with short timeout.
-            // But standard await fetch is safest for reliable chaining.
-            await fetch(triggerUrl, {
-                method: 'POST',
-                headers: {
-                    'x-manual-trigger': 'true',
-                    'User-Agent': 'vercel-cron/1.0',
-                    ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
-                    ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
-                },
-                signal: AbortSignal.timeout(5000)
-            }).catch(e => console.error('Recursive trigger failed:', e));
+            // Retry logic to ensure recursion doesn't fail silently
+            const triggerNextBatch = async (retries = 3) => {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(triggerUrl, {
+                            method: 'POST',
+                            headers: {
+                                'x-manual-trigger': 'true',
+                                'User-Agent': 'vercel-cron/1.0',
+                                ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
+                                ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
+                            },
+                            signal: AbortSignal.timeout(5000)
+                        });
+
+                        if (response.ok) {
+                            console.log('Recursive trigger succeeded');
+                            return true;
+                        }
+                    } catch (e) {
+                        console.error(`Recursive trigger attempt ${i + 1} failed:`, e);
+                        if (i < retries - 1) {
+                            await delay(1000); // Wait 1s before retry
+                        }
+                    }
+                }
+                console.error('All recursive trigger attempts failed');
+                return false;
+            };
+
+            await triggerNextBatch();
         }
 
         return NextResponse.json({

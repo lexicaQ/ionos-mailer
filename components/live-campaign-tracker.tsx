@@ -720,10 +720,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                     </div>
                                 </div>
 
-                                {/* Times - LAST (wider on mobile to prevent overlap) */}
+                                {/* Times & Cancel - Container for mobile layout */}
                                 <div className="flex items-center justify-end gap-1 sm:gap-3 text-xs text-muted-foreground flex-shrink-0 w-[80px] sm:w-[160px]">
                                     <div className="text-right flex flex-col items-end">
-
 
                                         {isPending ? (
                                             /* PENDING (Scheduled or Overdue) */
@@ -735,6 +734,26 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                                     <span className="text-[9px] sm:text-xs font-bold text-orange-600 dark:text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-1 py-0.5 rounded whitespace-nowrap">
                                                         +{diffInMinutes} min
                                                     </span>
+                                                )}
+                                                {/* Cancel Button - Mobile: Next to time */}
+                                                {job.status === 'PENDING' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-5 w-5 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent sm:hidden"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (!confirm("Cancel this email?")) return;
+                                                            try {
+                                                                await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
+                                                            } catch (e) {
+                                                                console.error(e);
+                                                            }
+                                                        }}
+                                                        title="Cancel Email"
+                                                    >
+                                                        <XCircle className="h-3.5 w-3.5" />
+                                                    </Button>
                                                 )}
                                             </div>
                                         ) : (
@@ -774,12 +793,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                         )}
                                     </div>
 
-                                    {/* Cancel Job Button */}
+                                    {/* Cancel Job Button - Desktop only (mobile version is next to time) */}
                                     {job.status === 'PENDING' && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-5 w-5 sm:h-6 sm:w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent absolute top-1/2 -translate-y-1/2 right-1 sm:relative sm:top-auto sm:right-auto sm:translate-y-0"
+                                            className="hidden sm:flex h-6 w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent"
                                             onClick={async (e) => {
                                                 e.stopPropagation();
                                                 if (!confirm("Cancel this email?")) return;
