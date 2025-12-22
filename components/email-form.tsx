@@ -326,8 +326,8 @@ export function EmailForm() {
     }
 
     const handleClearAllHistory = async () => {
-        // Confirm first
-        if (!confirm("Are you sure you want to clear all history? This cannot be undone.")) {
+        // Use English text in confirm dialog
+        if (!window.confirm("Are you sure you want to clear all history? This cannot be undone.")) {
             return;
         }
 
@@ -338,15 +338,21 @@ export function EmailForm() {
         localStorage.removeItem("ionos-mailer-history");
 
         try {
-            // Delete ONLY history (DIRECT campaigns) from server, NOT all campaigns
+            // Delete from server - this is the source of truth
             const res = await fetch('/api/history', { method: 'DELETE' });
-            if (!res.ok) throw new Error('Server delete failed');
+            const data = await res.json();
 
+            if (!res.ok) {
+                throw new Error(data.error || 'Server delete failed');
+            }
+
+            console.log(`Deleted ${data.count} history entries from server`);
             toast.success("History cleared", { duration: 1500 });
         } catch (e) {
             console.error('Failed to clear history from server:', e);
             // Revert on error
             setHistory(previousHistory);
+            localStorage.setItem("ionos-mailer-history", JSON.stringify(previousHistory));
             historyManuallyCleared.current = false;
             toast.error("Failed to clear history. Try again.");
         }
