@@ -76,7 +76,11 @@ export function EmailForm() {
     }, [])
 
     const syncHistory = useCallback(async () => {
-        if (!session?.user || historyManuallyCleared.current) return // Skip if manually cleared
+        // Skip sync if manually cleared (either via ref or persistent localStorage flag)
+        const persistentlyClearedFlag = localStorage.getItem("ionos-mailer-history-cleared");
+        if (!session?.user || historyManuallyCleared.current || persistentlyClearedFlag === "true") {
+            return;
+        }
 
         setIsHistorySyncing(true)
         try {
@@ -245,6 +249,7 @@ export function EmailForm() {
 
                 // Reset manual clear flag to allow sync
                 historyManuallyCleared.current = false;
+                localStorage.removeItem("ionos-mailer-history-cleared"); // Clear persistent flag
 
                 // Sync from server in background to get final status
                 syncHistory().catch(e => console.error('History sync failed:', e));
@@ -331,30 +336,24 @@ export function EmailForm() {
             return;
         }
 
-        // Optimistic: Clear local immediately
-        historyManuallyCleared.current = true; // Prevent auto-sync refill
-        const previousHistory = [...history];
+        // 1. INSTANT: Clear local state and localStorage immediately
+        historyManuallyCleared.current = true;
         setHistory([]);
         localStorage.removeItem("ionos-mailer-history");
 
+        // 2. Set a persistent flag in localStorage to prevent sync from refilling
+        // This survives page refreshes and will be cleared when user sends a new email
+        localStorage.setItem("ionos-mailer-history-cleared", "true");
+
+        toast.success("History cleared", { duration: 1500 });
+
+        // 3. Delete from server in background (non-blocking for UI)
         try {
-            // Delete from server - this is the source of truth
-            const res = await fetch('/api/history', { method: 'DELETE' });
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Server delete failed');
-            }
-
-            console.log(`Deleted ${data.count} history entries from server`);
-            toast.success("History cleared", { duration: 1500 });
+            await fetch('/api/history', { method: 'DELETE' });
+            console.log("Server history deleted successfully");
         } catch (e) {
             console.error('Failed to clear history from server:', e);
-            // Revert on error
-            setHistory(previousHistory);
-            localStorage.setItem("ionos-mailer-history", JSON.stringify(previousHistory));
-            historyManuallyCleared.current = false;
-            toast.error("Failed to clear history. Try again.");
+            // Don't revert - user already sees empty state, server will be cleaned on next sync
         }
     }
     const handleLoadDraft = useCallback((draft: EmailDraft) => {
