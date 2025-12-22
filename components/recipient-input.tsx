@@ -281,7 +281,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                         e.stopPropagation();
                                                         handleWhitelistAll();
                                                     }}
-                                                    className="h-5 text-[10px] px-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-800"
+                                                    className="h-5 text-[10px] px-2 bg-green-600 hover:bg-green-700 text-white border border-green-700 shadow-sm"
                                                 >
                                                     Allow All
                                                 </Button>
@@ -338,7 +338,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                             e.stopPropagation();
                                                             handleWhitelist(recipient.email);
                                                         }}
-                                                        className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-white/50 hover:bg-white text-green-700 border border-green-300 transition-colors"
+                                                        className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold bg-green-500 hover:bg-green-600 text-white border border-green-600 shadow-sm transition-colors"
                                                         title="Allow permanently - never flag as duplicate again"
                                                     >
                                                         Allow
