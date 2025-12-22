@@ -43,78 +43,77 @@ async function handleCronRequest(req: NextRequest) {
         // This ensures all emails in a campaign get processed even if browser closes
         const BATCH_SIZE = 10;
         const now = new Date();
-        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-        // PRIORITY QUEUE SYSTEM (REVISED):
-        // 1. "Fresh" Priority Lane: Scheduled in the last 5 minutes.
-        //    Ensure these go out ASAP to keep the schedule "as planned".
-        // 2. Backlog Lane: Overdue by > 5 minutes.
-        //    Processed when no fresh emails are pending.
+        // PRIORITY QUEUE SYSTEM:
+        // 1. CAMPAIGN EMAILS FIRST (scheduled background sends with intervals)
+        //    These are planned emails that user expects to go out on schedule
+        // 2. DIRECT SENDS SECOND (immediate sends via "Send Directly" button)
+        //    These can wait a bit as they're fire-and-forget
 
-        // 1. Try to fetch a FRESH job first
-        let priorityJob = await prisma.emailJob.findFirst({
+        // 1. First Priority: Campaign emails (name is encrypted, NOT "DIRECT")
+        const campaignJobs = await prisma.emailJob.findMany({
             where: {
                 status: 'PENDING',
-                scheduledFor: {
-                    gte: fiveMinutesAgo,
-                    lte: now
-                },
-                nextRetryAt: null
+                scheduledFor: { lte: now },
+                nextRetryAt: null,
+                campaign: { name: { not: "DIRECT" } }  // Campaigns have encrypted names
             },
             include: { campaign: { include: { attachments: true } } },
-            orderBy: { scheduledFor: 'asc' } // Oldest of the fresh first
+            take: BATCH_SIZE,
+            orderBy: { scheduledFor: 'asc' }  // Oldest scheduled first
         });
 
-        // 2. If no fresh job, fetch from BACKLOG or Retry Queue
-        let scheduledJobs: any[] = [];
+        console.log(`Cron: Found ${campaignJobs.length} campaign jobs due.`);
 
-        if (priorityJob) {
-            scheduledJobs = [priorityJob];
-        } else {
-            // Fetch One from Backlog (Overdue)
-            // We use 'desc' (Newest First) for backlog to prevent "Infinite Wait" for recent-ish items?
-            // User said: "send as planned".
-            // Actually, for backlog, 'asc' (Oldest First) is standard.
-            // But if we prioritized Fresh Lane, then 'asc' for backlog is fine because Fresh Lane jumps the queue.
-            // So I will stick to 'asc' for backlog to clear oldest debt.
-            scheduledJobs = await prisma.emailJob.findMany({
+        // 2. Second Priority: Direct sends (only if campaign queue has room)
+        let directJobs: any[] = [];
+        const remainingSlots = BATCH_SIZE - campaignJobs.length;
+
+        if (remainingSlots > 0) {
+            directJobs = await prisma.emailJob.findMany({
                 where: {
                     status: 'PENDING',
-                    scheduledFor: { lte: now }, // This will pick up overdue items since Fresh query failed
-                    nextRetryAt: null
+                    scheduledFor: { lte: now },
+                    nextRetryAt: null,
+                    campaign: { name: "DIRECT" }  // Direct sends
                 },
                 include: { campaign: { include: { attachments: true } } },
-                take: BATCH_SIZE,
+                take: remainingSlots,
                 orderBy: { scheduledFor: 'asc' }
             });
+            console.log(`Cron: Found ${directJobs.length} direct send jobs due.`);
         }
 
-        let remainingSlots = BATCH_SIZE - scheduledJobs.length;
+        // Combine: Campaigns first, then direct sends
+        let scheduledJobs = [...campaignJobs, ...directJobs];
+
+        let remainingSlotsAfterScheduled = BATCH_SIZE - scheduledJobs.length;
+
 
         // Fill remaining batch slots with resend jobs (PENDING with nextRetryAt)
-        const resendJobs = remainingSlots > 0
+        const resendJobs = remainingSlotsAfterScheduled > 0
             ? await prisma.emailJob.findMany({
                 where: {
                     status: 'PENDING',
                     nextRetryAt: { lte: now } // Due for retry
                 },
                 include: { campaign: { include: { attachments: true } } },
-                take: remainingSlots,
+                take: remainingSlotsAfterScheduled,
                 orderBy: { scheduledFor: 'asc' } // Still oldest-first
             })
             : [];
 
-        remainingSlots -= resendJobs.length;
+        let remainingSlotsForFailed = remainingSlotsAfterScheduled - resendJobs.length;
 
         // AUTO-RETRY: Pick up FAILED emails that haven't maxed out retries
-        const failedJobs = remainingSlots > 0
+        const failedJobs = remainingSlotsForFailed > 0
             ? await prisma.emailJob.findMany({
                 where: {
                     status: 'FAILED',
                     ...(isManualTrigger ? {} : { retryCount: { lt: 3 } }) // Allow manual retry of ANY failed job
                 },
                 include: { campaign: { include: { attachments: true } } },
-                take: remainingSlots,
+                take: remainingSlotsForFailed,
                 orderBy: { scheduledFor: 'asc' } // Oldest first
             })
             : [];
