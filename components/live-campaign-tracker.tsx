@@ -213,7 +213,7 @@ export function LiveCampaignTracker() {
 
         // SMART POLLING: Only when necessary (replaces 1s ultra-fast polling)
         let pollInterval: NodeJS.Timeout | null = null;
-        
+
         const shouldPoll = () => {
             // Only poll if:
             // 1. Modal is open
@@ -226,7 +226,7 @@ export function LiveCampaignTracker() {
 
         const startPolling = () => {
             if (pollInterval) return; // Already polling
-            
+
             if (shouldPoll()) {
                 // Changed from 1s to 15s (93% reduction in requests!)
                 pollInterval = setInterval(() => {
@@ -271,7 +271,7 @@ export function LiveCampaignTracker() {
             stopPolling();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
-    }, [fetchCampaigns, open, activeCampaigns.length]);
+    }, [fetchCampaigns, open, campaigns]);
 
     useEffect(() => {
         if (open) fetchCampaigns(false);
