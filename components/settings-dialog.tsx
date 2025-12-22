@@ -189,6 +189,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             description="Configure your IONOS credentials"
             className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
             headerActions={syncIndicator}
+            forceDialog={true}
         >
             <ScrollArea className="flex-1 h-full max-h-[60vh] md:max-h-[70vh] pr-4 overflow-y-auto">
 
