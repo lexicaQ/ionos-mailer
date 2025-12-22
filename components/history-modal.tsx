@@ -63,6 +63,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
     const [trackingStatus, setTrackingStatus] = useState<Record<string, { opened: boolean; openedAt: string | null }>>({})
+    const [isClearing, setIsClearing] = useState(false)
 
     // REMOVED: Fake 2s loading animation - data displays immediately from cache
 
