@@ -228,14 +228,14 @@ export function LiveCampaignTracker() {
             if (pollInterval) return; // Already polling
 
             if (shouldPoll()) {
-                // Changed from 1s to 15s (93% reduction in requests!)
+                // Modified to 5s as requested (User accepted this is only active when jobs are pending)
                 pollInterval = setInterval(() => {
                     if (shouldPoll()) {
                         fetchCampaigns(true);
                     } else {
                         stopPolling(); // Stop if conditions no longer met
                     }
-                }, 15000); // 15 seconds instead of 1 second
+                }, 5000); // 5 seconds
             }
         };
 
