@@ -50,13 +50,19 @@ async function handleCronRequest(req: NextRequest) {
         // 2. DIRECT SENDS SECOND (immediate sends via "Send Directly" button)
         //    These can wait a bit as they're fire-and-forget
 
-        // 1. First Priority: Campaign emails (name is encrypted, NOT "DIRECT")
+        // 1. First Priority: Campaign emails (name is encrypted OR null, NOT "DIRECT")
+        // Note: Prisma's { not: "DIRECT" } does NOT match null values, so we need OR logic
         const campaignJobs = await prisma.emailJob.findMany({
             where: {
                 status: 'PENDING',
                 scheduledFor: { lte: now },
                 nextRetryAt: null,
-                campaign: { name: { not: "DIRECT" } }  // Campaigns have encrypted names
+                campaign: {
+                    OR: [
+                        { name: null },           // Campaigns with no name
+                        { name: { not: "DIRECT" } } // Campaigns with encrypted names
+                    ]
+                }
             },
             include: { campaign: { include: { attachments: true } } },
             take: BATCH_SIZE,
