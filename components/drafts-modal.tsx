@@ -315,16 +315,16 @@ export function DraftsModal({
                 </DialogContent>
             </Dialog>
 
-            {/* Save Dialog */}
+            {/* Save Dialog - Black & White Design */}
             <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-                <DialogContent className="sm:max-w-[425px] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl">
+                <DialogContent className="sm:max-w-[425px] bg-white dark:bg-neutral-950 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold">{selectedDraftId ? "Update Draft" : "Save Draft"}</DialogTitle>
                         <div className="text-sm text-muted-foreground">Name your draft to easily find it later.</div>
                     </DialogHeader>
                     <div className="py-6 space-y-6">
                         {selectedDraftId && (
-                            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">
+                            <div className="flex items-center gap-2 p-3 rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium">
                                 <RefreshCw className="h-3.5 w-3.5" />
                                 Updating existing version
                             </div>
@@ -332,25 +332,25 @@ export function DraftsModal({
 
                         {/* Explicit info about content */}
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-neutral-50 dark:bg-[#181818] border border-neutral-100 dark:border-neutral-800">
+                            <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
                                 <span className="text-xs text-muted-foreground block mb-1">Recipients</span>
                                 <div className="flex items-center gap-1.5 font-medium text-sm">
-                                    <Users className="h-3.5 w-3.5 text-blue-500" />
+                                    <Users className="h-3.5 w-3.5 text-neutral-500" />
                                     {currentRecipients.length}
                                 </div>
                             </div>
-                            <div className="p-3 rounded-lg bg-neutral-50 dark:bg-[#181818] border border-neutral-100 dark:border-neutral-800">
+                            <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
                                 <span className="text-xs text-muted-foreground block mb-1">Attachments</span>
                                 <div className="flex items-center gap-1.5 font-medium text-sm">
-                                    <Paperclip className="h-3.5 w-3.5 text-orange-500" />
+                                    <Paperclip className="h-3.5 w-3.5 text-neutral-500" />
                                     {currentAttachments.length} <span className="text-xs text-muted-foreground font-normal">(removed)</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Warning about stripped content */}
-                        <div className="flex gap-3 p-3 text-xs bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-500 rounded-lg">
-                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <div className="flex gap-3 p-3 text-xs bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 rounded-lg">
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-neutral-500" />
                             <p>
                                 <strong>Note:</strong> Images and attachments are <span className="underline">not saved</span> with drafts to save space. They must be re-added.
                             </p>
@@ -363,13 +363,13 @@ export function DraftsModal({
                                 value={draftName}
                                 onChange={(e) => setDraftName(e.target.value)}
                                 autoFocus
-                                className="bg-white dark:bg-[#181818] border-neutral-200 dark:border-neutral-800 h-10"
+                                className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 h-10"
                             />
                         </div>
                     </div>
                     <div className="flex justify-end gap-2">
                         <Button variant="ghost" onClick={() => setSaveDialogOpen(false)} className="hover:bg-neutral-100 dark:hover:bg-neutral-800">Cancel</Button>
-                        <Button onClick={handleSaveDraft} disabled={!draftName.trim() || isSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button onClick={handleSaveDraft} disabled={!draftName.trim() || isSaving} className="bg-black hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black">
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                             Save Draft
                         </Button>
