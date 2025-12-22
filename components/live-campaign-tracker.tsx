@@ -336,187 +336,224 @@ export function LiveCampaignTracker() {
             });
         }
     }
+}
+    }
 
-    // EXPORT FUNCTIONS
-    const exportToExcel = async () => {
-        const ExcelJS = await import("exceljs")
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet("Campaign Export");
+const cancelJob = async (campaignId: string, jobId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
 
-        sheet.columns = [
-            { header: "Campaign", key: "campaign", width: 25 },
-            { header: "Created at", key: "created", width: 20 },
-            { header: "Recipient", key: "recipient", width: 30 },
-            { header: "Subject", key: "subject", width: 40 },
-            { header: "Status", key: "status", width: 15 },
-            { header: "Opened", key: "opened", width: 25 },
-            { header: "Sent at", key: "sentAt", width: 20 },
-            { header: "Error", key: "error", width: 30 },
-        ];
+    if (!confirm("Cancel this email?")) return;
 
-        campaigns.forEach(c => {
-            c.jobs.forEach(j => {
-                sheet.addRow({
-                    campaign: c.name || "Untitled",
-                    created: format(new Date(c.createdAt), "yyyy-MM-dd HH:mm"),
-                    recipient: j.recipient,
-                    subject: j.subject,
-                    status: j.status,
-                    opened: j.openedAt ? `Yes (${format(new Date(j.openedAt), "MMM dd HH:mm")})` : "No",
-                    sentAt: j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm:ss") : "-",
-                    error: j.error || ""
-                });
+    // Optimistic Update
+    setCampaigns(prev => prev.map(c => {
+        if (c.id === campaignId) {
+            return {
+                ...c,
+                jobs: c.jobs.map(j => {
+                    if (j.id === jobId) {
+                        return { ...j, status: "CANCELLED" as const };
+                    }
+                    return j;
+                }),
+                stats: {
+                    ...c.stats,
+                    pending: Math.max(0, c.stats.pending - 1)
+                }
+            };
+        }
+        return c;
+    }));
+
+    try {
+        await fetch(`/api/jobs/${jobId}/cancel`, { method: "PATCH" });
+    } catch (error) {
+        console.error("Failed to cancel job", error);
+        // Revert would be complex here, assuming success for "instant" feel users want
+        toast.error("Failed to cancel on server. It may send.");
+    }
+};
+
+// EXPORT FUNCTIONS
+const exportToExcel = async () => {
+    const ExcelJS = await import("exceljs")
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Campaign Export");
+
+    sheet.columns = [
+        { header: "Campaign", key: "campaign", width: 25 },
+        { header: "Created at", key: "created", width: 20 },
+        { header: "Recipient", key: "recipient", width: 30 },
+        { header: "Subject", key: "subject", width: 40 },
+        { header: "Status", key: "status", width: 15 },
+        { header: "Opened", key: "opened", width: 25 },
+        { header: "Sent at", key: "sentAt", width: 20 },
+        { header: "Error", key: "error", width: 30 },
+    ];
+
+    campaigns.forEach(c => {
+        c.jobs.forEach(j => {
+            sheet.addRow({
+                campaign: c.name || "Untitled",
+                created: format(new Date(c.createdAt), "yyyy-MM-dd HH:mm"),
+                recipient: j.recipient,
+                subject: j.subject,
+                status: j.status,
+                opened: j.openedAt ? `Yes (${format(new Date(j.openedAt), "MMM dd HH:mm")})` : "No",
+                sentAt: j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm:ss") : "-",
+                error: j.error || ""
             });
         });
+    });
 
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
-
-    const exportToPDF = async () => {
-        const { jsPDF } = await import("jspdf")
-        const autoTable = (await import("jspdf-autotable")).default
-
-        const doc = new jsPDF({ orientation: "landscape" })
-        doc.setFontSize(18)
-        doc.text("IONOS Mailer - Campaign Report", 14, 22)
-        doc.setFontSize(10)
-        doc.text(`Created: ${format(new Date(), "yyyy-MM-dd HH:mm")}`, 14, 30)
-
-        const rows: any[] = []
-        campaigns.forEach(c => {
-            c.jobs.forEach(j => {
-                rows.push([
-                    c.name || "Untitled",
-                    j.recipient,
-                    j.status,
-                    j.openedAt ? "Yes" : "No",
-                    j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm") : "-",
-                    j.error ? "Yes" : "-"
-                ])
-            })
-        })
-
-        autoTable(doc, {
-            head: [["Campaign", "Recipient", "Status", "Opened", "Sent", "Error"]],
-            body: rows,
-            startY: 40,
-            headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
-            alternateRowStyles: { fillColor: [245, 245, 245] }
-        })
-
-        doc.save(`ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`)
-    }
-
-    const activeCampaigns = campaigns.filter(c => c.stats.pending > 0)
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 relative">
-                    <Activity className="h-4 w-4" />
-                    Live Tracking
-                    {activeCampaigns.length > 0 && (
-                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
-                    )}
-                </Button>
-            </DialogTrigger>
-            <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
-
-                {/* Header */}
-                <div className="flex flex-col border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <div className="p-6 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                                <Activity className="h-5 w-5 text-white dark:text-black" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
-                                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                                    {(isAutoProcessing || isSyncing) ? (
-                                        <span className="text-green-600 flex items-center gap-1">
-                                            <RefreshCw className="h-3 w-3 animate-spin" /> {isSyncing ? "Syncing..." : "Processing background jobs..."}
-                                        </span>
-                                    ) : (
-                                        <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={exportToExcel} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
-                                <FileSpreadsheet className="h-3.5 w-3.5" />
-                                Excel
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={exportToPDF} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
-                                <FileText className="h-3.5 w-3.5" />
-                                PDF
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => fetchCampaigns(false)} disabled={loading} className="gap-2">
-                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                                Refresh
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Search & Filter Bar */}
-                    <div className="px-6 pb-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search campaign, recipients..."
-                                className="pl-9 bg-neutral-50 dark:bg-neutral-800 border-none"
-                                value={searchTerm}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
-                    {loading ? (
-                        <div className="flex h-full items-center justify-center">
-                            <SecurityLoader />
-                        </div>
-                    ) : filteredCampaigns.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                            <Mail className="h-12 w-12 opacity-20 mb-4" />
-                            <p>No campaigns found</p>
-                        </div>
-                    ) : (
-                        <AnimatePresence>
-                            {filteredCampaigns.map((c, idx) => (
-                                <MinimalCampaignRow
-                                    key={c.id}
-                                    campaign={c}
-                                    index={filteredCampaigns.length - idx} // Reverse index so newest is highest number? Or just 1, 2, 3? User said "5, 4, 3...".
-                                    // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
-                                    displayIndex={filteredCampaigns.length - idx}
-                                    onDelete={(e) => deleteCampaign(c.id, e)}
-                                    searchTerm={searchTerm}
-                                />
-                            ))}
-                            {/* Anchor to scroll to bottom if needed in future */}
-                            <div className="h-px" />
-                        </AnimatePresence>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
-    )
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, searchTerm: string }) {
+const exportToPDF = async () => {
+    const { jsPDF } = await import("jspdf")
+    const autoTable = (await import("jspdf-autotable")).default
+
+    const doc = new jsPDF({ orientation: "landscape" })
+    doc.setFontSize(18)
+    doc.text("IONOS Mailer - Campaign Report", 14, 22)
+    doc.setFontSize(10)
+    doc.text(`Created: ${format(new Date(), "yyyy-MM-dd HH:mm")}`, 14, 30)
+
+    const rows: any[] = []
+    campaigns.forEach(c => {
+        c.jobs.forEach(j => {
+            rows.push([
+                c.name || "Untitled",
+                j.recipient,
+                j.status,
+                j.openedAt ? "Yes" : "No",
+                j.sentAt ? format(new Date(j.sentAt), "MMM dd HH:mm") : "-",
+                j.error ? "Yes" : "-"
+            ])
+        })
+    })
+
+    autoTable(doc, {
+        head: [["Campaign", "Recipient", "Status", "Opened", "Sent", "Error"]],
+        body: rows,
+        startY: 40,
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
+        alternateRowStyles: { fillColor: [245, 245, 245] }
+    })
+
+    doc.save(`ionos-mailer-live-export-${format(new Date(), "yyyy-MM-dd-HHmm")}.pdf`)
+}
+
+const activeCampaigns = campaigns.filter(c => c.stats.pending > 0)
+
+return (
+    <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2 relative">
+                <Activity className="h-4 w-4" />
+                Live Tracking
+                {activeCampaigns.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
+                )}
+            </Button>
+        </DialogTrigger>
+        <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
+
+            {/* Header */}
+            <div className="flex flex-col border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                <div className="p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                            <Activity className="h-5 w-5 text-white dark:text-black" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
+                            <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                {(isAutoProcessing || isSyncing) ? (
+                                    <span className="text-green-600 flex items-center gap-1">
+                                        <RefreshCw className="h-3 w-3 animate-spin" /> {isSyncing ? "Syncing..." : "Processing background jobs..."}
+                                    </span>
+                                ) : (
+                                    <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={exportToExcel} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
+                            <FileSpreadsheet className="h-3.5 w-3.5" />
+                            Excel
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={exportToPDF} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
+                            <FileText className="h-3.5 w-3.5" />
+                            PDF
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => fetchCampaigns(false)} disabled={loading} className="gap-2">
+                            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Search & Filter Bar */}
+                <div className="px-6 pb-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search campaign, recipients..."
+                            className="pl-9 bg-neutral-50 dark:bg-neutral-800 border-none"
+                            value={searchTerm}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
+                {loading ? (
+                    <div className="flex h-full items-center justify-center">
+                        <SecurityLoader />
+                    </div>
+                ) : filteredCampaigns.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                        <Mail className="h-12 w-12 opacity-20 mb-4" />
+                        <p>No campaigns found</p>
+                    </div>
+                ) : (
+                    <AnimatePresence>
+                        {filteredCampaigns.map((c, idx) => (
+                            <MinimalCampaignRow
+                                key={c.id}
+                                campaign={c}
+                                index={filteredCampaigns.length - idx} // Reverse index so newest is highest number? Or just 1, 2, 3? User said "5, 4, 3...".
+                                // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
+                                displayIndex={filteredCampaigns.length - idx}
+                                onDelete={(e) => deleteCampaign(c.id, e)}
+                                onCancelJob={cancelJob}
+                                searchTerm={searchTerm}
+                            />
+                        ))}
+                        {/* Anchor to scroll to bottom if needed in future */}
+                        <div className="h-px" />
+                    </AnimatePresence>
+                )}
+            </div>
+        </DialogContent>
+    </Dialog>
+)
+}
+
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string }) {
     const calculateProgress = (c: Campaign) => c.stats.total > 0
         ? ((c.stats.sent + c.stats.failed) / c.stats.total) * 100
         : 0;
@@ -741,15 +778,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-5 w-5 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent sm:hidden"
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            if (!confirm("Cancel this email?")) return;
-                                                            try {
-                                                                await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
-                                                            } catch (e) {
-                                                                console.error(e);
-                                                            }
-                                                        }}
+                                                        onClick={(e) => onCancelJob(campaign.id, job.id, e)}
                                                         title="Cancel Email"
                                                     >
                                                         <XCircle className="h-3.5 w-3.5" />
@@ -799,15 +828,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, searchTer
                                             variant="ghost"
                                             size="sm"
                                             className="hidden sm:flex h-6 w-6 p-0 text-neutral-400 hover:text-red-500 hover:bg-transparent"
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                if (!confirm("Cancel this email?")) return;
-                                                try {
-                                                    await fetch(`/api/jobs/${job.id}/cancel`, { method: "PATCH" });
-                                                } catch (e) {
-                                                    console.error(e);
-                                                }
-                                            }}
+                                            onClick={(e) => onCancelJob(campaign.id, job.id, e)}
                                             title="Cancel Email"
                                         >
                                             <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
