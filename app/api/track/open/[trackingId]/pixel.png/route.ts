@@ -42,11 +42,11 @@ export async function GET(
 
     // Only count as genuine open if:
     // 1. Not from a known prefetch bot/proxy
-    // 2. At least 30 seconds after email was sent (prefetch usually immediate)
+    // 2. At least 1 second after email was sent (prevent immediate automated scans)
     // 3. Or if already opened before (increment count)
     const shouldCountAsOpen = job && (
       job.openedAt !== null || // Already marked as opened
-      (!isPrefetchBot && job.sentAt && (Date.now() - job.sentAt.getTime() > 30000))
+      (!isPrefetchBot && job.sentAt && (Date.now() - job.sentAt.getTime() > 1000))
     )
 
     // Update tracking - only set openedAt if it's likely a real open
