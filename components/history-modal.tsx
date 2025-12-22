@@ -109,7 +109,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
             if (interval) return;
             if (trackingIds.length > 0) {
                 fetchTrackingStatus();
-                interval = setInterval(fetchTrackingStatus, 30000);
+                interval = setInterval(fetchTrackingStatus, 10000);
             }
         };
 
