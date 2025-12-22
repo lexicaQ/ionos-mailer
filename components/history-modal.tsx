@@ -98,19 +98,49 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
     }, [trackingIds])
 
     useEffect(() => {
-        if (open) {
-            // Trigger parent refresh to get latest delivery status
-            if (onRefresh) onRefresh();
+        if (!open) return;
 
+        // Trigger parent refresh to get latest delivery status on open
+        if (onRefresh) onRefresh();
+
+        let interval: NodeJS.Timeout | null = null;
+
+        const startPolling = () => {
+            if (interval) return;
             if (trackingIds.length > 0) {
-                fetchTrackingStatus()
-                // Poll every 30 seconds for open detection (was 1s - too aggressive!)
-                // Email opens don't happen that frequently to justify 1s polling
-                const interval = setInterval(fetchTrackingStatus, 30000)
-                return () => clearInterval(interval)
+                fetchTrackingStatus();
+                interval = setInterval(fetchTrackingStatus, 30000);
             }
+        };
+
+        const stopPolling = () => {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                fetchTrackingStatus(); // Immediate refresh on visible
+                startPolling();
+            }
+        };
+
+        // Initial check
+        if (!document.hidden) {
+            startPolling();
         }
-    }, [open, trackingIds, fetchTrackingStatus, onRefresh])
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            stopPolling();
+        };
+    }, [open, trackingIds, fetchTrackingStatus, onRefresh]);
 
     const stats = useMemo(() => {
         const totalEmails = batches.reduce((sum, b) => sum + b.total, 0)
