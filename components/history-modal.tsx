@@ -335,6 +335,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                 <p className="text-xs text-muted-foreground">
                                     {stats.totalEmails} Emails • {stats.totalSuccess} Successful • {stats.totalOpened} Opened
                                 </p>
+                                <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                                    Note: Opens may include automated scans
+                                </p>
                             </div>
                         </div>
                         <div className="flex gap-2">

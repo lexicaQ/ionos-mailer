@@ -14,19 +14,55 @@ export async function GET(
   try {
     const { trackingId } = await params
 
-    // Extract IP address from headers
+    // Extract IP address and User-Agent from headers
     const forwardedFor = request.headers.get("x-forwarded-for")
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : "Unknown"
+    const userAgent = request.headers.get("user-agent") || ""
 
-    // Update the email job with open tracking
-    await prisma.emailJob.update({
+    // Heuristic: Detect automated prefetching by email clients
+    // These proxies/scanners load images before the user actually opens the email
+    const knownPrefetchBots = [
+      'GoogleImageProxy',       // Gmail
+      'OutlookProxy',           // Outlook
+      'YahooMailProxy',         // Yahoo
+      'AppleMailProxy',         // Apple Mail
+      'mailgun/tracking',       // Mailgun tracking
+      'MailScanner',            // Security scanners
+    ]
+
+    const isPrefetchBot = knownPrefetchBots.some(bot =>
+      userAgent.toLowerCase().includes(bot.toLowerCase())
+    )
+
+    // Try to get the email job to check timing
+    const job = await prisma.emailJob.findUnique({
       where: { trackingId },
-      data: {
-        openedAt: new Date(),
-        openCount: { increment: 1 },
-        ipAddress: ip,
-      },
+      select: { sentAt: true, openedAt: true }
     })
+
+    // Only count as genuine open if:
+    // 1. Not from a known prefetch bot/proxy
+    // 2. At least 30 seconds after email was sent (prefetch usually immediate)
+    // 3. Or if already opened before (increment count)
+    const shouldCountAsOpen = job && (
+      job.openedAt !== null || // Already marked as opened
+      (!isPrefetchBot && job.sentAt && (Date.now() - job.sentAt.getTime() > 30000))
+    )
+
+    // Update tracking - only set openedAt if it's likely a real open
+    if (shouldCountAsOpen) {
+      await prisma.emailJob.update({
+        where: { trackingId },
+        data: {
+          openedAt: job?.openedAt || new Date(), // Don't overwrite existing openedAt
+          openCount: { increment: 1 },
+          ipAddress: ip,
+        },
+      })
+    } else {
+      // Just log the prefetch attempt without marking as opened
+      console.log(`Prefetch detected: ${trackingId} from ${userAgent}`)
+    }
   } catch (error) {
     // Silently fail - we don't want to break the email display
     console.error("Tracking error:", error)
