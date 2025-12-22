@@ -48,7 +48,7 @@ export interface HistoryBatch {
 interface HistoryModalProps {
     batches: HistoryBatch[]
     onDeleteBatch: (id: string) => void
-    onClearAll: () => void
+    onClearAll: () => Promise<void> // Changed to return Promise for async/await
     onRefresh?: () => void
     isSyncing?: boolean
 }
@@ -353,9 +353,34 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                 <FileText className="h-3.5 w-3.5" />
                                 PDF
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => { onClearAll(); setOpen(false); }} className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600">
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Clear All
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isClearing}
+                                onClick={async () => {
+                                    setIsClearing(true);
+                                    try {
+                                        await onClearAll();
+                                        setOpen(false);
+                                    } catch (e) {
+                                        console.error('Clear failed:', e);
+                                    } finally {
+                                        setIsClearing(false);
+                                    }
+                                }}
+                                className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                            >
+                                {isClearing ? (
+                                    <>
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                        Clearing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Clear All
+                                    </>
+                                )}
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8">
                                 <X className="h-4 w-4" />
