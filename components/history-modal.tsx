@@ -331,9 +331,6 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                             <div>
                                 <div className="flex items-center gap-2">
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
-                                    {isSyncing && (
-                                        <RefreshCw className="h-4 w-4 animate-spin text-neutral-400" />
-                                    )}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     {stats.totalEmails} Emails • {stats.totalSuccess} Successful • {stats.totalOpened} Opened
