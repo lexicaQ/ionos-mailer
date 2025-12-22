@@ -104,8 +104,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
 
             if (trackingIds.length > 0) {
                 fetchTrackingStatus()
-                // Poll every 1 second for instant open detection (Real-time feel)
-                const interval = setInterval(fetchTrackingStatus, 1000)
+                // Poll every 30 seconds for open detection (was 1s - too aggressive!)
+                // Email opens don't happen that frequently to justify 1s polling
+                const interval = setInterval(fetchTrackingStatus, 30000)
                 return () => clearInterval(interval)
             }
         }
