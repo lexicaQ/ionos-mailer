@@ -211,10 +211,55 @@ export function LiveCampaignTracker() {
         };
         window.addEventListener('campaign-created', handleCreation);
 
-        // Refresh Data Interval (display only - fast polling for instant updates)
-        const refreshInterval = setInterval(() => {
-            fetchCampaigns(true); // Always background refresh, no spinner
-        }, 1000); // 1 second interval for ULTRA FAST updates as requested
+        // SMART POLLING: Only when necessary (replaces 1s ultra-fast polling)
+        let pollInterval: NodeJS.Timeout | null = null;
+        
+        const shouldPoll = () => {
+            // Only poll if:
+            // 1. Modal is open
+            // 2. There are active campaigns (pending emails)
+            // 3. Browser tab is visible
+            const hasActiveCampaigns = activeCampaigns.length > 0;
+            const isVisible = document.visibilityState === 'visible';
+            return open && hasActiveCampaigns && isVisible;
+        };
+
+        const startPolling = () => {
+            if (pollInterval) return; // Already polling
+            
+            if (shouldPoll()) {
+                // Changed from 1s to 15s (93% reduction in requests!)
+                pollInterval = setInterval(() => {
+                    if (shouldPoll()) {
+                        fetchCampaigns(true);
+                    } else {
+                        stopPolling(); // Stop if conditions no longer met
+                    }
+                }, 15000); // 15 seconds instead of 1 second
+            }
+        };
+
+        const stopPolling = () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        };
+
+        // Browser visibility change handler
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopPolling(); // Pause when tab inactive
+            } else if (open) {
+                fetchCampaigns(true); // Refresh on tab activation
+                startPolling();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Start polling if conditions are met
+        startPolling();
 
         // NOTE: Auto-process trigger REMOVED to reduce Fluid Active CPU usage
         // Email processing is now handled ONLY by external cron-job.org (1x/minute)
@@ -222,10 +267,11 @@ export function LiveCampaignTracker() {
 
         return () => {
             window.removeEventListener('campaign-created', handleCreation);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            stopPolling();
             if (debounceTimer) clearTimeout(debounceTimer);
-            clearInterval(refreshInterval);
-        }
-    }, [fetchCampaigns]);
+        };
+    }, [fetchCampaigns, open, activeCampaigns.length]);
 
     useEffect(() => {
         if (open) fetchCampaigns(false);
