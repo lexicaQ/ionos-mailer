@@ -49,20 +49,10 @@ interface Campaign {
     }
 }
 
-export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] }) {
+export function LiveCampaignTracker() {
     const [open, setOpen] = useState(false)
-    const hasServerData = useRef(!!initialData && initialData.length > 0); // Track if we got server data
     const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
-        // PRIORITY 1: Server Side Initial Data (Cleanest source of truth on load)
-        if (initialData && initialData.length > 0) {
-            // Update cache immediately to keep it fresh
-            if (typeof window !== 'undefined') {
-                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(initialData));
-            }
-            return initialData;
-        }
-
-        // PRIORITY 2: Local Cache (Fallback if no prop or client-side nav)
+        // Load from localStorage cache on initial render
         if (typeof window !== 'undefined') {
             const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
             if (cached) {
@@ -76,22 +66,6 @@ export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] 
         return [];
     })
     const [loading, setLoading] = useState(false)
-
-    // HYDRATION FIX: Load from localStorage on client mount if no server data
-    useEffect(() => {
-        if (campaigns.length === 0 && typeof window !== 'undefined') {
-            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-            if (cached) {
-                try {
-                    const parsed = JSON.parse(cached);
-                    setCampaigns(parsed);
-                } catch (e) {
-                    console.error("Cache parse failed on hydration:", e);
-                }
-            }
-        }
-    }, []); // Run once on mount
-
     const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -227,12 +201,7 @@ export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] 
 
     // Separate Effect for Intervals to avoid resetting timer when campaigns update
     useEffect(() => {
-        // SKIP initial fetch if we have server data (already fresh from page load)
-        if (!hasServerData.current) {
-            fetchCampaigns(false);
-        }
-        // Mark as consumed so subsequent effects work normally
-        hasServerData.current = false;
+        // NO automatic fetch on mount - only fetch when modal opens or events trigger
 
         // Debounce handler for creation events (prevent multiple rapid calls)
         let debounceTimer: NodeJS.Timeout | null = null;
