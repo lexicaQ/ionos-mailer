@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
 // DELETE: Clear ONLY history (DIRECT campaigns), not all campaigns
+// DELETE: Clear history. Supports deleting specific IDs or all DIRECT campaigns
 export async function DELETE(req: Request) {
     const session = await auth();
     if (!session?.user?.id) {
@@ -10,15 +11,35 @@ export async function DELETE(req: Request) {
     }
 
     try {
-        // Delete only DIRECT campaigns (history), NOT background campaigns
-        const deleted = await prisma.campaign.deleteMany({
-            where: {
-                userId: session.user.id,
-                OR: [
-                    { host: "DIRECT" },  // Legacy Direct Sends
-                    { name: "DIRECT" }   // New Direct Sends
-                ]
+        let campaignIds: string[] = [];
+
+        // Check if IDs are provided in body
+        try {
+            const body = await req.json();
+            if (body.ids && Array.isArray(body.ids)) {
+                campaignIds = body.ids;
             }
+        } catch (e) {
+            // No body or invalid JSON, fallback to default delete logic
+        }
+
+        let deleteQuery: any = {
+            userId: session.user.id
+        };
+
+        if (campaignIds.length > 0) {
+            // Delete specific campaigns
+            deleteQuery.id = { in: campaignIds };
+        } else {
+            // Fallback: Delete all DIRECT campaigns
+            deleteQuery.OR = [
+                { host: "DIRECT" },
+                { name: "DIRECT" }
+            ];
+        }
+
+        const deleted = await prisma.campaign.deleteMany({
+            where: deleteQuery
         });
 
         return NextResponse.json({ success: true, count: deleted.count });

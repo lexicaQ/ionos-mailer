@@ -319,11 +319,21 @@ export function EmailForm() {
         form.setValue("recipients", newRecipients, { shouldValidate: true });
     }
 
-    const handleDeleteBatch = (id: string) => {
+    const handleDeleteBatch = async (id: string) => {
         // OPTIMISTIC: Remove from UI instantly
+        const previousHistory = [...history];
         const updated = history.filter(b => b.id !== id);
         setHistory(updated);
-        toast.success("Campaign deleted", { duration: 1500 });
+
+        try {
+            const res = await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Delete failed');
+            toast.success("Entry deleted", { duration: 1500 });
+        } catch (e) {
+            // Revert on failure
+            setHistory(previousHistory);
+            toast.error("Failed to delete entry");
+        }
     }
 
     const handleClearAllHistory = async () => {
@@ -334,8 +344,15 @@ export function EmailForm() {
         localStorage.removeItem("ionos-mailer-history");
 
         try {
+            // Collect all IDs to ensure we delete EXACTLY what the user sees
+            const idsToDelete = previousHistory.map(h => h.id);
+
             // Delete from server - this is the source of truth
-            const res = await fetch('/api/history', { method: 'DELETE' });
+            const res = await fetch('/api/history', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: idsToDelete })
+            });
             const data = await res.json();
 
             if (!res.ok) {
