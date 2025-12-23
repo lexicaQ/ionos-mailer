@@ -215,6 +215,7 @@ export function LiveCampaignTracker() {
 
         // SMART POLLING: Only when necessary (replaces 1s ultra-fast polling)
         let pollInterval: NodeJS.Timeout | null = null;
+        let cronInterval: NodeJS.Timeout | null = null; // Defined for cleanup scope
 
         const shouldPoll = () => {
             // Only poll if:
@@ -282,8 +283,51 @@ export function LiveCampaignTracker() {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             stopPolling();
             if (debounceTimer) clearTimeout(debounceTimer);
+            if (cronInterval) clearInterval(cronInterval);
         };
     }, [fetchCampaigns, open, campaigns]);
+
+    // CLIENT-SIDE WORKER (CRON FALLBACK)
+    // Ensures emails send even if Vercel Cron is not configured or fails.
+    // Triggers /api/cron/process if there are PENDING or FAILED (retryable) jobs.
+    useEffect(() => {
+        const checkAndTriggerCron = async () => {
+            const hasPending = campaigns.some(c => c.jobs.some(j => j.status === 'PENDING' || (j.status === 'FAILED' && !j.sentViaCron)));
+            if (!hasPending) return;
+
+            // Simple "Leader Election" via localStorage to prevent multiple tabs spamming
+            // If last run was < 10s ago, skip.
+            const lastRun = parseInt(localStorage.getItem('ionos-mailer-last-cron-run') || '0');
+            const now = Date.now();
+            if (now - lastRun < 10000) return; // 10s cooldown
+
+            localStorage.setItem('ionos-mailer-last-cron-run', now.toString());
+
+            try {
+                // Use a special header to indicate client-side trigger (treated as manual for validation but auto for logic)
+                // Actually, we want standard behavior (retries respected), so we DON'T set x-manual-trigger=true
+                // unless we want to force retries. But 'auto-retry' logic in cron handles retry counts.
+                // We use x-manual-trigger="auto" to distinguish? No, just no header or standard auth?
+                // The route allows same-domain requests automatically in production.
+                console.log('[Worker] Triggering processing...');
+                await fetch('/api/cron/process', {
+                    method: 'POST',
+                    headers: { 'x-client-worker': 'true' }
+                });
+                // Refresh Status after processing
+                fetchCampaigns(true);
+            } catch (e) {
+                console.error('[Worker] Trigger failed', e);
+            }
+        };
+
+        // Check immediately on mount/update
+        checkAndTriggerCron();
+
+        // And every 15 seconds if active
+        const interval = setInterval(checkAndTriggerCron, 15000);
+        return () => clearInterval(interval);
+    }, [campaigns, fetchCampaigns]);
 
     useEffect(() => {
         if (open) fetchCampaigns(false);
