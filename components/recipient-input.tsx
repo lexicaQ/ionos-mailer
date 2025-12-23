@@ -246,11 +246,27 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             for (const file of files) {
                 const result: ExtractionResult = await parseFile(file);
                 if (result.detectedRecipients.length > 0) {
-                    // Add to raw input
-                    const newEmails = result.detectedRecipients.map(r => r.email).join('\n');
-                    setRawInput(prev => (prev ? prev + '\n' : '') + newEmails);
-                    // Trigger parse
-                    setTimeout(() => handleParse(), 100);
+                    // Add emails directly to parsed recipients for INSTANT display
+                    const newRecipients: ExtendedRecipientStatus[] = result.detectedRecipients.map(r => ({
+                        email: r.email,
+                        id: r.id || crypto.randomUUID(),
+                        valid: true,
+                        duplicate: false,
+                        reason: undefined
+                    }));
+
+                    // Merge with existing, avoiding duplicates
+                    setParsedRecipients(prev => {
+                        const existingEmails = new Set(prev.map(p => p.email.toLowerCase()));
+                        const uniqueNew = newRecipients.filter(r => !existingEmails.has(r.email.toLowerCase()));
+                        const merged = [...prev, ...uniqueNew];
+                        // Also update raw input to keep in sync
+                        setRawInput(merged.map(r => r.email).join('\n'));
+                        // Notify parent
+                        onRecipientsChange(merged.filter(r => r.valid && !r.duplicate).map(r => ({ email: r.email, id: r.id })));
+                        return merged;
+                    });
+
                     toast.success(`Imported ${result.detectedRecipients.length} emails from ${file.name}`);
                 } else {
                     toast.error(`No emails found in ${file.name}`);
@@ -321,7 +337,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                             </span>
                         ) : (
                             <span className="text-xs flex items-center gap-2 text-muted-foreground">
-                                Tip: Automatically checks for duplicates
+                                <Upload className="h-3 w-3" /> Drag & drop files here to import emails
                             </span>
                         )}
                     </span>
