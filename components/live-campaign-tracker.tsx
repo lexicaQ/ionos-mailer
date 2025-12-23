@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
+import { SyncAnimation } from "@/components/sync-animation"
 
 interface EmailJob {
     id: string
@@ -66,6 +67,8 @@ export function LiveCampaignTracker() {
         return [];
     })
     const [loading, setLoading] = useState(false)
+    const [showSyncAnimation, setShowSyncAnimation] = useState(false)
+    const hasShownAnimation = useRef(false) // Track if we've shown the animation this session
     const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -286,6 +289,11 @@ export function LiveCampaignTracker() {
     }, [fetchCampaigns, open, campaigns]);
 
     useEffect(() => {
+        // Show sync animation when modal opens for the first time AND we have no data
+        if (open && !hasShownAnimation.current && campaigns.length === 0) {
+            setShowSyncAnimation(true);
+            hasShownAnimation.current = true;
+        }
         // When modal opens, always do a background refresh (silent, no loading state)
         if (open) fetchCampaigns(true);
     }, [open, fetchCampaigns]);
@@ -464,103 +472,109 @@ export function LiveCampaignTracker() {
     const activeCampaigns = campaigns.filter(c => c.stats.pending > 0)
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 relative">
-                    <Activity className="h-4 w-4" />
-                    Live Tracking
-                    {activeCampaigns.length > 0 && (
-                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
-                    )}
-                </Button>
-            </DialogTrigger>
-            <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
+        <>
+            <SyncAnimation
+                show={showSyncAnimation}
+                onComplete={() => setShowSyncAnimation(false)}
+            />
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2 relative">
+                        <Activity className="h-4 w-4" />
+                        Live Tracking
+                        {activeCampaigns.length > 0 && (
+                            <span className="absolute -top-1 -right-1 h-3 w-3 bg-black dark:bg-white rounded-full animate-pulse" />
+                        )}
+                    </Button>
+                </DialogTrigger>
+                <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
 
-                {/* Header */}
-                <div className="flex flex-col border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <div className="p-6 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
-                                <Activity className="h-5 w-5 text-white dark:text-black" />
+                    {/* Header */}
+                    <div className="flex flex-col border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                        <div className="p-6 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                                    <Activity className="h-5 w-5 text-white dark:text-black" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                        {(isAutoProcessing || isSyncing) ? (
+                                            <span className="text-green-600 flex items-center gap-1">
+                                                <RefreshCw className="h-3 w-3 animate-spin" /> {isSyncing ? "Syncing..." : "Processing background jobs..."}
+                                            </span>
+                                        ) : (
+                                            <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>
+                                        )}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
-                                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                                    {(isAutoProcessing || isSyncing) ? (
-                                        <span className="text-green-600 flex items-center gap-1">
-                                            <RefreshCw className="h-3 w-3 animate-spin" /> {isSyncing ? "Syncing..." : "Processing background jobs..."}
-                                        </span>
-                                    ) : (
-                                        <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>
-                                    )}
-                                </p>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={exportToExcel} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
+                                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                                    Excel
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={exportToPDF} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    PDF
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => fetchCampaigns(false)} disabled={loading} className="gap-2">
+                                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
+                                    <X className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={exportToExcel} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
-                                <FileSpreadsheet className="h-3.5 w-3.5" />
-                                Excel
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={exportToPDF} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
-                                <FileText className="h-3.5 w-3.5" />
-                                PDF
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => fetchCampaigns(false)} disabled={loading} className="gap-2">
-                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                                Refresh
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
 
-                    {/* Search & Filter Bar */}
-                    <div className="px-6 pb-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search campaign, recipients..."
-                                className="pl-9 bg-neutral-50 dark:bg-neutral-800 border-none"
-                                value={searchTerm}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
-                    {loading ? (
-                        <div className="flex h-full items-center justify-center">
-                            <SecurityLoader />
-                        </div>
-                    ) : filteredCampaigns.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                            <Mail className="h-12 w-12 opacity-20 mb-4" />
-                            <p>No campaigns found</p>
-                        </div>
-                    ) : (
-                        <AnimatePresence>
-                            {filteredCampaigns.map((c, idx) => (
-                                <MinimalCampaignRow
-                                    key={c.id}
-                                    campaign={c}
-                                    index={filteredCampaigns.length - idx} // Reverse index so newest is highest number? Or just 1, 2, 3? User said "5, 4, 3...".
-                                    // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
-                                    displayIndex={filteredCampaigns.length - idx}
-                                    onDelete={(e) => deleteCampaign(c.id, e)}
-                                    onCancelJob={cancelJob}
-                                    searchTerm={searchTerm}
+                        {/* Search & Filter Bar */}
+                        <div className="px-6 pb-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search campaign, recipients..."
+                                    className="pl-9 bg-neutral-50 dark:bg-neutral-800 border-none"
+                                    value={searchTerm}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                                 />
-                            ))}
-                            {/* Anchor to scroll to bottom if needed in future */}
-                            <div className="h-px" />
-                        </AnimatePresence>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
+                        {loading ? (
+                            <div className="flex h-full items-center justify-center">
+                                <SecurityLoader />
+                            </div>
+                        ) : filteredCampaigns.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                                <Mail className="h-12 w-12 opacity-20 mb-4" />
+                                <p>No campaigns found</p>
+                            </div>
+                        ) : (
+                            <AnimatePresence>
+                                {filteredCampaigns.map((c, idx) => (
+                                    <MinimalCampaignRow
+                                        key={c.id}
+                                        campaign={c}
+                                        index={filteredCampaigns.length - idx} // Reverse index so newest is highest number? Or just 1, 2, 3? User said "5, 4, 3...".
+                                        // If sort is Newest First (Top), then idx 0 is the newest. If we want 5 (newest), then we should use length - idx.
+                                        displayIndex={filteredCampaigns.length - idx}
+                                        onDelete={(e) => deleteCampaign(c.id, e)}
+                                        onCancelJob={cancelJob}
+                                        searchTerm={searchTerm}
+                                    />
+                                ))}
+                                {/* Anchor to scroll to bottom if needed in future */}
+                                <div className="h-px" />
+                            </AnimatePresence>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }
 
