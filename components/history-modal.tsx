@@ -423,21 +423,10 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                         </div>
                     ) : (
                         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
-                            {/* Table Header */}
                             <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-4 text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
                                 <div className="w-[100px]">Status</div>
-                                This mismatch (100+110 vs 100+80) implies misalignment is occurring.
-                                Let's fix the header columns to match the row columns.
-                                Row: [100px Badge] [80px Text] [Flex-1 Email]
-                                Header: [100px Status] [110px "Opened"] [Flex-1 Recipient]
-                                This is why it's misaligned!
-                                "Opened" header corresponds to the "StatusText" column? Or is the "StatusText" actually the opened status?
-                                Line 407 logic shows "Opened" or "Waiting" or "Failed" text.
-                                So Header "Opened" (110px) should match Row "Status Text" (80px?).
-                                I will change Header "Opened" width to 80px to match Row.
-                                */}
-                                <div className="w-[80px]">Opened</div>
-                                <div className="flex-1 -ml-2 sm:ml-0">Recipient</div> {/* Slight negative margin on mobile to pull it left as requested */}
+                                <div className="w-[80px] flex-shrink-0">Opened</div>
+                                <div className="flex-1">Recipient</div>
                                 <div className="w-[120px] text-right">Sent at</div>
                             </div>
 
