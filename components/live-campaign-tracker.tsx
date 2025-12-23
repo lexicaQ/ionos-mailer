@@ -49,9 +49,19 @@ interface Campaign {
     }
 }
 
-export function LiveCampaignTracker() {
+export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] }) {
     const [open, setOpen] = useState(false)
     const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+        // PRIORITY 1: Server Side Initial Data (Cleanest source of truth on load)
+        if (initialData && initialData.length > 0) {
+            // Update cache immediately to keep it fresh
+            if (typeof window !== 'undefined') {
+                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(initialData));
+            }
+            return initialData;
+        }
+
+        // PRIORITY 2: Local Cache (Fallback if no prop or client-side nav)
         if (typeof window !== 'undefined') {
             const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
             if (cached) {
@@ -140,8 +150,8 @@ export function LiveCampaignTracker() {
                 }
             }
 
-            // 2. Only set loading if NO cached data exists (first time ever)
-            if (!isBackground && !localStorage.getItem("ionos-mailer-campaigns-cache")) {
+            // 2. Only set loading if NO data exists (server or cache)
+            if (!isBackground && campaignsRef.current.length === 0) {
                 setLoading(true);
             }
 

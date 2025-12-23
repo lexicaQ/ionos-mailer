@@ -1,8 +1,15 @@
 import { EmailForm } from "@/components/email-form"
 import { Logo } from "@/components/logo"
 import { AuthDialog } from "@/components/auth-dialog"
+import { auth } from "@/auth"
+import { getInitialCampaigns } from "@/lib/data-fetching"
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  const session = await auth();
+  const initialCampaigns = session?.user?.id ? await getInitialCampaigns(session.user.id) : [];
+
   return (
     <main className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
 
@@ -44,7 +51,7 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-          <EmailForm />
+          <EmailForm initialCampaigns={initialCampaigns} />
         </div>
       </div>
     </main>
