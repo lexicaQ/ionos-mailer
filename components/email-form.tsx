@@ -86,9 +86,19 @@ export function EmailForm() {
             if (!res.ok) return
             const serverData: HistoryBatch[] = await res.json()
 
+            // RACED CONDITION CHECK: If user cleared history while we were fetching, STOP.
+            if (historyManuallyCleared.current && serverData.length > 0) {
+                console.log("[HistorySync] Refusing to merge stale server data into cleared local history");
+                return;
+            }
+
             // 2. Merge with local history
             setHistory(prev => {
+                // Final safety check inside functional update
+                if (historyManuallyCleared.current) return [];
+
                 const map = new Map<string, HistoryBatch>()
+                // Populate map with CURRENT state (which might be [] if cleared)
                 prev.forEach(b => map.set(b.id, b))
 
                 // Server data is authoritative for status
