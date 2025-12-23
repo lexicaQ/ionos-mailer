@@ -327,15 +327,10 @@ export function EmailForm() {
     }
 
     const handleClearAllHistory = async () => {
-        // Use English text in confirm dialog
-        if (!window.confirm("Are you sure you want to clear all history? This cannot be undone.")) {
-            return;
-        }
-
-        // Optimistic: Clear local immediately
+        // Optimistic: Clear local immediately BEFORE any async
         historyManuallyCleared.current = true; // Prevent auto-sync refill
         const previousHistory = [...history];
-        setHistory([]);
+        setHistory([]); // Instantly set to empty - this updates the button count too!
         localStorage.removeItem("ionos-mailer-history");
 
         try {
