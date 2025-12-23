@@ -262,7 +262,8 @@ async function handleCronRequest(req: NextRequest) {
                         data: {
                             status: response.success ? 'SENT' : 'FAILED',
                             sentAt: response.success ? new Date() : undefined,
-                            sentViaCron: response.success ? true : undefined,
+                            // Only mark as sentViaCron if this was a FAILED job being retried (manual cron trigger)
+                            sentViaCron: (response.success && job.status === 'FAILED') ? true : undefined,
                             error: response.error || null
                         }
                     });

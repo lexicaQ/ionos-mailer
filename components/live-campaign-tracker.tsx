@@ -336,6 +336,11 @@ export function LiveCampaignTracker() {
             toast.warning("Network delay during deletion", {
                 description: "The campaign will be removed shortly."
             });
+        } finally {
+            // Trigger instant refresh for all tabs
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('campaign-created'));
+            }
         }
     }
 
@@ -366,6 +371,10 @@ export function LiveCampaignTracker() {
 
         try {
             await fetch(`/api/jobs/${jobId}/cancel`, { method: "PATCH" });
+            // Trigger instant refresh for all tabs
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('campaign-created'));
+            }
         } catch (error) {
             console.error("Failed to cancel job", error);
             // Revert would be complex here, assuming success for "instant" feel users want
@@ -753,8 +762,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                     </div>
                                     <div className={`text-[8px] sm:text-xs truncate max-w-full ${isFailed ? 'text-red-500 font-medium' : 'text-muted-foreground opacity-80'}`} title={isFailed ? (job.error || "Unknown Failure") : job.subject}>
                                         {isFailed ? (
-                                            <span className="flex items-start">
-                                                <XCircle className="h-3 w-3 mr-1 flex-shrink-0 mt-0.5" />
+                                            <span className="flex items-center">
+                                                <XCircle className="h-3 w-3 mr-1 flex-shrink-0" />
                                                 <span className="truncate">{job.error || "Delivery Failed"}</span>
                                             </span>
                                         ) : (
