@@ -51,6 +51,7 @@ interface Campaign {
 
 export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] }) {
     const [open, setOpen] = useState(false)
+    const hasServerData = useRef(!!initialData && initialData.length > 0); // Track if we got server data
     const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
         // PRIORITY 1: Server Side Initial Data (Cleanest source of truth on load)
         if (initialData && initialData.length > 0) {
@@ -210,8 +211,12 @@ export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] 
 
     // Separate Effect for Intervals to avoid resetting timer when campaigns update
     useEffect(() => {
-        // Initial fetch
-        fetchCampaigns(false);
+        // SKIP initial fetch if we have server data (already fresh from page load)
+        if (!hasServerData.current) {
+            fetchCampaigns(false);
+        }
+        // Mark as consumed so subsequent effects work normally
+        hasServerData.current = false;
 
         // Debounce handler for creation events (prevent multiple rapid calls)
         let debounceTimer: NodeJS.Timeout | null = null;
@@ -296,7 +301,8 @@ export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] 
     }, [fetchCampaigns, open, campaigns]);
 
     useEffect(() => {
-        if (open) fetchCampaigns(false);
+        // When modal opens, always do a background refresh (silent, no loading state)
+        if (open) fetchCampaigns(true);
     }, [open, fetchCampaigns]);
 
 
