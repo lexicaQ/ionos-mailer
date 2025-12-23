@@ -76,6 +76,22 @@ export function LiveCampaignTracker({ initialData }: { initialData?: Campaign[] 
         return [];
     })
     const [loading, setLoading] = useState(false)
+
+    // HYDRATION FIX: Load from localStorage on client mount if no server data
+    useEffect(() => {
+        if (campaigns.length === 0 && typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    setCampaigns(parsed);
+                } catch (e) {
+                    console.error("Cache parse failed on hydration:", e);
+                }
+            }
+        }
+    }, []); // Run once on mount
+
     const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
