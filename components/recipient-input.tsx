@@ -307,9 +307,19 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 </div>
             )}
             {isParsingFile && (
-                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center gap-3">
-                    <Loader2 className="h-8 w-8 text-white animate-spin" />
-                    <p className="text-white font-medium">Importing emails...</p>
+                <div className="absolute inset-0 z-50 bg-gradient-to-br from-black/90 via-neutral-900/90 to-black/90 backdrop-blur-md rounded-xl flex flex-col items-center justify-center gap-4">
+                    <div className="relative">
+                        <Loader2 className="h-12 w-12 text-white animate-spin" />
+                        <div className="absolute inset-0 h-12 w-12 border-4 border-white/20 rounded-full animate-ping" />
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="text-white font-bold text-lg">Analyzing emails...</p>
+                        <div className="flex gap-1">
+                            <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                    </div>
                 </div>
             )}
             <div className="space-y-2">
