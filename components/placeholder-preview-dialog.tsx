@@ -101,7 +101,7 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="h-14 w-14 shrink-0" title="Check Preview & Placeholders">
+                <Button type="button" variant="outline" className="h-14 w-14 shrink-0" title="Check Preview & Placeholders">
                     <Eye className="h-6 w-6" />
                 </Button>
             </DialogTrigger>
@@ -131,6 +131,7 @@ export function PlaceholderPreviewDialog({ recipients, subject, body }: Placehol
                                 </SelectContent>
                             </Select>
                             <Button
+                                type="button"
                                 variant="outline"
                                 size="icon"
                                 onClick={() => fetchCompanyForPreview(selectedEmail)}

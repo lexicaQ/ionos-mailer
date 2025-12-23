@@ -8,6 +8,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(prisma),
     session: {
         strategy: "jwt", // Use JWT for credentials provider
+        maxAge: 30 * 24 * 60 * 60, // 30 days - keep users logged in
+        updateAge: 24 * 60 * 60, // Refresh token daily to prevent expiration during active use
     },
     pages: {
         signIn: "/", // Keep on main page, use modal

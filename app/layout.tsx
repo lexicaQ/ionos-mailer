@@ -10,6 +10,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/auth-provider"
 import { SecurityInfoPanel } from "@/components/security-info-panel"
 import { CampaignPreloader } from "@/components/campaign-preloader"
+import { OfflineIndicator } from "@/components/offline-indicator"
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -172,6 +173,7 @@ export default function RootLayout({
             <SecurityInfoPanel />
             <CampaignPreloader />
             {children}
+            <OfflineIndicator />
             <Toaster />
             <Analytics />
           </AuthProvider>

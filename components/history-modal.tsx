@@ -425,8 +425,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
                             <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-4 text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
                                 <div className="w-[100px]">Status</div>
-                                <div className="w-[80px] flex-shrink-0">Opened</div>
-                                <div className="flex-1">Recipient</div>
+                                <div className="flex-1">Recipient & Subject / Error</div>
                                 <div className="w-[120px] text-right">Sent at</div>
                             </div>
 
@@ -457,44 +456,34 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                             )}
                                         </div>
 
-                                        {/* Status Column (Text only, small) */}
-                                        <div className="w-[80px] flex-shrink-0 flex items-center">
-                                            {(() => {
-                                                const status = result.status; // 'waiting', 'success', 'error'
-                                                const isOpened = result.trackingId && trackingStatus[result.trackingId]?.opened;
-
-                                                if (status === 'waiting') {
-                                                    return <span className="text-[10px] font-mono text-neutral-400">---</span>;
-                                                }
-                                                if (status === 'error') {
-                                                    return <span className="text-[10px] uppercase font-bold text-red-500 tracking-wider">Failed</span>;
-                                                }
-                                                // Success case
-                                                if (isOpened) {
-                                                    return (
-                                                        <div className="flex flex-col leading-none">
-                                                            <span className="text-[10px] font-bold text-green-600 dark:text-green-400">
-                                                                {result.trackingId && trackingStatus[result.trackingId]?.openedAt
-                                                                    ? format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM 'at' HH:mm")
-                                                                    : 'Opened'}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                }
-                                                return <span className="text-[10px] font-bold text-neutral-300 dark:text-neutral-600 tracking-wider">---</span>;
-                                            })()}
-                                        </div>
-
-                                        {/* Recipient */}
-                                        <div className="flex-1 min-w-0 pr-4">
-                                            <div className="text-[10px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={result.email}>
-                                                {result.email}
+                                        {/* Recipient & Subject / Error */}
+                                        <div className="flex-1 min-w-0 pr-4 flex flex-col justify-center">
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-[10px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={result.email}>
+                                                    {result.email}
+                                                </div>
+                                                {result.trackingId && trackingStatus[result.trackingId]?.opened && (
+                                                    <Badge className="h-4 px-1.5 text-[8px] bg-green-500/10 text-green-600 border-green-200 dark:border-green-800 uppercase font-bold">
+                                                        Opened
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="text-[9px] sm:text-[10px] truncate leading-tight mt-0.5">
+                                                {result.status === 'error' || (!result.success && result.status !== 'waiting') ? (
+                                                    <span className="text-red-500 font-semibold">
+                                                        {result.error || "Sending failed"}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted-foreground italic">
+                                                        {result.batchId && (batches.find(b => b.id === result.batchId)?.subject || "No subject")}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
                                         {/* Time */}
                                         <div className="flex items-center justify-end text-xs text-muted-foreground flex-shrink-0 w-[120px]">
-                                            <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
+                                            <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-[10px]">
                                                 {format(new Date(result.batchTime), "dd.MM 'at' HH:mm")}
                                             </div>
                                         </div>

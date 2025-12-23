@@ -55,13 +55,7 @@ export function EmailForm() {
     const [isHistorySyncing, setIsHistorySyncing] = useState(false)
     const historyManuallyCleared = useRef(false) // Track if user cleared history
     const [startImmediately, setStartImmediately] = useState(true)
-
-    // Reset start time when immediate mode is enabled
-    useEffect(() => {
-        if (startImmediately) {
-            setStartTime("")
-        }
-    }, [startImmediately])
+    const [isBackgroundForced, setIsBackgroundForced] = useState(false)
 
     // Load history from localStorage on mount
     useEffect(() => {
@@ -139,11 +133,9 @@ export function EmailForm() {
                     if (data.merged) {
                         // 3. Update local with merged data
                         // This ensures we get drafts from other devices
-                        // This ensures we get drafts from other devices
                         for (const draft of data.merged) {
                             await saveLocalDraft(draft)
                         }
-                        // console.log("Drafts synced:", data.merged.length)
                     }
                 }
             } catch (e) {
@@ -180,6 +172,29 @@ export function EmailForm() {
     })
 
     const recipients = form.watch("recipients");
+
+    // Auto-enable background mode if more than 10 recipients
+    useEffect(() => {
+        if (recipients?.length > 10) {
+            if (!useBackground) {
+                setUseBackground(true)
+                toast.info("Background Delivery activated automatically for more than 10 recipients to ensure stability.", {
+                    duration: 5000,
+                    id: "background-forced"
+                })
+            }
+            setIsBackgroundForced(true)
+        } else {
+            setIsBackgroundForced(false)
+        }
+    }, [recipients?.length, useBackground])
+
+    // Reset start time when immediate mode is enabled
+    useEffect(() => {
+        if (startImmediately) {
+            setStartTime("")
+        }
+    }, [startImmediately])
 
     const onSubmit = useCallback(async (data: EmailFormValues) => {
         if (!smtpSettings) {
@@ -561,7 +576,18 @@ export function EmailForm() {
 
             {/* Form */}
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    onKeyDown={(e) => {
+                        // Prevent Enter key from submitting the form when focused on an input field
+                        // This prevents accidental sends when pasting into Subject or Name, 
+                        // or if the browser's autofill triggers an Enter event.
+                        if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+                            e.preventDefault();
+                        }
+                    }}
+                    className="space-y-6"
+                >
                     <FormField
                         control={form.control}
                         name="subject"
@@ -638,10 +664,24 @@ export function EmailForm() {
                                 </div>
                                 <div>
                                     <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Background Delivery</Label>
-                                    <p className="text-xs text-neutral-500">Emails are sent distributed over time</p>
+                                    <p className="text-xs text-neutral-500">
+                                        {isBackgroundForced
+                                            ? "Required for more than 10 recipients"
+                                            : "Emails are sent distributed over time"}
+                                    </p>
                                 </div>
                             </div>
-                            <Switch id="bg-mode" checked={useBackground} onCheckedChange={setUseBackground} />
+                            <div className="flex flex-col items-end gap-1">
+                                <Switch
+                                    id="bg-mode"
+                                    checked={useBackground}
+                                    onCheckedChange={setUseBackground}
+                                    disabled={isBackgroundForced}
+                                />
+                                {isBackgroundForced && (
+                                    <span className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">Required</span>
+                                )}
+                            </div>
                         </div>
 
                         {useBackground && (

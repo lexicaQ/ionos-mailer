@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch, Upload } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
+import { parseFile, ExtractionResult } from "@/lib/parsers"
 
 type ExtendedRecipientStatus = RecipientStatus & { duplicate?: boolean; reason?: string; whitelisted?: boolean };
 
@@ -50,6 +51,8 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const [isChecking, setIsChecking] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [whitelist, setWhitelist] = useState<Set<string>>(new Set())
+    const [isDraggingOver, setIsDraggingOver] = useState(false)
+    const [isParsingFile, setIsParsingFile] = useState(false)
 
     // Load whitelist on mount
     useEffect(() => {
@@ -229,8 +232,70 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     // Combine for display in "Valid" tab (Duplicates shown scratched)
     const displayList = [...validEmails, ...duplicateEmails];
 
+    // Handle file drop for direct email import
+    const handleFileDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length === 0) return;
+
+        setIsParsingFile(true);
+        try {
+            for (const file of files) {
+                const result: ExtractionResult = await parseFile(file);
+                if (result.detectedRecipients.length > 0) {
+                    // Add to raw input
+                    const newEmails = result.detectedRecipients.map(r => r.email).join('\n');
+                    setRawInput(prev => (prev ? prev + '\n' : '') + newEmails);
+                    // Trigger parse
+                    setTimeout(() => handleParse(), 100);
+                    toast.success(`Imported ${result.detectedRecipients.length} emails from ${file.name}`);
+                } else {
+                    toast.error(`No emails found in ${file.name}`);
+                }
+            }
+        } catch (error: any) {
+            toast.error(`Import failed: ${error.message}`);
+        } finally {
+            setIsParsingFile(false);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(false);
+    };
+
     return (
-        <div className="space-y-4">
+        <div
+            className="space-y-4 relative"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleFileDrop}
+        >
+            {/* Drop Overlay */}
+            {isDraggingOver && (
+                <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center gap-3 border-2 border-dashed border-white pointer-events-none">
+                    <Upload className="h-10 w-10 text-white animate-bounce" />
+                    <p className="text-white font-bold text-lg">Drop to import emails</p>
+                    <p className="text-white/70 text-sm">Supports CSV, Excel, PDF, Word, and more</p>
+                </div>
+            )}
+            {isParsingFile && (
+                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center gap-3">
+                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                    <p className="text-white font-medium">Importing emails...</p>
+                </div>
+            )}
             <div className="space-y-2">
                 <label className="text-sm font-medium">Recipients (List)</label>
                 <Textarea
@@ -238,6 +303,12 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                     value={rawInput}
                     onChange={(e) => setRawInput(e.target.value)}
                     onBlur={handleParse}
+                    onKeyDown={(e) => {
+                        // Crucial: Prevent Enter key from bubbling up to the form and triggering submit
+                        if (e.key === 'Enter') {
+                            e.stopPropagation();
+                        }
+                    }}
                     disabled={disabled}
                     className="min-h-[100px] font-mono text-sm"
                 />
@@ -275,6 +346,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                                     +{duplicateEmails.length}
                                                 </span>
                                                 <Button
+                                                    type="button"
                                                     variant="secondary"
                                                     size="sm"
                                                     onClick={(e) => {
@@ -293,7 +365,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         Invalid ({invalidEmails.length})
                                     </TabsTrigger>
                                 </TabsList>
-                                <Button variant="ghost" size="sm" onClick={handleClearAll} className="text-red-500 hover:text-red-600">
+                                <Button type="button" variant="ghost" size="sm" onClick={handleClearAll} className="text-red-500 hover:text-red-600">
                                     <Trash2 className="h-4 w-4 mr-1" />
                                     Clear all
                                 </Button>
@@ -369,6 +441,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                 {displayList.length > 20 && (
                                     <div className="flex justify-center mt-2">
                                         <Button
+                                            type="button"
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setIsExpanded(!isExpanded)}
