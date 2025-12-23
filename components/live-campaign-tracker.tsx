@@ -230,14 +230,14 @@ export function LiveCampaignTracker() {
             if (pollInterval) return; // Already polling
 
             if (shouldPoll()) {
-                // Modified to 5s as requested (User accepted this is only active when jobs are pending)
+                // Reduced to 2s for faster sync
                 pollInterval = setInterval(() => {
                     if (shouldPoll()) {
                         fetchCampaigns(true);
                     } else {
-                        stopPolling(); // Stop if conditions no longer met
+                        stopPolling();
                     }
-                }, 5000); // 5 seconds
+                }, 2000); // 2 seconds instead of 5
             }
         };
 
@@ -260,6 +260,14 @@ export function LiveCampaignTracker() {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
+        // Instant sync on campaign updates
+        const handleUpdate = () => {
+            console.log('[LiveTracker] Update event, fetching immediately...');
+            fetchCampaigns(true);
+        };
+        window.addEventListener('campaign-updated', handleUpdate);
+        window.addEventListener('email-sent', handleUpdate);
+
         // Start polling if conditions are met
         startPolling();
 
@@ -269,6 +277,8 @@ export function LiveCampaignTracker() {
 
         return () => {
             window.removeEventListener('campaign-created', handleCreation);
+            window.removeEventListener('campaign-updated', handleUpdate);
+            window.removeEventListener('email-sent', handleUpdate);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             stopPolling();
             if (debounceTimer) clearTimeout(debounceTimer);
@@ -336,11 +346,6 @@ export function LiveCampaignTracker() {
             toast.warning("Network delay during deletion", {
                 description: "The campaign will be removed shortly."
             });
-        } finally {
-            // Trigger instant refresh for all tabs
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('campaign-created'));
-            }
         }
     }
 
@@ -371,10 +376,6 @@ export function LiveCampaignTracker() {
 
         try {
             await fetch(`/api/jobs/${jobId}/cancel`, { method: "PATCH" });
-            // Trigger instant refresh for all tabs
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('campaign-created'));
-            }
         } catch (error) {
             console.error("Failed to cancel job", error);
             // Revert would be complex here, assuming success for "instant" feel users want

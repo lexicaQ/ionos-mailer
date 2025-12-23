@@ -257,13 +257,18 @@ async function handleCronRequest(req: NextRequest) {
                         attachments: attachments,
                     });
 
+                    // Update job status
+                    // sentViaCron should ONLY be true if:
+                    // - Manual cron trigger (isManualTrigger) AND
+                    // - Job was previously FAILED (job.status === 'FAILED')
+                    const wasFailedRetry = isManualTrigger && job.status === 'FAILED';
+
                     await prisma.emailJob.update({
                         where: { id: job.id },
                         data: {
                             status: response.success ? 'SENT' : 'FAILED',
                             sentAt: response.success ? new Date() : undefined,
-                            // Only mark as sentViaCron if this was a FAILED job being retried (manual cron trigger)
-                            sentViaCron: (response.success && job.status === 'FAILED') ? true : undefined,
+                            sentViaCron: response.success && wasFailedRetry ? true : undefined,
                             error: response.error || null
                         }
                     });
