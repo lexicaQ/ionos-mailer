@@ -111,16 +111,16 @@ async function handleCronRequest(req: NextRequest) {
 
         let remainingSlotsForFailed = remainingSlotsAfterScheduled - resendJobs.length;
 
-        // AUTO-RETRY: Pick up FAILED emails that haven't maxed out retries
-        const failedJobs = remainingSlotsForFailed > 0
+        // AUTO-RETRY: Pick up FAILED emails ONLY if manually triggered
+        const failedJobs = (remainingSlotsForFailed > 0 && isManualTrigger)
             ? await prisma.emailJob.findMany({
                 where: {
-                    status: 'FAILED',
-                    ...(isManualTrigger ? {} : { retryCount: { lt: 3 } }) // Allow manual retry of ANY failed job
+                    status: 'FAILED'
+                    // No retryCount check needed for manual trigger - user can force retry anything
                 },
                 include: { campaign: { include: { attachments: true } } },
                 take: remainingSlotsForFailed,
-                orderBy: { scheduledFor: 'asc' } // Oldest first
+                orderBy: { scheduledFor: 'asc' }
             })
             : [];
 
