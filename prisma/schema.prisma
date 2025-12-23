@@ -227,6 +227,7 @@ model EmailJob {
   openedAt     DateTime?
   openCount    Int       @default(0)
   ipAddress    String?   // Store recipient IP on open
+  sentViaCron  Boolean   @default(false) // True if sent via cron job (not direct send)
   // clicks       Click[] // Removed
   
   createdAt    DateTime  @default(now())

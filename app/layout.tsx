@@ -9,6 +9,7 @@ import { AutoThemeSwitcher } from "@/components/auto-theme-switcher"
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/auth-provider"
 import { SecurityInfoPanel } from "@/components/security-info-panel"
+import { CampaignPreloader } from "@/components/campaign-preloader"
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -169,6 +170,7 @@ export default function RootLayout({
             <ThemeToggle />
             <MobileAuthToggle />
             <SecurityInfoPanel />
+            <CampaignPreloader />
             {children}
             <Toaster />
             <Analytics />

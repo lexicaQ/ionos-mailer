@@ -26,10 +26,12 @@ interface EmailJob {
     subject: string
     status: "PENDING" | "SENT" | "FAILED" | "CANCELLED"
     scheduledFor: string
+    originalScheduledFor?: string | null
     sentAt: string | null
     error: string | null
     openedAt: string | null
     ipAddress?: string | null
+    sentViaCron?: boolean
 }
 
 interface Campaign {
@@ -715,6 +717,12 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                 job.status === 'CANCELLED' ? 'CANCELLED' :
                                                     'WAITING'}
                                     </Badge>
+                                    {/* CRON Badge */}
+                                    {job.sentViaCron && job.status === 'SENT' && (
+                                        <Badge className="h-4 px-1.5 text-[7px] sm:text-[8px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0 font-bold">
+                                            CRON
+                                        </Badge>
+                                    )}
                                     {/* Retry Badge */}
                                     {(job as any).retryCount > 0 && (
                                         <Badge className="h-4 px-1.5 text-[7px] sm:text-[8px] bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-0 font-bold">
@@ -790,7 +798,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                     <div className="flex items-center gap-2 sm:gap-4">
                                                         {/* Original Schedule Group */}
                                                         <div className="flex flex-col items-center">
-                                                            <span className="text-[9px] sm:text-[10px] text-neutral-400 font-medium leading-none mb-0.5">Scheduled</span>
+                                                            <span className="text-[9px] sm:text-[10px] text-neutral-400 font-medium leading-none mb-0.5">
+                                                                {job.originalScheduledFor ? 'Updated' : 'Scheduled'}
+                                                            </span>
                                                             <span className="font-mono text-[10px] sm:text-xs text-neutral-600 dark:text-neutral-400 font-bold bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
                                                                 {format(new Date(job.scheduledFor), "HH:mm")}
                                                             </span>

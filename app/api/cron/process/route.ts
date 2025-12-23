@@ -262,6 +262,7 @@ async function handleCronRequest(req: NextRequest) {
                         data: {
                             status: response.success ? 'SENT' : 'FAILED',
                             sentAt: response.success ? new Date() : undefined,
+                            sentViaCron: response.success ? true : undefined,
                             error: response.error || null
                         }
                     });

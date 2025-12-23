@@ -56,12 +56,15 @@ export async function GET(req: NextRequest) {
                     subject: decrypt(job.subject, process.env.ENCRYPTION_KEY!),
                     status: job.status,
                     scheduledFor: job.scheduledFor.toISOString(),
+                    originalScheduledFor: job.originalScheduledFor?.toISOString() || null,
                     sentAt: job.sentAt?.toISOString() || null,
                     error: job.error,
                     // Retry tracking
                     retryCount: job.retryCount || 0,
                     maxRetries: job.maxRetries || 3,
                     nextRetryAt: job.nextRetryAt?.toISOString() || null,
+                    // Cron tracking
+                    sentViaCron: job.sentViaCron || false,
                     // Tracking data
                     openedAt: job.openedAt?.toISOString() || null,
                     openCount: job.openCount
