@@ -35,8 +35,7 @@ const DRAFTS_SYNC_KEY = "ionos-mailer-drafts-synced"
 import { useSession } from "next-auth/react"
 // ...
 
-// Interface for the server-fetched data
-export function EmailForm({ initialCampaigns }: { initialCampaigns?: any[] }) {
+export function EmailForm() {
     const { data: session } = useSession()
 
     const [isSending, setIsSending] = useState(false)
@@ -560,7 +559,7 @@ export function EmailForm({ initialCampaigns }: { initialCampaigns?: any[] }) {
                         onLoadDraft={handleLoadDraft}
                         currentDraftId={currentDraftId}
                     />
-                    <LiveCampaignTracker initialData={initialCampaigns} />
+                    <LiveCampaignTracker />
                     <HistoryModal
                         batches={history}
                         onDeleteBatch={handleDeleteBatch}

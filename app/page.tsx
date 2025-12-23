@@ -1,26 +1,11 @@
-import { Suspense } from "react"
 import { EmailForm } from "@/components/email-form"
 import { Logo } from "@/components/logo"
-import { auth } from "@/auth"
-import { getInitialCampaigns } from "@/lib/data-fetching"
-
-export const dynamic = 'force-dynamic';
-
-// Async component that fetches campaigns (streamed with Suspense)
-async function CampaignDataLoader() {
-  const session = await auth();
-  const campaigns = session?.user?.id ? await getInitialCampaigns(session.user.id) : [];
-
-  // This component returns the EmailForm with data
-  // It will be streamed in after the page shell renders
-  return <EmailForm initialCampaigns={campaigns} />;
-}
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="max-w-5xl mx-auto px-4 py-8 md:py-12 space-y-8">
-        {/* Header - Renders IMMEDIATELY */}
+        {/* Header */}
         <header className="flex flex-col items-center text-center space-y-6 py-8">
           <div className="h-24 w-24 text-black dark:text-white">
             <Logo className="w-full h-full" />
@@ -47,11 +32,9 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Main Content - Streamed with Suspense */}
+        {/* Main Content */}
         <div className="bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-          <Suspense fallback={<EmailForm initialCampaigns={[]} />}>
-            <CampaignDataLoader />
-          </Suspense>
+          <EmailForm />
         </div>
       </div>
     </main>
