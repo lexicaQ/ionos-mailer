@@ -565,7 +565,6 @@ export function EmailForm() {
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
                         onRefresh={syncHistory}
-                        isSyncing={isHistorySyncing}
                     />
                     <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <div className="hidden md:flex items-center gap-2 shrink-0">
