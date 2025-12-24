@@ -579,9 +579,12 @@ export function LiveCampaignTracker() {
 }
 
 function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string }) {
-    const calculateProgress = (c: Campaign) => c.stats.total > 0
-        ? ((c.stats.sent + c.stats.failed) / c.stats.total) * 100
-        : 0;
+    const calculateProgress = (c: Campaign) => {
+        if (c.stats.total === 0) return 0;
+        // Count sent, failed, AND cancelled as "completed"
+        const completed = c.stats.sent + c.stats.failed + c.jobs.filter(j => j.status === 'CANCELLED').length;
+        return (completed / c.stats.total) * 100;
+    };
 
     const [isOpen, setIsOpen] = useState(() => {
         // Auto-collapse if 100% finished, UNLESS searching
