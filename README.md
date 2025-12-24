@@ -106,7 +106,7 @@ If hosted on Neon:
 
 1.  **Clone Repository**
     ```bash
-    git clone https://github.com/your-org/ionos-mailer.git
+    git clone https://github.com/lexicaQ/ionos-mailer.git
     cd ionos-mailer
     ```
 
