@@ -195,4 +195,4 @@ Calculations based on a standard 30-day month (43,200 minutes).
 
 ---
 
-*Documentation Version 1.0.0 - Dec 2025*
+*Documentation Version 1 - Dec 2025*
