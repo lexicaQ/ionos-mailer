@@ -50,7 +50,6 @@ interface HistoryModalProps {
     onDeleteBatch: (id: string) => void
     onClearAll: () => Promise<void> // Changed to return Promise for async/await
     onRefresh?: () => void
-    isSyncing?: boolean
 }
 
 // Shorten ID to first 8 characters
@@ -58,12 +57,13 @@ function shortId(id: string): string {
     return id.substring(0, 8)
 }
 
-export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, isSyncing = false }: HistoryModalProps) {
+export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: HistoryModalProps) {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
     const [trackingStatus, setTrackingStatus] = useState<Record<string, { opened: boolean; openedAt: string | null }>>({})
     const [isClearing, setIsClearing] = useState(false)
+    const [trackingSyncing, setTrackingSyncing] = useState(false)
 
     // REMOVED: Fake 2s loading animation - data displays immediately from cache
 
@@ -82,6 +82,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
     const fetchTrackingStatus = useCallback(async () => {
         if (trackingIds.length === 0) return
         try {
+            setTrackingSyncing(true)
             // Use POST to handle large number of IDs (avoids URL length limits)
             const res = await fetch(`/api/track/status`, {
                 method: 'POST',
@@ -95,6 +96,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
             }
         } catch (e) {
             console.error('Failed to fetch tracking status:', e)
+        } finally {
+            // Keep syncing indicator for 7 seconds to match polling interval
+            setTimeout(() => setTrackingSyncing(false), 7000)
         }
     }, [trackingIds])
 
@@ -110,7 +114,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
             if (interval) return;
             if (trackingIds.length > 0) {
                 fetchTrackingStatus();
-                interval = setInterval(fetchTrackingStatus, 10000);
+                interval = setInterval(fetchTrackingStatus, 7000); // 7 seconds for optimal balance
             }
         };
 
@@ -333,8 +337,14 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, is
                                 <div className="flex items-center gap-2">
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
                                 </div>
-                                <p className="text-[9px] sm:text-xs text-muted-foreground">
-                                    {stats.totalEmails} Emails • {stats.totalSuccess} Successful • {stats.totalOpened} Opened
+                                <p className="text-[9px] sm:text-xs text-muted-foreground flex items-center gap-2">
+                                    {trackingSyncing ? (
+                                        <span className="text-green-600 flex items-center gap-1">
+                                            <RefreshCw className="h-3 w-3 animate-spin" /> Syncing tracking data...
+                                        </span>
+                                    ) : (
+                                        <span>{stats.totalEmails} Emails • {stats.totalSuccess} Successful • {stats.totalOpened} Opened</span>
+                                    )}
                                 </p>
                             </div>
                         </div>

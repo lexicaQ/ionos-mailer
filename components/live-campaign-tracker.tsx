@@ -177,7 +177,7 @@ export function LiveCampaignTracker() {
                     // 2. First time loading (no initial data)
                     if (hasChanges && hasInitialData) {
                         setIsSyncing(true);
-                        setTimeout(() => setIsSyncing(false), 500);
+                        setTimeout(() => setIsSyncing(false), 7000); // Match 7s polling interval
                     }
 
                     setCampaigns(filtered);
@@ -233,14 +233,14 @@ export function LiveCampaignTracker() {
             if (pollInterval) return; // Already polling
 
             if (shouldPoll()) {
-                // Reduced to 2s for faster sync
+                // Optimized to 7s for balanced sync and reduced DB load
                 pollInterval = setInterval(() => {
                     if (shouldPoll()) {
                         fetchCampaigns(true);
                     } else {
                         stopPolling();
                     }
-                }, 2000); // 2 seconds instead of 5
+                }, 7000); // 7 seconds for optimal balance
             }
         };
 
