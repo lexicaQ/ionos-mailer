@@ -160,38 +160,39 @@ The application uses an external cron service to trigger the email processing en
 1.  Create an account at [cron-job.org](https://cron-job.org).
 2.  Create a new Cronjob with the following settings:
     -   **URL**: `https://your-production-domain.com/api/cron/process`
-    -   **Schedule**: Every 1 minute
+    -   **Schedule**: Every 5 minutes (Recommended for Free Tiers)
     -   **Request Method**: GET
 3.  Under **Advanced > Headers**, add:
     -   **Key**: `Authorization`
     -   **Value**: `Bearer YOUR_CRON_SECRET` (must match your Vercel env variable)
 4.  Save and activate the cronjob.
 
-The service will ping your application every **1 minute** to process queued campaigns.
+The service will ping your application every **5 minutes** to process queued campaigns. This is the optimal balance for most users.
 
 ---
 
-## 5. Operational Costs & Cron Intervals
+## 5. Operational Costs & Server Wake Analysis
 
-When self-hosting, it's crucial to balance **responsiveness** (fast email sending) with **resource consumption** (database compute & serverless invocations).
+When self-hosting on serverless platforms (Neon, Vercel), your costs are directly tied to **compute time** and **active usage**. Understanding "Server Wake" is critical for managing your budget.
 
-### Cron Interval Impact Table
+### Why "Server Wake" Matters
+Serverless databases like Neon are designed to "sleep" (scale to zero) after 5 minutes of inactivity. This saves you money because you don't pay for idle time.
+-   **Active Polling (1 min)**: If you poll every minute, the database **never sleeps**. It stays "awake" 24/7, consuming significantly more Compute Units (CU).
+-   **Optimized Polling (5+ min)**: polling every 5 minutes allow the database to sleep between requests, drastically reducing costs.
+
+### comparative Cost Table
 Calculations based on a standard 30-day month (43,200 minutes).
 
-| Cron Interval | Invocations / Month | Responsiveness | Neon Compute (Est.) | Vercel Function Usage | Recommendation |
+| Cron Interval | Monthly Invocations | Server Status | Neon Compute Usage | Vercel Function Usage | Best For... |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1 Minute** | **43,200** | Instant (Max delay 59s) | High (Prevents sleep) | High (~40% of Pro limit) | **Pro / High Volume** |
-| **5 Minutes** | **8,640** | Good (Max delay 5m) | **Optimal** (Allows sleep) | Low (~8% of Hobby limit) | **Free Tier (Best)** |
-| **15 Minutes** | **2,880** | Slow (Max delay 15m) | Low | Negligible | Low Volume / Backup |
-| **30 Minutes** | **1,440** | Very Slow | Minimal | Negligible | Archival Only |
+| **1 Minute** | **43,200** | **Always Awake** | High (24/7 Active) | High (~43% of Free Limit) | 🚀 High Volume / Enterprise |
+| **5 Minutes** | **8,640** | **Allows Sleep** | **Low (Wakes only when needed)** | Low (~8% of Free Limit) | 💰 **Free Tier / Standard** |
+| **15 Minutes** | **2,880** | Mostly Asleep | Very Low | Negligible | 📉 Low Volume / Backup |
+| **60 Minutes** | **720** | Deep Sleep | Minimal | Negligible | 📦 Archival / Testing |
 
-### Free Tier Limits (Reference)
-*   **Neon Free Tier**: Offers **0.5 Compute Units (CU)**.
-    *   *Polling every 1m* keeps the endpoint "warm", preventing the database from scaling down to zero effectively. This may consume your CU quota faster.
-    *   *Polling every 5-10m* allows the database to "scale to zero" between requests, preserving credits.
-*   **Vercel Hobby Tier**: Offers **100,000 Invocations** per month.
-    *   A 1-minute cron uses ~43% of your entire monthly allowance just for checking the queue.
-    *   **Recommendation**: Use **5 minutes** or higher intervals if you are on the Vercel Hobby plan.
+### Recommendation
+*   **Budget-Conscious / Free Tier**: Set your cron to **5 Minutes**. This ensures you stay well within the free limits of Neon and Vercel while still delivering emails relatively quickly.
+*   **Performance-Critical**: Use **1 Minute** only if you need near-instant delivery and are willing to pay for a Pro plan ($10-$20/mo) to cover the continuous compute time.
 
 ---
 
