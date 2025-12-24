@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { SecurityLoader } from "@/components/security-loader"
 import { SendResult } from "@/lib/schemas"
 import { Badge } from "@/components/ui/badge"
@@ -65,6 +65,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
     const [isClearing, setIsClearing] = useState(false)
     const [trackingSyncing, setTrackingSyncing] = useState(false)
 
+    // Track clear operations to prevent refresh conflicts
+    const clearInProgress = useRef(false)
+
     // REMOVED: Fake 2s loading animation - data displays immediately from cache
 
     // Collect all tracking IDs from batches
@@ -105,8 +108,16 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
     useEffect(() => {
         if (!open) return;
 
-        // Trigger parent refresh to get latest delivery status on open
-        if (onRefresh) onRefresh();
+        // IMPORTANT: Don't refresh if clear is in progress
+        // This prevents reloading old data before server delete completes
+        if (!clearInProgress.current && onRefresh) {
+            onRefresh();
+        }
+        // IMPORTANT: Don't refresh if clear is in progress
+        // This prevents reloading old data before server delete completes
+        if (!clearInProgress.current && onRefresh) {
+            onRefresh();
+        }
 
         let interval: NodeJS.Timeout | null = null;
 
@@ -356,14 +367,25 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                 size="sm"
                                 disabled={isClearing}
                                 onClick={async () => {
+                                    // Set flags to prevent refresh during clear
+                                    clearInProgress.current = true;
                                     setIsClearing(true);
                                     try {
                                         await onClearAll();
+                                        // Reset animation BEFORE closing to prevent visible spinner
+                                        setIsClearing(false);
+                                        // Small delay to let user see the reset
+                                        await new Promise(resolve => setTimeout(resolve, 100));
                                         setOpen(false);
                                     } catch (e) {
                                         console.error('Clear failed:', e);
-                                    } finally {
+                                        clearInProgress.current = false;
                                         setIsClearing(false);
+                                    } finally {
+                                        // Clear the flag after a delay to allow fresh data on next open
+                                        setTimeout(() => {
+                                            clearInProgress.current = false;
+                                        }, 500);
                                     }
                                 }}
                                 className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
