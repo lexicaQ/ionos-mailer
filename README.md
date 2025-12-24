@@ -170,4 +170,28 @@ The service will ping your application every **1 minute** to process queued camp
 
 ---
 
+## 5. Operational Costs & Cron Intervals
+
+When self-hosting, it's crucial to balance **responsiveness** (fast email sending) with **resource consumption** (database compute & serverless invocations).
+
+### Cron Interval Impact Table
+Calculations based on a standard 30-day month (43,200 minutes).
+
+| Cron Interval | Invocations / Month | Responsiveness | Neon Compute (Est.) | Vercel Function Usage | Recommendation |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1 Minute** | **43,200** | Instant (Max delay 59s) | High (Prevents sleep) | High (~40% of Pro limit) | **Pro / High Volume** |
+| **5 Minutes** | **8,640** | Good (Max delay 5m) | **Optimal** (Allows sleep) | Low (~8% of Hobby limit) | **Free Tier (Best)** |
+| **15 Minutes** | **2,880** | Slow (Max delay 15m) | Low | Negligible | Low Volume / Backup |
+| **30 Minutes** | **1,440** | Very Slow | Minimal | Negligible | Archival Only |
+
+### Free Tier Limits (Reference)
+*   **Neon Free Tier**: Offers **0.5 Compute Units (CU)**.
+    *   *Polling every 1m* keeps the endpoint "warm", preventing the database from scaling down to zero effectively. This may consume your CU quota faster.
+    *   *Polling every 5-10m* allows the database to "scale to zero" between requests, preserving credits.
+*   **Vercel Hobby Tier**: Offers **100,000 Invocations** per month.
+    *   A 1-minute cron uses ~43% of your entire monthly allowance just for checking the queue.
+    *   **Recommendation**: Use **5 minutes** or higher intervals if you are on the Vercel Hobby plan.
+
+---
+
 *Documentation Version 1.0.0 - Dec 2025*

@@ -265,7 +265,7 @@ export function DraftsModal({
                                                             <p className="text-xs font-medium text-neutral-400 italic">No subject</p>
                                                         )}
                                                         <div
-                                                            className="text-xs text-muted-foreground line-clamp-2 leading-relaxed opacity-70 h-[32px]"
+                                                            className="text-xs text-muted-foreground line-clamp-3 leading-relaxed opacity-70"
                                                             dangerouslySetInnerHTML={{
                                                                 __html: draft.body
                                                                     .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
