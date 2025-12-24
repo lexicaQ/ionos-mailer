@@ -70,19 +70,30 @@ export function EmailForm() {
     }, [])
 
     const syncHistory = useCallback(async () => {
-        if (!session?.user || historyManuallyCleared.current) return // Skip if manually cleared
+        if (!session?.user || historyManuallyCleared.current) {
+            console.log('[syncHistory] Skipping - no session or manually cleared');
+            return;
+        }
 
+        console.log('[syncHistory] Starting history sync...');
         setIsHistorySyncing(true)
         try {
             // 1. Fetch server history
             // We use 'no-store' or timestamp to ensure fresh data
-            const res = await fetch("/api/sync/history?t=" + Date.now())
-            if (!res.ok) return
+            const res = await fetch("/api/sync/history?t=" + Date.now(), {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            if (!res.ok) {
+                console.error('[syncHistory] API error:', res.status, res.statusText);
+                return;
+            }
             const serverData: HistoryBatch[] = await res.json()
+            console.log(`[syncHistory] Got ${serverData.length} history batches from server`);
 
             // RACED CONDITION CHECK: If user cleared history while we were fetching, STOP.
             if (historyManuallyCleared.current && serverData.length > 0) {
-                console.log("[HistorySync] Refusing to merge stale server data into cleared local history");
+                console.log("[syncHistory] ⚠️ Refusing to merge stale server data into cleared local history");
                 return;
             }
 
@@ -90,24 +101,30 @@ export function EmailForm() {
             // This ensures deletions on other devices are synced
             setHistory(() => {
                 // Final safety check inside functional update
-                if (historyManuallyCleared.current) return [];
+                if (historyManuallyCleared.current) {
+                    console.log('[syncHistory] Cleared flag is set, returning empty');
+                    return [];
+                }
 
                 // Server data IS the truth - local items not in server are deleted
                 const serverIds = new Set(serverData.map(b => b.id));
+                console.log('[syncHistory] Server batch IDs:', Array.from(serverIds));
 
                 // Use server data as base, sorted by date
                 const result = [...serverData].sort((a, b) =>
                     new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
                 );
 
+                console.log(`[syncHistory] Replacing local history with ${result.length} server batches`);
                 localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(result))
                 return result
             })
         } catch (error) {
-            console.error("History sync failed", error)
+            console.error("[syncHistory] Sync failed:", error)
         } finally {
             setIsHistorySyncing(false)
         }
+        console.log('[syncHistory] Sync complete');
     }, [session])
 
     // Sync history from cloud when logged in

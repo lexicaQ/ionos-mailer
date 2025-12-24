@@ -99,24 +99,38 @@ export async function loadDrafts(): Promise<EmailDraft[]> {
  * IMPORTANT: This also DELETES local drafts that no longer exist in cloud
  */
 export async function syncDrafts(): Promise<void> {
+    console.log('[syncDrafts] Starting sync...');
     try {
-        const res = await fetch('/api/sync/drafts');
+        const res = await fetch('/api/sync/drafts', {
+            cache: 'no-store', // Force fresh data
+            headers: { 'Cache-Control': 'no-cache' }
+        });
         if (res.ok) {
             const { drafts: cloudDrafts } = await res.json();
+            console.log(`[syncDrafts] Got ${cloudDrafts?.length || 0} drafts from cloud`);
+
             if (Array.isArray(cloudDrafts)) {
                 // Get all local drafts
                 const localDrafts = await getAllDraftsDB();
+                console.log(`[syncDrafts] Got ${localDrafts.length} local drafts`);
+
                 const cloudIds = new Set(cloudDrafts.map((d: any) => d.id));
+                console.log(`[syncDrafts] Cloud IDs:`, Array.from(cloudIds));
+                console.log(`[syncDrafts] Local IDs:`, localDrafts.map(d => d.id));
 
                 // DELETE local drafts that don't exist in cloud anymore
+                let deletedCount = 0;
                 for (const local of localDrafts) {
                     if (!cloudIds.has(local.id)) {
-                        console.log(`[Sync] Deleting local draft ${local.id} - not in cloud`);
+                        console.log(`[syncDrafts] ⚠️ Deleting local draft "${local.name}" (${local.id}) - not in cloud`);
                         await deleteDraftDB(local.id);
+                        deletedCount++;
                     }
                 }
+                console.log(`[syncDrafts] Deleted ${deletedCount} orphaned local drafts`);
 
                 // UPSERT cloud drafts to local
+                let upsertedCount = 0;
                 for (const d of cloudDrafts) {
                     // Encrypt Cloud Data for Local Storage
                     const payload = {
@@ -140,12 +154,17 @@ export async function syncDrafts(): Promise<void> {
                         recipients: undefined,
                         attachments: undefined
                     } as any);
+                    upsertedCount++;
                 }
+                console.log(`[syncDrafts] Upserted ${upsertedCount} cloud drafts to local`);
             }
+        } else {
+            console.error('[syncDrafts] API returned error:', res.status, res.statusText);
         }
     } catch (e) {
-        console.error("Cloud sync skipped", e);
+        console.error("[syncDrafts] Cloud sync failed:", e);
     }
+    console.log('[syncDrafts] Sync complete');
 }
 
 
