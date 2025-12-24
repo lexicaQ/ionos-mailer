@@ -139,10 +139,10 @@ If hosted on Neon:
 
     **1. DATABASE URLs (`POSTGRES_...`)**
     *   Go to [Neon Console](https://console.neon.tech/app/projects).
-    *   Select your project.
+    *   Create your project.
     *   On the **Dashboard**, look for **Connection Details**.
     *   **Important**: Check the box **"Pooled connection"** (top right of the code block).
-    *   Copy the connection string.
+    *   Copy the connection string starting with postgresql://
     *   Paste it into *both* `POSTGRES_PRISMA_DATABASE_URL` and `POSTGRES_URL`.
     *   *Verify*: The URL should end with `?sslmode=require&pgbouncer=true` (or similar). If `pgbouncer=true` is missing from the first one, add it manually!
 
@@ -155,7 +155,7 @@ If hosted on Neon:
     *   Copy the output (a long random string) and paste it into `AUTH_SECRET` and `ENCRYPTION_KEY`.
 
     **3. CRON SECRET**
-    *   Invent a secure password (e.g., `SecureCronTrigger2025!`).
+    *   Invent a secure password (e.g., `R%%|t$_6X%I2Ku^-6P@S2bKSNJG*&cn*`).
     *   Paste it here. You will need this password later for Step 4.4.
 
 4.  **Database Migration**
