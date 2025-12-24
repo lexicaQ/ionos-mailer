@@ -349,7 +349,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
                                 </div>
                                 <p className="text-[9px] sm:text-xs text-muted-foreground">
-                                    Updates frequently • Delays may occur to reduce compute and CPU time
+                                    Updates frequently •<br className="sm:hidden" /> Delays may occur to reduce<br className="hidden sm:inline" /> compute and CPU time
                                 </p>
                             </div>
                         </div>
@@ -483,10 +483,16 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         <div className="w-[110px] flex-shrink-0">
                                             {result.trackingId && trackingStatus[result.trackingId]?.opened && trackingStatus[result.trackingId]?.openedAt ? (
                                                 <div className="flex flex-col leading-tight">
-                                                    <div className="text-green-600 dark:text-green-500 font-medium text-[10px] tracking-wide whitespace-nowrap">
+                                                    {/* Desktop: single line with 'at' */}
+                                                    <div className="hidden sm:block text-green-600 dark:text-green-500 font-medium text-[10px] tracking-wide whitespace-nowrap">
                                                         <span>{format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM")}</span>
                                                         <span> at </span>
                                                         <span>{format(new Date(trackingStatus[result.trackingId].openedAt!), "HH:mm")}</span>
+                                                    </div>
+                                                    {/* Mobile: two lines without 'at' */}
+                                                    <div className="sm:hidden text-green-600 dark:text-green-500 font-medium text-[10px] tracking-wide">
+                                                        <div>{format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM")}</div>
+                                                        <div>{format(new Date(trackingStatus[result.trackingId].openedAt!), "HH:mm")}</div>
                                                     </div>
                                                 </div>
                                             ) : (
