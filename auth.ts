@@ -22,16 +22,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 credential: { label: "Credential", type: "text" }
             },
             async authorize(credentials) {
-                const credential = JSON.parse(credentials.credential as string)
+                const credentialData = JSON.parse(credentials.credential as string)
+                const { credential, challengeId } = credentialData
                 const { verifyAuthenticationResponse } = await import("@simplewebauthn/server")
 
-                // 1. Find the challenge
-                // In a real app, we should probably pass the challenge ID or look it up via session?
-                // But simplewebauthn usually needs the expected challenge.
-                // We stored it in DB. But how do we know WHICH challenge?
-                // The credential response contains `clientDataJSON` which has the challenge.
-                // But we need to find it in our DB to verify it matches and wasn't used.
-                // We can look up the user by credentialID first to get the expected origin/RP.
+                // Validate challengeId is provided
+                if (!challengeId) {
+                    throw new Error("Challenge ID required")
+                }
 
                 // Decode credentialID to find the passkey
                 const credentialID = credential.id
@@ -46,24 +44,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     throw new Error("Passkey not found")
                 }
 
-                // Find the active challenge for this user (or most recent authentication challenge)
-                // This is a bit loose; ideally we'd track the specific challenge ID given to the client.
-                // But for now, finding a recent auth challenge is the standard pattern if we don't pass it back.
-                const challenge = await prisma.authChallenge.findFirst({
-                    where: {
-                        type: "authentication",
-                        expiresAt: { gt: new Date() }
-                        // We could filter by userId if we knew it, but we found it via passkey
-                    },
-                    orderBy: { createdAt: "desc" }
+                // Find the challenge by ID (not "most recent" - prevents race conditions)
+                const challenge = await prisma.authChallenge.findUnique({
+                    where: { id: challengeId }
                 })
 
                 if (!challenge) {
-                    throw new Error("Authentication timed out (Challenge not found)")
+                    throw new Error("Challenge not found")
                 }
 
-                if (!challenge) {
-                    throw new Error("Authentication timed out (Challenge not found)")
+                if (challenge.expiresAt < new Date()) {
+                    await prisma.authChallenge.delete({ where: { id: challengeId } }).catch(() => { })
+                    throw new Error("Authentication timed out")
                 }
 
                 // Import config helper inside async function to avoid circular deps if any (though likely fine)

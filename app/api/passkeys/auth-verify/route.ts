@@ -6,6 +6,12 @@ export async function POST(req: Request) {
     const { rpID, origin } = getWebAuthnConfig()
     const body = await req.json()
 
+    // Require challengeId for proper challenge binding
+    const { challengeId } = body
+    if (!challengeId) {
+        return Response.json({ error: "Challenge ID required" }, { status: 400 })
+    }
+
     // Find passkey by credential ID
     const credentialId = body.id
 
@@ -18,17 +24,19 @@ export async function POST(req: Request) {
         return Response.json({ error: "Passkey not found" }, { status: 400 })
     }
 
-    // Find the most recent authentication challenge
-    const storedChallenge = await prisma.authChallenge.findFirst({
-        where: {
-            type: "authentication",
-            expiresAt: { gt: new Date() }
-        },
-        orderBy: { createdAt: "desc" }
+    // Find challenge by ID (not "most recent" - prevents race conditions)
+    const storedChallenge = await prisma.authChallenge.findUnique({
+        where: { id: challengeId }
     })
 
     if (!storedChallenge) {
-        return Response.json({ error: "Challenge expired or not found" }, { status: 400 })
+        return Response.json({ error: "Challenge not found" }, { status: 400 })
+    }
+
+    if (storedChallenge.expiresAt < new Date()) {
+        // Clean up expired challenge
+        await prisma.authChallenge.delete({ where: { id: challengeId } }).catch(() => { })
+        return Response.json({ error: "Challenge expired" }, { status: 400 })
     }
 
     try {
@@ -59,7 +67,7 @@ export async function POST(req: Request) {
             }
         })
 
-        // Delete used challenge
+        // Delete used challenge (one-time use)
         await prisma.authChallenge.delete({ where: { id: storedChallenge.id } })
 
         // Return user info for session creation
@@ -72,7 +80,7 @@ export async function POST(req: Request) {
             }
         })
     } catch (error) {
-        console.error("Passkey authentication verification failed:", error)
+        console.error("PASSKEY_AUTH_ERR")
         return Response.json({ error: "Verification failed" }, { status: 400 })
     }
 }

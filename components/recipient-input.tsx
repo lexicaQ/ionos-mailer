@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch, Upload } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch, Upload, Search } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 import { parseFile, ExtractionResult } from "@/lib/parsers"
@@ -55,6 +55,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     const [whitelist, setWhitelist] = useState<Set<string>>(new Set())
     const [isDraggingOver, setIsDraggingOver] = useState(false)
     const [isParsingFile, setIsParsingFile] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
 
     // Load whitelist on mount
     useEffect(() => {
@@ -113,16 +114,13 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
 
     // Helper: Check duplicates (excludes whitelisted emails)
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
-        // Show loading spinner quickly for near-instant feedback
-        const loadingTimer = setTimeout(() => {
-            setIsChecking(true);
-            onValidationChange?.(true);
-        }, 100);
+        // Show loading spinner immediately for instant feedback
+        setIsChecking(true);
+        onValidationChange?.(true);
 
         try {
             const emailList = recipients.map(r => r.email);
             if (emailList.length === 0) {
-                clearTimeout(loadingTimer);
                 setIsChecking(false);
                 onValidationChange?.(false);
                 return recipients;
@@ -154,7 +152,6 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
             console.error("Duplicate check error", e);
             return recipients;
         } finally {
-            clearTimeout(loadingTimer);
             setIsChecking(false);
             onValidationChange?.(false);
         }
@@ -225,8 +222,15 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
         setRawInput("");
     }
 
-    const validEmails = parsedRecipients.filter(r => r.valid && !r.duplicate);
-    const duplicateEmails = parsedRecipients.filter(r => r.duplicate);
+    // Filter based on search query
+    const filterBySearch = (list: ExtendedRecipientStatus[]) => {
+        if (!searchQuery.trim()) return list;
+        const query = searchQuery.toLowerCase();
+        return list.filter(r => r.email.toLowerCase().includes(query));
+    };
+
+    const validEmails = filterBySearch(parsedRecipients.filter(r => r.valid && !r.duplicate));
+    const duplicateEmails = filterBySearch(parsedRecipients.filter(r => r.duplicate));
     // Invalid are those that are NOT valid AND not duplicates (duplicates are handled separately)
     // Wait, if I set valid: true for dupes, then invalid filter is just !valid.
     // If I set valid: false for dupes, invalid filter is !valid && !duplicate.
@@ -234,7 +238,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     // "Ensure 'valid: true' so they appear in valid tab"
     // So dupes are valid=true, duplicate=true.
     // Then invalidEmails = !valid. Correct.
-    const invalidEmails = parsedRecipients.filter(r => !r.valid);
+    const invalidEmails = filterBySearch(parsedRecipients.filter(r => !r.valid));
 
     // Combine for display in "Valid" tab (Duplicates shown scratched)
     const displayList = [...validEmails, ...duplicateEmails];
@@ -404,8 +408,44 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                 </Button>
                             </div>
 
+                            {/* Search Bar - Show when >10 emails */}
+                            {parsedRecipients.length > 10 && (
+                                <div className="mt-3">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                                        <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search emails..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground focus:outline-none"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSearchQuery("")}
+                                                className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                                                title="Clear search"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {/* Search Results Count */}
+                                    {searchQuery && (
+                                        <div className="text-xs text-muted-foreground italic mt-1.5 px-1">
+                                            {activeTab === "valid" ? (
+                                                <>Showing {displayList.length} of {parsedRecipients.filter(r => r.valid || r.duplicate).length} emails</>
+                                            ) : (
+                                                <>Showing {invalidEmails.length} of {parsedRecipients.filter(r => !r.valid).length} emails</>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <TabsContent value="valid" className="mt-4">
-                                <div className={`flex flex-wrap gap-2 transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-full' : 'max-h-[140px] overflow-hidden'}`}>
+                                <div className={`flex flex-wrap gap-2 transition-all duration-300 ease-in-out ${(isExpanded || displayList.length > 50) ? 'max-h-full' : 'max-h-[140px] overflow-hidden'}`}>
                                     {displayList.map((recipient) => {
                                         const isGeneric = isGenericDomain(recipient.email);
                                         const isDuplicate = recipient.duplicate;
@@ -468,7 +508,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                                         );
                                     })}
                                     {validEmails.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">No valid email addresses</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {searchQuery ? `No emails match "${searchQuery}"` : "No valid email addresses"}
+                                        </p>
                                     )}
                                 </div>
                                 {displayList.length > 20 && (

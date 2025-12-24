@@ -88,6 +88,7 @@ export async function authenticateWithPasskey(email?: string): Promise<{
     }
 
     const options = await optionsRes.json()
+    const { challengeId } = options // Extract challengeId for verification
 
     // Start WebAuthn authentication ceremony
     let credential
@@ -100,11 +101,11 @@ export async function authenticateWithPasskey(email?: string): Promise<{
         throw error
     }
 
-    // Verify with server
+    // Verify with server - include challengeId for binding
     const verifyRes = await fetch("/api/passkeys/auth-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credential)
+        body: JSON.stringify({ ...credential, challengeId })
     })
 
     const result = await verifyRes.json()
@@ -118,9 +119,9 @@ export async function authenticateWithPasskey(email?: string): Promise<{
 
 /**
  * Get passkey credential for NextAuth sign-in
- * Does NOT verify with the API route, but returns the credential to be sent to NextAuth
+ * Returns the credential AND challengeId to be sent to NextAuth
  */
-export async function getPasskeyCredential(email?: string): Promise<any> {
+export async function getPasskeyCredential(email?: string): Promise<{ credential: any, challengeId: string }> {
     // Get authentication options
     const optionsRes = await fetch("/api/passkeys/auth-options", {
         method: "POST",
@@ -133,11 +134,12 @@ export async function getPasskeyCredential(email?: string): Promise<any> {
     }
 
     const options = await optionsRes.json()
+    const { challengeId } = options
 
     // Start WebAuthn authentication ceremony
     try {
         const credential = await startAuthentication(options)
-        return credential
+        return { credential, challengeId }
     } catch (error: any) {
         if (error.name === "NotAllowedError") {
             throw new Error("Login cancelled")

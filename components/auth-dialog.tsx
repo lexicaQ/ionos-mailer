@@ -169,10 +169,12 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                             setLoading(true);
                             try {
                                 const { getPasskeyCredential } = await import("@/lib/passkeys");
-                                const credential = await getPasskeyCredential(email || undefined); // Pass email if entered to filter
+                                // getPasskeyCredential now returns { credential, challengeId }
+                                const passkeyData = await getPasskeyCredential(email || undefined);
 
                                 const result = await signIn("webauthn", {
-                                    credential: JSON.stringify(credential),
+                                    // Pass both credential and challengeId for proper challenge binding
+                                    credential: JSON.stringify(passkeyData),
                                     redirect: false
                                 });
 

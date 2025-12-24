@@ -11,12 +11,27 @@ const LIMIT_START_DATE = new Date('2025-12-24T15:00:00.000Z');
 const MONTHLY_LIMIT = 100;
 
 /**
- * Creates a deterministic SHA-256 hash of the input string + secret.
+ * Creates a deterministic SHA-256 hash of the input string + pepper.
  * Used for storing privacy-preserving IP and SMTP identifiers.
+ * 
+ * SECURITY: Uses a dedicated IDENTIFIER_HASH_PEPPER, not shared with auth/encryption secrets.
  */
 export function hashIdentifier(input: string): string {
-    const secret = process.env.NEXTAUTH_SECRET || process.env.ENCRYPTION_KEY || "fallback-secret";
-    return createHash('sha256').update(input + secret).digest('hex');
+    const pepper = process.env.IDENTIFIER_HASH_PEPPER;
+
+    if (!pepper) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error(
+                "SECURITY: IDENTIFIER_HASH_PEPPER must be set in production. " +
+                "Generate a random 32+ character string and add it to your environment variables."
+            );
+        }
+        // Dev fallback only - warn about insecure usage
+        console.warn("SECURITY WARNING: Using insecure dev pepper for hashIdentifier. Set IDENTIFIER_HASH_PEPPER.");
+        return createHash('sha256').update(input + "dev-only-insecure-pepper").digest('hex');
+    }
+
+    return createHash('sha256').update(input + pepper).digest('hex');
 }
 
 export type UsageStatus = {

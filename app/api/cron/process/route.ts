@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { decrypt, encrypt } from '@/lib/encryption';
+import { decryptStrict, decryptMaybeLegacy, encrypt } from '@/lib/encryption';
 import { sendEmail } from '@/lib/mail';
 import { processBodyWithTracking } from '@/lib/tracking';
 import { extractCompanyFromEmail } from '@/lib/company-scraper';
@@ -174,12 +174,13 @@ async function handleCronRequest(req: NextRequest) {
 
             let pass = "";
             try {
-                pass = decrypt(job.campaign.pass, secretKey);
+                // CRITICAL: Use strict decryption for SMTP password - never return garbage
+                pass = decryptStrict(job.campaign.pass, secretKey);
             } catch (e) {
-                console.error(`Failed to decrypt password for job ${job.id}`);
+                console.error(`SMTP_DECRYPT_FAIL job=${job.id}`);
                 await prisma.emailJob.update({
                     where: { id: job.id },
-                    data: { status: 'FAILED', error: "Decryption failed" }
+                    data: { status: 'FAILED', error: "SMTP credential error" }
                 });
                 continue;
             }
@@ -190,13 +191,13 @@ async function handleCronRequest(req: NextRequest) {
                 let attachments: { filename: string; content: string; contentType: string }[] = [];
 
                 try {
-                    finalBody = decrypt(job.body, secretKey);
-                    finalSubject = decrypt(job.subject, secretKey);
+                    finalBody = decryptMaybeLegacy(job.body, secretKey);
+                    finalSubject = decryptMaybeLegacy(job.subject, secretKey);
 
                     if (job.campaign.attachments) {
                         attachments = job.campaign.attachments.map((att: any) => ({
                             filename: att.filename,
-                            content: decrypt(att.content, secretKey),
+                            content: decryptMaybeLegacy(att.content, secretKey),
                             contentType: att.contentType
                         }));
                     }
@@ -213,7 +214,7 @@ async function handleCronRequest(req: NextRequest) {
                 const { replacePlaceholders, PLACEHOLDER_REGEX } = await import('@/lib/placeholder-utils');
                 if (PLACEHOLDER_REGEX.test(finalBody) || PLACEHOLDER_REGEX.test(finalSubject)) {
                     try {
-                        const decryptedRecipient = decrypt(job.recipient, secretKey);
+                        const decryptedRecipient = decryptMaybeLegacy(job.recipient, secretKey);
                         const companyName = await extractCompanyFromEmail(decryptedRecipient);
                         finalBody = replacePlaceholders(finalBody, companyName);
                         finalSubject = replacePlaceholders(finalSubject, companyName);
@@ -232,14 +233,14 @@ async function handleCronRequest(req: NextRequest) {
                     }
                 }
 
-                const decryptedRecipient = decrypt(job.recipient, secretKey);
+                const decryptedRecipient = decryptMaybeLegacy(job.recipient, secretKey);
                 const htmlWithTracking = processBodyWithTracking(finalBody, job.trackingId, baseUrl);
 
                 try {
                     let smtpUser = job.campaign.user;
                     let fromName = job.campaign.fromName;
-                    try { smtpUser = decrypt(job.campaign.user, secretKey); } catch (e) { }
-                    if (fromName) { try { fromName = decrypt(fromName, secretKey); } catch (e) { } }
+                    try { smtpUser = decryptMaybeLegacy(job.campaign.user, secretKey); } catch (e) { }
+                    if (fromName) { try { fromName = decryptMaybeLegacy(fromName, secretKey); } catch (e) { } }
 
                     const response = await sendEmail({
                         to: decryptedRecipient,

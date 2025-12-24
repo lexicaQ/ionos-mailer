@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { decrypt } from '@/lib/encryption';
+import { decryptMaybeLegacy } from '@/lib/encryption';
 
 export async function getInitialCampaigns(userId: string) {
     try {
@@ -22,7 +22,7 @@ export async function getInitialCampaigns(userId: string) {
             let decryptedName = campaign.name;
             if (campaign.name) {
                 try {
-                    decryptedName = decrypt(campaign.name, secretKey);
+                    decryptedName = decryptMaybeLegacy(campaign.name, secretKey);
                 } catch (e) {
                     decryptedName = campaign.name;
                 }
@@ -36,8 +36,8 @@ export async function getInitialCampaigns(userId: string) {
                 jobs: campaign.jobs.map((job: any) => ({
                     id: job.id,
                     trackingId: job.trackingId,
-                    recipient: decrypt(job.recipient, process.env.ENCRYPTION_KEY!),
-                    subject: decrypt(job.subject, process.env.ENCRYPTION_KEY!),
+                    recipient: decryptMaybeLegacy(job.recipient, process.env.ENCRYPTION_KEY!),
+                    subject: decryptMaybeLegacy(job.subject, process.env.ENCRYPTION_KEY!),
                     status: job.status,
                     scheduledFor: job.scheduledFor.toISOString(),
                     originalScheduledFor: job.originalScheduledFor?.toISOString() || null,

@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import { SyncAnimation } from "@/components/sync-animation"
 
 interface EmailJob {
     id: string
@@ -67,12 +66,12 @@ export function LiveCampaignTracker() {
         return [];
     })
     const [loading, setLoading] = useState(false)
-    const [showSyncAnimation, setShowSyncAnimation] = useState(false)
-    // removed hasShownAnimation ref - always show on open
+    // Removed showSyncAnimation - using subtle text indicator instead
     const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const deletedCampaigns = useRef<Set<string>>(new Set())
+    const [isFirstSync, setIsFirstSync] = useState(true) // Track first sync only
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -289,12 +288,19 @@ export function LiveCampaignTracker() {
     }, [fetchCampaigns, open, campaigns]);
 
     useEffect(() => {
-        // ALWAYS show sync animation when modal opens
+        // Show subtle sync indicator only on first open after page load
         if (open) {
-            setShowSyncAnimation(true);
+            if (isFirstSync) {
+                setIsSyncing(true);
+                // Clear after 5 seconds
+                setTimeout(() => {
+                    setIsSyncing(false);
+                    setIsFirstSync(false);
+                }, 5000);
+            }
             fetchCampaigns(true);
         }
-    }, [open, fetchCampaigns]);
+    }, [open, fetchCampaigns, isFirstSync]);
 
 
     const deleteCampaign = async (id: string, e?: React.MouseEvent) => {
@@ -482,10 +488,6 @@ export function LiveCampaignTracker() {
                     </Button>
                 </DialogTrigger>
                 <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
-                    <SyncAnimation
-                        show={showSyncAnimation}
-                        onComplete={() => setShowSyncAnimation(false)}
-                    />
 
                     {/* Header */}
                     <div className="flex flex-col border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">
@@ -497,7 +499,17 @@ export function LiveCampaignTracker() {
                                 <div>
                                     <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                     <p className="text-xs text-muted-foreground">
-                                        Updates frequently • Delays may occur to reduce compute and CPU time
+                                        {isSyncing ? (
+                                            <span className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                                </span>
+                                                Syncing latest data...
+                                            </span>
+                                        ) : (
+                                            <>Updates frequently • Delays may occur to reduce compute time</>
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -553,6 +565,7 @@ export function LiveCampaignTracker() {
                                         onDelete={(e) => deleteCampaign(c.id, e)}
                                         onCancelJob={cancelJob}
                                         searchTerm={searchTerm}
+                                        isFirstSync={isFirstSync}
                                     />
                                 ))}
                                 {/* Anchor to scroll to bottom if needed in future */}
@@ -566,7 +579,7 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string }) {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, isFirstSync }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string, isFirstSync: boolean }) {
     const calculateProgress = (c: Campaign) => {
         if (c.stats.total === 0) return 0;
         // Count sent, failed, AND cancelled as "completed"
@@ -691,7 +704,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                         const scheduledDate = new Date(job.scheduledFor);
                         const now = new Date();
                         const diffInMinutes = Math.floor((now.getTime() - scheduledDate.getTime()) / 60000);
-                        const isOverdue = isPending && diffInMinutes > 0;
+                        // Only show as overdue if: 1) still pending, 2) more than 2 minutes late, 3) NOT first sync (data may be stale)
+                        const isOverdue = isPending && diffInMinutes > 2 && !isFirstSync;
 
                         // Calculate delay for sent items if data exists, otherwise approximate
                         let sentDelay = 0;
@@ -733,11 +747,11 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                 job.status === 'CANCELLED' ? 'CANCELLED' :
                                                     'WAITING'}
                                     </Badge>
-                                    {/* CRON Badge */}
+                                    {/* CRON Badge - Minimalist */}
                                     {job.sentViaCron && job.status === 'SENT' && (
-                                        <Badge className="h-4 px-1.5 text-[7px] sm:text-[8px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0 font-bold">
-                                            CRON
-                                        </Badge>
+                                        <span className="text-[6px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-medium">
+                                            via cron
+                                        </span>
                                     )}
                                     {/* Retry Badge */}
                                     {(job as any).retryCount > 0 && (
@@ -765,7 +779,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                 </div>
 
                                 {/* Recipient - THIRD */}
-                                <div className="flex-1 min-w-0 pl-1 sm:pl-0">
+                                <div className="flex-1 min-w-0">
                                     <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                         {job.recipient}
                                     </div>

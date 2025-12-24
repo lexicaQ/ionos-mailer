@@ -1,47 +1,140 @@
 /**
  * Client-side encryption utilities using Web Crypto API.
  * Used to encrypt draft content and attachments before storing in IndexedDB.
+ * 
+ * SECURITY: Keys are stored in IndexedDB as non-extractable CryptoKeys.
+ * This prevents XSS attacks from exfiltrating the key material.
  */
 
-const KEY_STORAGE_NAME = 'ionos-mailer-mk';
+const IDB_NAME = 'ionos-mailer-secure';
+const IDB_STORE = 'keys';
+const IDB_KEY_ID = 'master-key';
+const LEGACY_LS_KEY = 'ionos-mailer-mk';
+const IDB_VERSION = 1;
 
-// Get or create the master key (stored in localStorage for persistence across reloads)
+/**
+ * Opens or creates the secure IndexedDB database
+ */
+function openDatabase(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+            reject(new Error("IndexedDB not available"));
+            return;
+        }
+
+        const request = indexedDB.open(IDB_NAME, IDB_VERSION);
+
+        request.onerror = () => reject(new Error("Failed to open secure storage"));
+
+        request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains(IDB_STORE)) {
+                db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            resolve((event.target as IDBOpenDBRequest).result);
+        };
+    });
+}
+
+/**
+ * Retrieves a CryptoKey from IndexedDB by ID
+ */
+function getKeyFromIDB(db: IDBDatabase): Promise<CryptoKey | null> {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([IDB_STORE], 'readonly');
+        const store = transaction.objectStore(IDB_STORE);
+        const request = store.get(IDB_KEY_ID);
+
+        request.onerror = () => reject(new Error("Failed to read key"));
+        request.onsuccess = () => {
+            const result = request.result;
+            resolve(result ? result.key : null);
+        };
+    });
+}
+
+/**
+ * Stores a CryptoKey in IndexedDB
+ */
+function storeKeyInIDB(db: IDBDatabase, key: CryptoKey): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([IDB_STORE], 'readwrite');
+        const store = transaction.objectStore(IDB_STORE);
+        const request = store.put({ id: IDB_KEY_ID, key });
+
+        request.onerror = () => reject(new Error("Failed to store key"));
+        request.onsuccess = () => resolve();
+    });
+}
+
+/**
+ * Imports a legacy JWK key and returns a non-extractable CryptoKey
+ */
+async function importLegacyKey(jwk: JsonWebKey): Promise<CryptoKey> {
+    // Import as extractable first (from legacy), then we'll store non-extractable
+    // Note: The imported key becomes our working key
+    return window.crypto.subtle.importKey(
+        "jwk",
+        jwk,
+        { name: "AES-GCM", length: 256 },
+        false, // Make it non-extractable when we store it
+        ["encrypt", "decrypt"]
+    );
+}
+
+/**
+ * Gets or creates the master encryption key.
+ * 
+ * Priority:
+ * 1. Existing key in IndexedDB (non-extractable, secure)
+ * 2. Migrate from localStorage (legacy, one-time migration)
+ * 3. Generate new non-extractable key
+ * 
+ * After migration, localStorage key is deleted for security.
+ */
 async function getMasterKey(): Promise<CryptoKey> {
     if (typeof window === 'undefined') {
         throw new Error("Client-side encryption only works in browser");
     }
 
-    let jwkStr = localStorage.getItem(KEY_STORAGE_NAME);
+    const db = await openDatabase();
 
-    if (!jwkStr) {
-        // Generate new key
-        const key = await window.crypto.subtle.generateKey(
-            {
-                name: "AES-GCM",
-                length: 256
-            },
-            true,
-            ["encrypt", "decrypt"]
-        );
-
-        // Export to JWK to store
-        const jwk = await window.crypto.subtle.exportKey("jwk", key);
-        localStorage.setItem(KEY_STORAGE_NAME, JSON.stringify(jwk));
+    // Check for existing key in IndexedDB
+    let key = await getKeyFromIDB(db);
+    if (key) {
         return key;
     }
 
-    // Import existing key
-    const jwk = JSON.parse(jwkStr);
-    return window.crypto.subtle.importKey(
-        "jwk",
-        jwk,
-        {
-            name: "AES-GCM",
-            length: 256
-        },
-        true,
+    // Migration: check localStorage for legacy key
+    const legacyJwkStr = localStorage.getItem(LEGACY_LS_KEY);
+    if (legacyJwkStr) {
+        try {
+            const jwk = JSON.parse(legacyJwkStr);
+            // Import as non-extractable
+            key = await importLegacyKey(jwk);
+            await storeKeyInIDB(db, key);
+            // Remove from localStorage for security
+            localStorage.removeItem(LEGACY_LS_KEY);
+            console.info("Migrated encryption key to secure storage");
+            return key;
+        } catch (e) {
+            console.error("Failed to migrate legacy key, generating new one");
+            localStorage.removeItem(LEGACY_LS_KEY);
+        }
+    }
+
+    // Generate new non-extractable key
+    key = await window.crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        false, // NON-EXTRACTABLE - cannot be exported, XSS cannot steal it
         ["encrypt", "decrypt"]
     );
+
+    await storeKeyInIDB(db, key);
+    return key;
 }
 
 /**
@@ -114,7 +207,7 @@ export async function decryptData(encryptedData: { iv: string, data: string }): 
         const decoded = new TextDecoder().decode(decrypted);
         return JSON.parse(decoded);
     } catch (e) {
-        console.error("Decryption failed:", e);
+        console.error("DECRYPT_ERR_CLIENT");
         throw new Error("Failed to decrypt data");
     }
 }

@@ -1,6 +1,7 @@
 import { generateAuthenticationOptions } from "@simplewebauthn/server"
 import { prisma } from "@/lib/prisma"
 import { getWebAuthnConfig } from "@/lib/webauthn-config"
+import crypto from 'crypto'
 
 export async function POST(req: Request) {
     const { rpID } = getWebAuthnConfig()
@@ -37,15 +38,21 @@ export async function POST(req: Request) {
         allowCredentials
     })
 
-    // Store challenge
+    // Generate a unique challengeId to bind this challenge
+    // This prevents cross-user race conditions
+    const challengeId = crypto.randomUUID()
+
+    // Store challenge with the challengeId
     await prisma.authChallenge.create({
         data: {
+            id: challengeId, // Use our generated ID
             challenge: options.challenge,
             type: "authentication",
             expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
         }
     })
 
-    return Response.json(options)
+    // Return challengeId to client for verification
+    return Response.json({ ...options, challengeId })
 }
 
