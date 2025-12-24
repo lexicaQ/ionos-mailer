@@ -498,14 +498,8 @@ export function LiveCampaignTracker() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-2">
-                                        {(isAutoProcessing || isSyncing) ? (
-                                            <span className="text-green-600 flex items-center gap-1">
-                                                <RefreshCw className="h-3 w-3 animate-spin" /> {isSyncing ? "Syncing..." : "Processing background jobs..."}
-                                            </span>
-                                        ) : (
-                                            <span>System ready • Last update: {format(new Date(), "HH:mm:ss")}</span>
-                                        )}
+                                    <p className="text-xs text-muted-foreground">
+                                        Auto-updates every 7 seconds • Delays may occur to reduce server load
                                     </p>
                                 </div>
                             </div>
@@ -517,10 +511,6 @@ export function LiveCampaignTracker() {
                                 <Button variant="outline" size="sm" onClick={exportToPDF} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
                                     <FileText className="h-3.5 w-3.5" />
                                     PDF
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => fetchCampaigns(false)} disabled={loading} className="gap-2">
-                                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                                    Refresh
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-8 w-8 flex">
                                     <X className="h-4 w-4" />

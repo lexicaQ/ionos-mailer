@@ -337,22 +337,12 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                 <div className="flex items-center gap-2">
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
                                 </div>
-                                <p className="text-[9px] sm:text-xs text-muted-foreground flex items-center gap-2">
-                                    {trackingSyncing ? (
-                                        <span className="text-green-600 flex items-center gap-1">
-                                            <RefreshCw className="h-3 w-3 animate-spin" /> Syncing tracking data...
-                                        </span>
-                                    ) : (
-                                        <span>{stats.totalEmails} Emails • {stats.totalSuccess} Successful • {stats.totalOpened} Opened</span>
-                                    )}
+                                <p className="text-[9px] sm:text-xs text-muted-foreground">
+                                    Auto-updates every 7 seconds • Delays may occur to reduce server load
                                 </p>
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={fetchTrackingStatus} className="gap-2 h-8 text-xs">
-                                <RefreshCw className="h-3.5 w-3.5" />
-                                Refresh
-                            </Button>
                             <Button variant="outline" size="sm" onClick={exportToExcel} className="hidden sm:flex gap-2 h-8 text-xs">
                                 <FileSpreadsheet className="h-3.5 w-3.5" />
                                 Excel
