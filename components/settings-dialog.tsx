@@ -210,80 +210,75 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
 
                 <div className="grid gap-6 pt-4 pb-4">
                     {/* Usage Limit Section */}
+                    {/* Usage Limit Section - Compact */}
                     {session?.user && usageInfo && (
                         <div className="mb-2">
-                            <Card>
-                                <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <Card className="shadow-none border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
+                                <CardContent className="p-3">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
                                             <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                            Subscription Plan
-                                        </CardTitle>
+                                            <span className="text-sm font-medium">Subscription Plan</span>
+                                        </div>
                                         {usageInfo.plan === "UNLIMITED" ? (
-                                            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100">
+                                            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 text-[10px] h-5 px-1.5">
                                                 Unlimited
                                             </Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100">
+                                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 text-[10px] h-5 px-1.5">
                                                 Free Tier
                                             </Badge>
                                         )}
                                     </div>
-                                </CardHeader>
-                                <CardContent>
+
                                     {usageInfo.plan === "UNLIMITED" ? (
                                         <div className="text-xs text-muted-foreground">
-                                            Your account has no sending limits. Enjoy unrestricted access.
+                                            Your account has no sending limits.
                                         </div>
                                     ) : (
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
+                                        <div className="space-y-3">
+                                            {/* Progress Bar & Stats */}
+                                            <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between text-xs">
                                                     <span className="text-muted-foreground">Monthly Usage</span>
-                                                    <span className="font-medium">
-                                                        {usageInfo.usage} / {usageInfo.limit} emails
+                                                    <span className="font-medium font-mono">
+                                                        {usageInfo.usage} / {usageInfo.limit}
                                                     </span>
                                                 </div>
                                                 <Progress
                                                     value={(usageInfo.usage / usageInfo.limit) * 100}
-                                                    className="h-2"
+                                                    className="h-1.5"
                                                 />
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t mt-3">
-                                                <div className="space-y-1 mt-2">
-                                                    <p className="text-[10px] uppercase text-muted-foreground font-semibold">Resets On</p>
-                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                                                        <span>{format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), 'MMM 1, yyyy')}</span>
-                                                    </div>
+                                            {/* Grid Details */}
+                                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-muted-foreground">Resets:</span>
+                                                    <span>{format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), 'MMM 1')}</span>
                                                 </div>
-                                                <div className="space-y-1 mt-2">
-                                                    <p className="text-[10px] uppercase text-muted-foreground font-semibold">Status</p>
-                                                    <div className="flex items-center gap-1.5 text-xs">
-                                                        {usageInfo.usage >= usageInfo.limit ? (
-                                                            <>
-                                                                <AlertCircle className="h-3 w-3 text-red-500" />
-                                                                <span className="text-red-500 font-medium">Limit Reached</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <CheckCircle2 className="h-3 w-3 text-green-500" />
-                                                                <span className="text-green-600 dark:text-green-400">Active</span>
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                <div className="flex items-center gap-2 justify-end">
+                                                    {usageInfo.usage >= usageInfo.limit ? (
+                                                        <>
+                                                            <AlertCircle className="h-3 w-3 text-red-500" />
+                                                            <span className="text-red-500 font-medium">Limit Reached</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                                            <span className="text-green-600 dark:text-green-400">Active</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 
                                             <TooltipProvider>
                                                 <Tooltip delayDuration={0}>
                                                     <TooltipTrigger asChild>
-                                                        <div className="cursor-not-allowed w-full">
-                                                            <Button size="sm" className="w-full mt-2" variant="outline" disabled>
-                                                                Upgrade to Pro
-                                                            </Button>
-                                                        </div>
+                                                        <Button size="sm" className="w-full h-7 text-xs" variant="outline" disabled>
+                                                            Upgrade to Pro
+                                                        </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent side="top">
                                                         <p>Upgrade coming soon!</p>

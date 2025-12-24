@@ -68,7 +68,7 @@ export function LiveCampaignTracker() {
     })
     const [loading, setLoading] = useState(false)
     const [showSyncAnimation, setShowSyncAnimation] = useState(false)
-    const hasShownAnimation = useRef(false) // Track if we've shown the animation this session
+    // removed hasShownAnimation ref - always show on open
     const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
     const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
@@ -289,13 +289,11 @@ export function LiveCampaignTracker() {
     }, [fetchCampaigns, open, campaigns]);
 
     useEffect(() => {
-        // Show sync animation when modal opens for the first time AND we have no data
-        if (open && !hasShownAnimation.current && campaigns.length === 0) {
+        // ALWAYS show sync animation when modal opens
+        if (open) {
             setShowSyncAnimation(true);
-            hasShownAnimation.current = true;
+            fetchCampaigns(true);
         }
-        // When modal opens, always do a background refresh (silent, no loading state)
-        if (open) fetchCampaigns(true);
     }, [open, fetchCampaigns]);
 
 
@@ -473,10 +471,6 @@ export function LiveCampaignTracker() {
 
     return (
         <>
-            <SyncAnimation
-                show={showSyncAnimation}
-                onComplete={() => setShowSyncAnimation(false)}
-            />
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline" className="gap-2 relative">
@@ -487,7 +481,11 @@ export function LiveCampaignTracker() {
                         )}
                     </Button>
                 </DialogTrigger>
-                <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
+                <DialogContent showCloseButton={false} onOpenAutoFocus={(e) => e.preventDefault()} className="relative sm:max-w-[800px] max-h-[80vh] sm:max-h-[90vh] mt-8 sm:mt-0 flex flex-col p-0 overflow-hidden bg-white dark:bg-neutral-950 rounded-lg border shadow-lg text-foreground">
+                    <SyncAnimation
+                        show={showSyncAnimation}
+                        onComplete={() => setShowSyncAnimation(false)}
+                    />
 
                     {/* Header */}
                     <div className="flex flex-col border-b border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900">

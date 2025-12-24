@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { RefreshCw } from "lucide-react"
 
 interface SyncAnimationProps {
     show: boolean
@@ -52,11 +53,11 @@ export function SyncAnimation({ show, onComplete }: SyncAnimationProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-black"
+                    className="absolute inset-0 z-[50] flex items-center justify-center bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm rounded-lg"
                 >
-                    <div className="flex flex-col items-center gap-8 px-8">
-                        {/* Animated Rings */}
-                        <div className="relative w-32 h-32">
+                    <div className="flex flex-col items-center gap-6 px-8">
+                        {/* Animated Rings - Smaller */}
+                        <div className="relative w-24 h-24">
                             {[0, 1, 2].map((i) => (
                                 <motion.div
                                     key={i}
@@ -85,91 +86,35 @@ export function SyncAnimation({ show, onComplete }: SyncAnimationProps) {
                                     ease: "linear"
                                 }}
                             >
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-black dark:text-white">
-                                    <path
-                                        d="M12 2L2 7L12 12L22 7L12 2Z"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                    <path
-                                        d="M2 17L12 22L22 17"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                    <path
-                                        d="M2 12L12 17L22 12"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
+                                <RefreshCw className="h-8 w-8 text-black dark:text-white" />
                             </motion.div>
                         </div>
 
-                        {/* Stage Information */}
-                        <div className="text-center space-y-2 min-h-[80px]">
+                        {/* Simplified Status */}
+                        <div className="text-center space-y-3 min-w-[200px]">
                             <motion.h3
                                 key={`title-${stage}`}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-2xl font-bold text-black dark:text-white"
-                            >
-                                {stageInfo[stage]?.title}
-                            </motion.h3>
-                            <motion.p
-                                key={`desc-${stage}`}
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="text-sm text-neutral-600 dark:text-neutral-400 font-mono"
+                                className="text-lg font-bold text-black dark:text-white"
                             >
-                                {stageInfo[stage]?.desc}
-                            </motion.p>
-                        </div>
+                                Syncing...
+                            </motion.h3>
 
-                        {/* Progress Bar */}
-                        <div className="w-64 h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
-                            <motion.div
-                                className="h-full bg-black dark:bg-white"
-                                initial={{ width: "0%" }}
-                                animate={{ width: `${((stage + 1) / 5) * 100}%` }}
-                                transition={{ duration: 0.5, ease: "easeOut" }}
-                            />
-                        </div>
-
-                        {/* Stage Indicators */}
-                        <div className="flex gap-2">
-                            {stageInfo.map((_, i) => (
+                            {/* Progress Bar */}
+                            <div className="w-full h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                                 <motion.div
-                                    key={i}
-                                    className={`w-2 h-2 rounded-full ${i <= stage
-                                            ? "bg-black dark:bg-white"
-                                            : "bg-neutral-300 dark:bg-neutral-700"
-                                        }`}
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: i <= stage ? 1 : 0.7 }}
-                                    transition={{ duration: 0.3 }}
+                                    className="h-full bg-black dark:bg-white"
+                                    initial={{ width: "0%" }}
+                                    animate={{ width: `${((stage + 1) / 5) * 100}%` }}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
                                 />
-                            ))}
-                        </div>
+                            </div>
 
-                        {/* Why This Matters */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: stage >= 2 ? 1 : 0 }}
-                            className="mt-4 p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg max-w-md"
-                        >
-                            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center leading-relaxed">
-                                <span className="font-semibold">Why the wait?</span> We're fetching fresh data from Neon (PostgreSQL)
-                                with AES-256 encryption. Your campaigns are stored securely and decrypted on-the-fly
-                                for instant display.
+                            <p className="text-xs text-muted-foreground font-mono">
+                                {stageInfo[stage]?.desc}
                             </p>
-                        </motion.div>
+                        </div>
                     </div>
                 </motion.div>
             )}
