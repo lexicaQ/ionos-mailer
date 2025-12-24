@@ -13,7 +13,8 @@ This documentation serves as the comprehensive technical specification and opera
 ### Core Technology Stack
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript (Strict Mode)
-- **Database**: **Neon** (Serverless PostgreSQL) managed via Prisma ORM
+- **Database**: **Neon** (Serverless PostgreSQL)
+- **ORM**: Prisma (for schema management & type safety)
 - **Authentication**: NextAuth.js v5 (Auth.js) + **Passkeys (WebAuthn)**
 - **UI Architecture**: React Server Components (RSC) with Tailwind CSS v4 and Shadcn/UI
 - **Cryptography**: Node.js Crypto Module (AES-256-GCM) + Client-side encryption
@@ -81,8 +82,8 @@ The application is strictly single-tenant logical storage. All data is scoped to
 ### Accessing Your Data Backend
 Since there is no external vendor, you have direct access to the raw database.
 
-#### Method 1: Prisma Studio (Recommended)
-Prisma Studio provides a GUI for inspecting your database records.
+#### Method 1: Local GUI (Prisma Studio)
+The included studio tool provides the easiest way to inspect your Neon data.
 1.  Navigate to the project root in your terminal.
 2.  Execute: `npx prisma studio`
 3.  Access the dashboard at `http://localhost:5555`.
