@@ -115,22 +115,24 @@ If hosted on Neon:
     npm ci
     ```
 
-3.  **Environment Configuration**
-    Create a `.env` file in the root directory. You must populate it with the following secure configuration:
+3.  **Environment Configuration (Crucial Step)**
+    This step connects your app to the database and secures it.
+    1.  In your project folder (root), create a new file named `.env`.
+    2.  Copy the following content into it:
 
     ```env
-    # Database Configuration (Get string from Neon Dashboard)
-    # MUST contain 'pgbouncer=true' for connection pooling support
-    POSTGRES_PRISMA_DATABASE_URL="postgresql://user:pass@ep-xyz.region.neon.tech/neondb?sslmode=require&pgbouncer=true"
-    POSTGRES_URL="postgresql://user:pass@ep-xyz.region.neon.tech/neondb?sslmode=require"
+    # 1. DATABASE (Get this from Neon Console > Dashboard > Connection Details)
+    # Ensure you select " pooled" connection if available, or add ?pgbouncer=true manually
+    POSTGRES_PRISMA_DATABASE_URL="postgresql://neondb_owner:Cy7...example@ep-round...neon.tech/neondb?sslmode=require&pgbouncer=true"
+    POSTGRES_URL="postgresql://neondb_owner:Cy7...example@ep-round...neon.tech/neondb?sslmode=require"
 
-    # Cryptographic Secrets
-    # Generate these using `openssl rand -base64 32`
-    AUTH_SECRET="<32-char-random-string>"
-    ENCRYPTION_KEY="<32-char-random-string>" 
-    CRON_SECRET="<secure-token-for-api-access>"
+    # 2. SECURITY SECRETS (Generate new random strings for security)
+    # Run this command in terminal to generate a key: openssl rand -base64 32
+    AUTH_SECRET="your-generated-32-char-secret-here"
+    ENCRYPTION_KEY="your-generated-32-char-secret-here" 
+    CRON_SECRET="create-a-random-password-for-cron"
 
-    # Application Domain
+    # 3. PUBLIC URL
     NEXT_PUBLIC_BASE_URL="http://localhost:3000"
     ```
 
@@ -150,8 +152,22 @@ If hosted on Neon:
 
 1.  **Push to GitHub**: Commit your changes to the `main` branch.
 2.  **Import to Vercel**: Connect your GitHub repository.
-3.  **Configure Environment**: Add all variables from your `.env` file to the Vercel Project Settings.
-4.  **Deploy**: Initiate the build.
+3.  **Configure Environment**:
+    *   Go to **Settings > Environment Variables** in your Vercel Project.
+    *   Copy **ALL** contents from your local `.env` file.
+    *   Paste them into the Vercel text area (it will automatically parse them).
+    *   **Important**: Change `NEXT_PUBLIC_BASE_URL` to your actual Vercel domain (e.g., `https://my-mailer.vercel.app`).
+4.  **Deploy**: Click "Deploy".
+
+### 4.4 Troubleshooting
+**Issue: "The app looks like broken HTML / No Styles" (Unstyled Content)**
+*   **Cause**: This usually happens if dependencies weren't installed correctly or the CSS build failed.
+*   **Fix**:
+    1.  Stop the server (Ctrl+C).
+    2.  Delete `node_modules` and `.next` folder: `rm -rf node_modules .next`
+    3.  Reinstall cleanly: `npm ci` (Do not use `npm install` if `package-lock.json` exists)
+    4.  Restart: `npm run dev`
+    5.  Wait for the "Ready" message in the terminal before opening/refreshing the page.
 
 ### 4.4 Configuring Background Jobs (cron-job.org)
 The application uses an external cron service to trigger the email processing engine reliably.
