@@ -499,7 +499,7 @@ export function LiveCampaignTracker() {
                                 <div>
                                     <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                     <p className="text-xs text-muted-foreground">
-                                        Auto-updates every 7 seconds • Delays may occur to reduce server load
+                                        Updates frequently • Delays may occur to reduce compute and CPU time
                                     </p>
                                 </div>
                             </div>

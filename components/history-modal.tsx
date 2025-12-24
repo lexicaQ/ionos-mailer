@@ -338,7 +338,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
                                 </div>
                                 <p className="text-[9px] sm:text-xs text-muted-foreground">
-                                    Auto-updates every 7 seconds • Delays may occur to reduce server load
+                                    Updates frequently • Delays may occur to reduce compute and CPU time
                                 </p>
                             </div>
                         </div>
