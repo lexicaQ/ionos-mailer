@@ -435,7 +435,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
                             <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-4 text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
                                 <div className="w-[100px]">Status</div>
-                                <div className="w-[110px]">Opened</div>
+                                <div className="w-[45px] sm:w-[110px]">Opened</div>
                                 <div className="flex-1">Recipient</div>
                                 <div className="w-[120px] text-right">Sent at</div>
                             </div>
@@ -468,13 +468,13 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         </div>
 
                                         {/* Opened Status */}
-                                        <div className="w-[110px] flex-shrink-0">
+                                        <div className="w-[45px] sm:w-[110px] flex-shrink-0">
                                             {result.trackingId && trackingStatus[result.trackingId]?.opened && trackingStatus[result.trackingId]?.openedAt ? (
-                                                <div className="flex flex-col leading-tight">
-                                                    <div className="text-green-600 dark:text-green-500 font-medium text-[10px] tracking-wide whitespace-nowrap">
-                                                        <span>{format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM")}</span>
-                                                        <span> at </span>
-                                                        <span>{format(new Date(trackingStatus[result.trackingId].openedAt!), "HH:mm")}</span>
+                                                <div className="flex flex-col leading-none sm:leading-tight">
+                                                    <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
+                                                        <span className="block sm:inline">{format(new Date(trackingStatus[result.trackingId].openedAt!), "dd.MM")}</span>
+                                                        <span className="hidden sm:inline"> at </span>
+                                                        <span className="block sm:inline">{format(new Date(trackingStatus[result.trackingId].openedAt!), "HH:mm")}</span>
                                                     </div>
                                                 </div>
                                             ) : (
