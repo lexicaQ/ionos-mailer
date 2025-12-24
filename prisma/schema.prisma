@@ -156,7 +156,7 @@ model SmtpSettings {
   fromEmail String?
   fromName  String?
   replyTo   String?
-  delay     Int     @default(500)
+  delay     Int     @default(1000)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

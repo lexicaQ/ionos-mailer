@@ -10,11 +10,14 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SmtpConfig } from "@/lib/mail"
-import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud, Check } from "lucide-react"
+import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud, Check, CreditCard, Calendar, AlertCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { PasskeyManager } from "@/components/passkey-manager"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
 
 
 
@@ -31,7 +34,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [port, setPort] = useState("587")
     const [user, setUser] = useState("")
     const [pass, setPass] = useState("")
-    const [delay, setDelay] = useState(500)
+    const [delay, setDelay] = useState(1000)
     const [showPassword, setShowPassword] = useState(false)
     const [savePassword, setSavePassword] = useState(true)
     const [fromName, setFromName] = useState("")
@@ -208,49 +211,89 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                 <div className="grid gap-6 pt-4 pb-4">
                     {/* Usage Limit Section */}
                     {session?.user && usageInfo && (
-                        <div className="p-4 rounded-lg border bg-neutral-50 dark:bg-neutral-900/50">
-                            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                                <Zap className="h-4 w-4 text-amber-500" />
-                                Account Usage
-                            </h3>
-                            {usageInfo.plan === "UNLIMITED" ? (
-                                <div className="text-sm text-green-600 font-medium flex items-center gap-2">
-                                    <CheckCircle className="h-4 w-4" />
-                                    Unlimited Plan Active
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-xs mb-1">
-                                        <span>Monthly Emails</span>
-                                        <span className={usageInfo.usage >= usageInfo.limit ? "text-red-500 font-bold" : ""}>
-                                            {usageInfo.usage} / {usageInfo.limit}
-                                        </span>
+                        <div className="mb-2">
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                            Subscription Plan
+                                        </CardTitle>
+                                        {usageInfo.plan === "UNLIMITED" ? (
+                                            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100">
+                                                Unlimited
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100">
+                                                Free Tier
+                                            </Badge>
+                                        )}
                                     </div>
-                                    <Progress value={(usageInfo.usage / usageInfo.limit) * 100} className="h-2" />
+                                </CardHeader>
+                                <CardContent>
+                                    {usageInfo.plan === "UNLIMITED" ? (
+                                        <div className="text-xs text-muted-foreground">
+                                            Your account has no sending limits. Enjoy unrestricted access.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="text-muted-foreground">Monthly Usage</span>
+                                                    <span className="font-medium">
+                                                        {usageInfo.usage} / {usageInfo.limit} emails
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    value={(usageInfo.usage / usageInfo.limit) * 100}
+                                                    className="h-2"
+                                                />
+                                            </div>
 
-                                    {usageInfo.usage >= usageInfo.limit && (
-                                        <div className="text-xs text-red-500 font-medium mt-2 flex items-center gap-1">
-                                            <XCircle className="h-3 w-3" />
-                                            Limit reached. Please upgrade.
+                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t mt-3">
+                                                <div className="space-y-1 mt-2">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-semibold">Resets On</p>
+                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                                                        <span>{format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1), 'MMM 1, yyyy')}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1 mt-2">
+                                                    <p className="text-[10px] uppercase text-muted-foreground font-semibold">Status</p>
+                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                        {usageInfo.usage >= usageInfo.limit ? (
+                                                            <>
+                                                                <AlertCircle className="h-3 w-3 text-red-500" />
+                                                                <span className="text-red-500 font-medium">Limit Reached</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                                                <span className="text-green-600 dark:text-green-400">Active</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <TooltipProvider>
+                                                <Tooltip delayDuration={0}>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="cursor-not-allowed w-full">
+                                                            <Button size="sm" className="w-full mt-2" variant="outline" disabled>
+                                                                Upgrade to Pro
+                                                            </Button>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>Upgrade coming soon!</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
                                         </div>
                                     )}
-
-                                    <TooltipProvider>
-                                        <Tooltip delayDuration={0}>
-                                            <TooltipTrigger asChild>
-                                                <div className="cursor-not-allowed w-full">
-                                                    <Button className="w-full mt-2" variant="outline" disabled>
-                                                        Upgrade to Pro
-                                                    </Button>
-                                                </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top">
-                                                <p>Upgrade coming soon!</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                            )}
+                                </CardContent>
+                            </Card>
                         </div>
                     )}
 
@@ -382,7 +425,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                     <div className="flex items-center justify-between pb-4">
                         <div className="text-xs text-muted-foreground">
                             <p>Manual Cron Start</p>
-                            <p>(Processes pending emails)</p>
+                            <p>(Processes pending & failed emails)</p>
                         </div>
                         <Button variant="outline" size="sm" disabled={startingCron} onClick={async () => {
                             if (startingCron) return; // Idempotency guard
@@ -396,18 +439,24 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                                 if (res.ok) {
                                     const processed = data.processed ?? 0;
                                     const futureCount = data.futurePendingCount ?? 0;
-                                    const failed = data.failed ?? 0;
+
+                                    // Calculate stats from results if available
+                                    const results = data.results || [];
+                                    const successCount = results.filter((r: any) => r.status === 'SENT').length;
+                                    const failCount = results.filter((r: any) => r.status === 'FAILED').length;
 
                                     if (processed === 0 && futureCount === 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending emails to process.` });
+                                        setStatusMsg({ type: 'success', text: `✓ Queue empty – no pending or failed emails to process.` });
                                     } else if (processed === 0 && futureCount > 0) {
                                         setStatusMsg({ type: 'success', text: `✓ No emails due now. ${futureCount} email${futureCount !== 1 ? 's' : ''} scheduled for later delivery.` });
-                                    } else if (processed > 0 && failed === 0) {
-                                        setStatusMsg({ type: 'success', text: `✓ Successfully sent ${processed} email${processed !== 1 ? 's' : ''}!${futureCount > 0 ? ` ${futureCount} more scheduled for later.` : ' Queue complete.'}` });
-                                    } else if (processed > 0 && failed > 0) {
-                                        setStatusMsg({ type: 'error', text: `Sent ${processed}, failed ${failed}.${futureCount > 0 ? ` ${futureCount} more scheduled.` : ''}` });
+                                    } else if (processed > 0) {
+                                        if (failCount === 0) {
+                                            setStatusMsg({ type: 'success', text: `✓ Successfully processed ${processed} email${processed !== 1 ? 's' : ''}!${futureCount > 0 ? ` ${futureCount} more scheduled.` : ''}` });
+                                        } else {
+                                            setStatusMsg({ type: 'error', text: `Processed ${processed} emails: ${successCount} sent, ${failCount} failed.${futureCount > 0 ? ` ${futureCount} more scheduled.` : ''}` });
+                                        }
                                     } else {
-                                        setStatusMsg({ type: 'success', text: `✓ Processing complete. ${futureCount > 0 ? `${futureCount} emails scheduled.` : 'Queue empty.'}` });
+                                        setStatusMsg({ type: 'success', text: `✓ Processing complete.` });
                                     }
                                 } else {
                                     setStatusMsg({ type: 'error', text: "Error: " + data.error });
