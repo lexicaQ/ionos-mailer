@@ -41,8 +41,9 @@ export function ResponsiveModal({
     trigger,
     className,
     headerActions,
-    forceDialog
-}: ResponsiveModalProps & { headerActions?: React.ReactNode, forceDialog?: boolean }) {
+    forceDialog,
+    onOpenAutoFocus
+}: ResponsiveModalProps & { headerActions?: React.ReactNode, forceDialog?: boolean, onOpenAutoFocus?: (event: Event) => void }) {
     // This hook is key - it swaps component based on screen size
     const isDesktop = useMediaQuery("(min-width: 768px)")
 
@@ -51,7 +52,7 @@ export function ResponsiveModal({
         return (
             <Dialog open={open} onOpenChange={onOpenChange}>
                 {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-                <DialogContent className={className}>
+                <DialogContent className={className} onOpenAutoFocus={onOpenAutoFocus}>
                     {/* Header Actions - Positioned to the left of the Close button */}
                     {headerActions && (
                         <div className="absolute right-12 top-4 z-50 flex items-center gap-2">

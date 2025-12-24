@@ -46,13 +46,13 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [usageInfo, setUsageInfo] = useState<any>(null)
 
     useEffect(() => {
-        if (open && session?.user) {
+        if (session?.user && !usageInfo) {
             fetch('/api/user/limit')
                 .then(res => res.json())
                 .then(data => setUsageInfo(data))
                 .catch(err => console.error("Failed to fetch limits", err));
         }
-    }, [open, session]);
+    }, [session, usageInfo]);
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -205,6 +205,7 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             className="sm:max-w-[650px] flex flex-col max-h-[85vh] my-auto"
             headerActions={syncIndicator}
             forceDialog={true}
+            onOpenAutoFocus={(e) => e.preventDefault()}
         >
             <ScrollArea className="flex-1 h-full max-h-[60vh] md:max-h-[70vh] pr-4 overflow-y-auto">
 
