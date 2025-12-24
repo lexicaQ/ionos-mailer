@@ -42,9 +42,11 @@ interface RecipientInputProps {
     externalRecipients?: { email: string; id?: string }[];
     // NEW: Allow injecting custom action button (Import)
     customAction?: React.ReactNode;
+    // NEW: Notify parent about validation state
+    onValidationChange?: (isValidating: boolean) => void;
 }
 
-export function RecipientInput({ onRecipientsChange, disabled, externalRecipients, customAction }: RecipientInputProps) {
+export function RecipientInput({ onRecipientsChange, disabled, externalRecipients, customAction, onValidationChange }: RecipientInputProps) {
     const [rawInput, setRawInput] = useState("")
     const [parsedRecipients, setParsedRecipients] = useState<ExtendedRecipientStatus[]>([])
     const [activeTab, setActiveTab] = useState("valid")
@@ -112,13 +114,17 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
     // Helper: Check duplicates (excludes whitelisted emails)
     const processDuplicates = async (recipients: RecipientStatus[]): Promise<ExtendedRecipientStatus[]> => {
         // Show loading spinner quickly for near-instant feedback
-        const loadingTimer = setTimeout(() => setIsChecking(true), 100);
+        const loadingTimer = setTimeout(() => {
+            setIsChecking(true);
+            onValidationChange?.(true);
+        }, 100);
 
         try {
             const emailList = recipients.map(r => r.email);
             if (emailList.length === 0) {
                 clearTimeout(loadingTimer);
                 setIsChecking(false);
+                onValidationChange?.(false);
                 return recipients;
             }
 
@@ -150,6 +156,7 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
         } finally {
             clearTimeout(loadingTimer);
             setIsChecking(false);
+            onValidationChange?.(false);
         }
     };
 
@@ -341,9 +348,9 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
-                            <span className="flex items-center gap-2 text-neutral-900 dark:text-neutral-100 font-medium animate-pulse">
-                                <ScanSearch className="h-4 w-4 animate-spin duration-700" />
-                                Analyzing recipients...
+                            <span className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                                <ScanSearch className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+                                Validating recipients...
                             </span>
                         ) : (
                             <span className="text-xs flex items-center gap-2 text-muted-foreground">

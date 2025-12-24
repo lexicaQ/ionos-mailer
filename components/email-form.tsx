@@ -56,6 +56,7 @@ export function EmailForm() {
     const historyManuallyCleared = useRef(false) // Track if user cleared history
     const [startImmediately, setStartImmediately] = useState(true)
     const [isBackgroundForced, setIsBackgroundForced] = useState(false)
+    const [isValidating, setIsValidating] = useState(false)
 
     // Load history from localStorage on mount
     useEffect(() => {
@@ -628,6 +629,7 @@ export function EmailForm() {
                         onRecipientsChange={handleRecipientsChange}
                         disabled={isSending}
                         externalRecipients={loadedRecipients}
+                        onValidationChange={setIsValidating}
                         customAction={
                             <Button
                                 type="button"
@@ -816,14 +818,20 @@ export function EmailForm() {
                         />
                         <Button
                             type="submit"
-                            disabled={isSending || recipients.length === 0}
+                            disabled={isSending || isValidating || recipients.length === 0}
                             size="lg"
-                            className="flex-1 h-14 text-lg font-semibold bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100 shadow-md transition-all"
+                            className="flex-1 h-14 text-lg font-semibold bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100 shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                            title={isValidating ? "Checking recipients for duplicates..." : ""}
                         >
                             {isSending ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                                     {useBackground ? "Creating Campaign..." : "Sending Emails..."}
+                                </>
+                            ) : isValidating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-neutral-400" />
+                                    Validating Recipient List...
                                 </>
                             ) : (
                                 <>
