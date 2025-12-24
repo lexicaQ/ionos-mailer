@@ -35,21 +35,24 @@ export async function checkUsageStatus(
     ipAddress?: string,
     smtpEmail?: string
 ): Promise<UsageStatus> {
-    // 1. Check if user is Legacy (Unlimited)
+    // 1. Check user plan from database
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { createdAt: true }
+        select: {
+            plan: true,
+            createdAt: true
+        }
     });
 
     if (!user) {
         throw new Error("User not found");
     }
 
-    // Legacy Check: If created before start date, UNLIMITED
-    if (user.createdAt < LIMIT_START_DATE) {
+    // Check plan from database (UNLIMITED for legacy users, FREE for new users)
+    if (user.plan === "UNLIMITED") {
         return {
             isLimited: false,
-            usage: 0, // We don't strictly track usage for unlimited users to save DB load
+            usage: 0, // We don't track usage for unlimited users
             limit: Infinity,
             remaining: Infinity,
             plan: "UNLIMITED"

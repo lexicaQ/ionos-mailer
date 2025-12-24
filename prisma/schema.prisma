@@ -28,6 +28,10 @@ model User {
   drafts        Draft[]
   sentEmails    SentEmail[]
   smtpSettings  SmtpSettings?
+  monthlyUsage  UserMonthlyUsage[]
+  
+  // Account Plan
+  plan          String    @default("FREE") // "FREE" or "UNLIMITED"
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -142,6 +146,24 @@ model SentEmail {
   sentAt      DateTime @default(now())
   
   @@index([userId])
+}
+
+// Monthly Usage Tracking (Visible in Neon Console)
+model UserMonthlyUsage {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  year          Int      // e.g., 2025
+  month         Int      // 1-12
+  emailsSent    Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([userId, year, month])
+  @@index([userId])
+  @@index([year, month])
 }
 
 model SmtpSettings {
