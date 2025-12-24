@@ -1,6 +1,6 @@
 # IONOS Mailer
 
-A professional, high-performance email marketing application designed for privacy, security, and scalability. Built on **Next.js 16**, **TypeScript**, and **PostgreSQL**, it offers a robust alternative to commercial SaaS platforms by leveraging your own SMTP infrastructure (IONOS, AWS SES, SendGrid, etc.) while ensuring strict data isolation and sovereignty.
+A professional, high-performance email marketing application designed for privacy, security, and scalability. Built on **Next.js 16**, **TypeScript**, and **Neon (Serverless PostgreSQL)**, it offers a robust alternative to commercial SaaS platforms by leveraging your own SMTP infrastructure (IONOS, AWS SES, SendGrid, etc.) while ensuring strict data isolation and sovereignty.
 
 This documentation serves as the comprehensive technical specification and operational guide.
 
@@ -13,10 +13,10 @@ This documentation serves as the comprehensive technical specification and opera
 ### Core Technology Stack
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript (Strict Mode)
-- **Database**: PostgreSQL (Managed via Prisma ORM)
-- **Authentication**: NextAuth.js v5 (Auth.js) with secure, HTTP-only JWT sessions
+- **Database**: **Neon** (Serverless PostgreSQL) managed via Prisma ORM
+- **Authentication**: NextAuth.js v5 (Auth.js) + **Passkeys (WebAuthn)**
 - **UI Architecture**: React Server Components (RSC) with Tailwind CSS v4 and Shadcn/UI
-- **Cryptography**: Node.js Crypto Module (AES-256-GCM)
+- **Cryptography**: Node.js Crypto Module (AES-256-GCM) + Client-side encryption
 
 ---
 
@@ -25,6 +25,10 @@ This documentation serves as the comprehensive technical specification and opera
 ### 2.1 Smart Cloud Sync & Background Architecture
 IONOS Mailer utilizes a modern, serverless-compatible architecture that ensures reliability even when the application frontend is closed.
 
+*   **Polling & Synchronization**: The application intelligently polls the database for changes.
+    *   **Live Tracker**: When the live tracking modal is open, the frontend polls the backend every 2-5 seconds to provide near real-time updates.
+    *   **Background Sync**: Every minute, the system reconciles local state with server state to ensure consistency across devices.
+    *   **Optimization**: Polling intervals are dynamic. They back off when the tab is inactive to save resources and Neon compute units.
 *   **External Cron Service (cron-job.org)**: The sending engine is triggered by an external cron service (cron-job.org) that calls the `/api/cron/process` endpoint every **1 minute**. This ensures emails are processed reliably without requiring the browser tab to remain open.
 *   **Draft Cloud Sync**: Seamlessly synchronize your drafts across devices. Start writing on your desktop and finish on your mobile device. Changes are intelligently merged using a server-side resolution strategy. **Drafts are encrypted at rest.**
 
@@ -38,7 +42,9 @@ Security is architected on a "Zero-Trust" model, assuming that the database laye
     -   **Campaign Data** (sender name, campaign name, attachment filenames)
     -   **Key Management**: The `ENCRYPTION_KEY` resides strictly in the runtime environment variables and is never persisted to the database.
     -   **Storage Format**: `salt:iv:authTag:ciphertext`. Decryption is mathematically impossible without the environment key.
--   **Authentication**: User passwords are hashed using **Bcrypt** (Salted, 10 rounds).
+-   **Authentication**:
+    -   **Passkeys (WebAuthn)**: Support for passwordless biometric login (FaceID, TouchID, Windows Hello).
+    -   **Fallback**: User passwords are hashed using **Bcrypt** (Salted, 10 rounds).
 -   **Session Management**: Secure, HTTP-only cookies prevent XSS vectors.
 
 ### 2.3 Privacy-First Analytics
@@ -50,12 +56,12 @@ Analytics functionality provides actionable insights without compromising recipi
 ### 2.4 Usage Limits & Fraud Prevention
 To ensure platform stability and prevent abuse, a sophisticated limiting system is implemented for new accounts created after Dec 24, 2025.
 
--   **Freemium Model**: New users are limited to **100 emails pro month**. Legacy users remain unlimited.
+-   **Freemium Model**: New users are limited to **100 emails per month**. Legacy users remain unlimited.
 -   **Multi-Vector Limit Enforcement**: Attempts to bypass limits are detected and blocked using a privacy-preserving fingerprinting system:
     -   **User ID Limit**: Basic account-level check.
     -   **IP Hash Limit**: Blocks creating multiple free accounts from the same IP address. The IP is **hashed (SHA-256)** with a secret pepper before storage, ensuring the raw IP is never readable in the database but can still be used for abuse detection.
     -   **SMTP User Hash Limit**: Blocks using the same IONOS credentials across multiple application accounts.
--   **Limit Notification**: Users are notified in the UI when they reach their limit, with a prompt to upgrade (future feature).
+-   **Limit Notification**: Users are notified in the UI when they reach their limit.
 
 ---
 
@@ -67,7 +73,7 @@ The application is strictly single-tenant logical storage. All data is scoped to
 | Data Point | Storage Mechanism | Access Level |
 | :--- | :--- | :--- |
 | **User Identity** | Plain Text (Email) | Application Login |
-| **Authentication** | Bcrypt Hash | **Private** (Irreversible) |
+| **Authentication** | Bcrypt Hash / WebAuthn | **Private** (Irreversible) |
 | **SMTP Credentials** | AES-256 Encrypted | **Strictly Private** (Decrypted only in RAM) |
 | **Recipient Info** | AES-256 Encrypted | **Strictly Private** (Privacy Protection) |
 | **Tracking Logs** | Timestamp & IP | Analytics (Opened Status only) |
@@ -80,17 +86,11 @@ Prisma Studio provides a GUI for inspecting your database records.
 1.  Navigate to the project root in your terminal.
 2.  Execute: `npx prisma studio`
 3.  Access the dashboard at `http://localhost:5555`.
-    -   **Inspect Traffic**: View the `Job` table to see distinct recipients and timestamps.
-    -   **Verify Security**: Inspect the `SmtpSettings` table to confirm that passwords are stored as encrypted cipherstrings.
 
-#### Method 2: Database Provider Console
-If hosted on managed infrastructure (Neon, Supabase, AWS RDS):
-1.  Log in to your provider's console.
-2.  Use the built-in SQL Editor or Table Explorer.
-
-#### Method 3: SQL Client Connection
-Connect via any standard PostgreSQL client (TablePlus, DBeaver, Postico).
--   **Connection String**: Use the `POSTGRES_URL` defined in your environment variables.
+#### Method 2: Database Provider Console (Neon)
+If hosted on Neon:
+1.  Log in to the [Neon Console](https://console.neon.tech).
+2.  Use the SQL Editor to query your tables directly.
 
 ---
 
@@ -98,7 +98,7 @@ Connect via any standard PostgreSQL client (TablePlus, DBeaver, Postico).
 
 ### 4.1 Prerequisites
 -   **Node.js**: v18.17.0 (LTS) or higher.
--   **PostgreSQL Database**: A valid connection string (Local or Cloud-hosted).
+-   **Neon Database**: A [Neon](https://neon.tech) project (Free Tier is sufficient).
 -   **Git**: Version control system.
 
 ### 4.2 Local Environment Setup
@@ -115,13 +115,13 @@ Connect via any standard PostgreSQL client (TablePlus, DBeaver, Postico).
     ```
 
 3.  **Environment Configuration**
-    Create a `.env` file in the root directory. Populate it with the following secure configuration:
+    Create a `.env` file in the root directory. You must populate it with the following secure configuration:
 
     ```env
-    # Database Configuration
-    # Use 'pgbouncer=true' for serverless environments (Neon/Supabase)
-    POSTGRES_PRISMA_DATABASE_URL="postgresql://user:pass@host:5432/db?sslmode=require&pgbouncer=true"
-    POSTGRES_URL="postgresql://user:pass@host:5432/db?sslmode=require"
+    # Database Configuration (Get string from Neon Dashboard)
+    # MUST contain 'pgbouncer=true' for connection pooling support
+    POSTGRES_PRISMA_DATABASE_URL="postgresql://user:pass@ep-xyz.region.neon.tech/neondb?sslmode=require&pgbouncer=true"
+    POSTGRES_URL="postgresql://user:pass@ep-xyz.region.neon.tech/neondb?sslmode=require"
 
     # Cryptographic Secrets
     # Generate these using `openssl rand -base64 32`
@@ -133,8 +133,8 @@ Connect via any standard PostgreSQL client (TablePlus, DBeaver, Postico).
     NEXT_PUBLIC_BASE_URL="http://localhost:3000"
     ```
 
-4.  **Database Initialization**
-    Push the schema to your PostgreSQL instance.
+4.  **Database Migration**
+    Push the schema to your Neon instance.
     ```bash
     npx prisma db push
     ```
@@ -170,4 +170,4 @@ The service will ping your application every **1 minute** to process queued camp
 
 ---
 
-*Verified Documentation - Dec 2025*
+*Documentation Version 1.0.0 - Dec 2025*
