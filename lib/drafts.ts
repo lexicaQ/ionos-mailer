@@ -247,9 +247,13 @@ export async function saveDraft(draft: Omit<EmailDraft, 'id' | 'createdAt' | 'up
 
 /**
  * Delete a draft by ID (Async)
+ * Throws error if cloud delete fails to ensure UI is aware
  */
 export async function deleteDraft(id: string): Promise<void> {
-    // Cloud Delete FIRST (await for sync)
+    // Delete locally FIRST (optimistic)
+    await deleteDraftDB(id);
+    
+    // Then sync to cloud
     try {
         const res = await fetch('/api/sync/drafts', {
             method: 'DELETE',
@@ -258,17 +262,15 @@ export async function deleteDraft(id: string): Promise<void> {
         });
 
         if (!res.ok) {
-            const error = await res.json().catch(() => ({}));
-            console.error("Cloud delete failed:", error);
-            // Still delete locally but throw after
+            const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+            // Throw error to let caller know cloud sync failed
+            throw new Error(`Cloud delete failed: ${error.error || res.statusText}`);
         }
     } catch (e) {
-        console.error("Cloud delete request failed:", e);
-        // Continue to delete locally even if cloud fails
+        // Re-throw to propagate to UI
+        console.error("Cloud delete failed:", e);
+        throw e;
     }
-
-    // Then delete locally
-    await deleteDraftDB(id);
 }
 
 /**

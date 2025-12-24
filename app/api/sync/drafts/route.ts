@@ -139,8 +139,25 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "Draft ID is required" }, { status: 400 })
         }
 
+        // Check if draft exists and user owns it
+        const existing = await prisma.draft.findUnique({
+            where: { id },
+            select: { userId: true }
+        })
+
+        if (!existing) {
+            // Draft doesn't exist - might already be deleted, return success
+            console.log(`Draft ${id} not found - already deleted`)
+            return NextResponse.json({ success: true, alreadyDeleted: true })
+        }
+
+        if (existing.userId !== session.user.id) {
+            return NextResponse.json({ error: "Unauthorized - not your draft" }, { status: 403 })
+        }
+
+        // Delete the draft
         await prisma.draft.delete({
-            where: { id, userId: session.user.id },
+            where: { id },
         })
 
         return NextResponse.json({ success: true })
@@ -149,4 +166,3 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: "Failed to delete draft" }, { status: 500 })
     }
 }
-
