@@ -775,7 +775,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                 </div>
 
                                 {/* Recipient - THIRD (constrained width on mobile) */}
-                                <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none pr-2">
+                                <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none">
                                     <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                         {job.recipient}
                                     </div>
