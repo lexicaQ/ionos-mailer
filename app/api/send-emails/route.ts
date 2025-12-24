@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { encrypt, decrypt } from '@/lib/encryption';
 
 import { auth } from "@/auth";
+import { checkUsageStatus, hashIdentifier } from '@/lib/usage-limit';
 
 export async function POST(req: Request) {
     try {
@@ -35,6 +36,43 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
         }
 
+        // Usage Limit Check
+        // --------------------------------------------------------------------------------
+
+        // 1. Get Identifiers
+        const ip = req.headers.get("x-forwarded-for")?.split(',')[0] || "unknown";
+        const smtpUser = smtpSettings.user;
+
+        // 2. Check Status
+        // Only enforce limits if session/user exists (anonymous might be blocked or strict)
+        // Since we enforced auth for user creation, effectiveUserId should be valid for registered users.
+        const usageStatus = await checkUsageStatus(effectiveUserId, ip, smtpUser);
+
+        // 3. Block if Limit Exceeded
+
+        if (usageStatus.plan === "FREE") {
+            const requestedCount = recipients.length;
+            if (usageStatus.usage + requestedCount > usageStatus.limit) {
+                return NextResponse.json(
+                    {
+                        error: 'Monthly usage limit exceeded',
+                        details: {
+                            message: `You have reached your Free Tier limit of ${usageStatus.limit} emails/month.`,
+                            usage: usageStatus.usage,
+                            limit: usageStatus.limit,
+                            plan: "FREE",
+                            upgrade: true
+                        }
+                    },
+                    { status: 403 }
+                );
+            }
+        }
+
+        const ipHash = hashIdentifier(ip);
+        const smtpHash = hashIdentifier(smtpUser);
+        // --------------------------------------------------------------------------------
+
         // 1. Create Campaign for Direct Send (Async Mode)
         // Store REAL SMTP settings for Cron. Mark name="DIRECT" for History Sync.
         const campaign = await prisma.campaign.create({
@@ -47,6 +85,11 @@ export async function POST(req: Request) {
                 secure: smtpSettings.secure,
                 fromName: smtpSettings.fromName ? encrypt(smtpSettings.fromName, encryptionKey) : null,
                 name: "DIRECT",
+
+                // Track Usage Vectors
+                senderIpHash: ipHash,
+                smtpUserHash: smtpHash,
+
                 attachments: attachments && attachments.length > 0 ? {
                     create: attachments.map((att: any) => ({
                         filename: encrypt(att.filename, encryptionKey),

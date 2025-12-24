@@ -226,6 +226,9 @@ export function EmailForm() {
 
             if (!response.ok) {
                 const errorData = await response.json();
+                if (errorData.details?.message) {
+                    throw new Error(errorData.details.message);
+                }
                 throw new Error(errorData.error || "Sending failed");
             }
 

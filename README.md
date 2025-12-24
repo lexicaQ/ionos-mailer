@@ -47,6 +47,16 @@ Analytics functionality provides actionable insights without compromising recipi
 -   **Open Tracking**: A proprietary 1x1 tracking pixel is injected into outgoing emails. Load events are captured by a dedicated API endpoint (`/api/track/open/...`) which records the timestamp and logs an "Opened" status in the `Job` table.
 -   **Click Tracking**: Links are dynamically rewritten to route through the application (`/api/track/click/...`). This allows for capture of engagement metrics prior to a seamless 302 redirect.
 
+### 2.4 Usage Limits & Fraud Prevention
+To ensure platform stability and prevent abuse, a sophisticated limiting system is implemented for new accounts created after Dec 24, 2025.
+
+-   **Freemium Model**: New users are limited to **100 emails pro month**. Legacy users remain unlimited.
+-   **Multi-Vector Limit Enforcement**: Attempts to bypass limits are detected and blocked using a privacy-preserving fingerprinting system:
+    -   **User ID Limit**: Basic account-level check.
+    -   **IP Hash Limit**: Blocks creating multiple free accounts from the same IP address. The IP is **hashed (SHA-256)** with a secret pepper before storage, ensuring the raw IP is never readable in the database but can still be used for abuse detection.
+    -   **SMTP User Hash Limit**: Blocks using the same IONOS credentials across multiple application accounts.
+-   **Limit Notification**: Users are notified in the UI when they reach their limit, with a prompt to upgrade (future feature).
+
 ---
 
 ## 3. Data Sovereignty & Management

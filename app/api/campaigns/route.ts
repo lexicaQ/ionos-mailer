@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
 import { emailFormSchema } from '@/lib/schemas';
 import { auth } from '@/auth';
+import { checkUsageStatus, hashIdentifier } from '@/lib/usage-limit';
 
 export async function POST(req: Request) {
     try {
@@ -28,6 +29,37 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Server misconfiguration: No Encryption Key" }, { status: 500 });
         }
 
+        // Usage Limit Check
+        // --------------------------------------------------------------------------------
+
+        const ip = req.headers.get("x-forwarded-for")?.split(',')[0] || "unknown";
+        const smtpUser = smtpSettings.user;
+
+        const usageStatus = await checkUsageStatus(userId, ip, smtpUser);
+
+        if (usageStatus.plan === "FREE") {
+            const requestedCount = recipients.length;
+            if (usageStatus.usage + requestedCount > usageStatus.limit) {
+                return NextResponse.json(
+                    {
+                        error: 'Monthly usage limit exceeded',
+                        details: {
+                            message: `You have reached your Free Tier limit of ${usageStatus.limit} emails/month.`,
+                            usage: usageStatus.usage,
+                            limit: usageStatus.limit,
+                            plan: "FREE",
+                            upgrade: true
+                        }
+                    },
+                    { status: 403 }
+                );
+            }
+        }
+
+        const ipHash = hashIdentifier(ip);
+        const smtpHash = hashIdentifier(smtpUser);
+        // --------------------------------------------------------------------------------
+
         // 1. Create Campaign with encrypted sensitive fields
         const { attachments } = json;
 
@@ -41,6 +73,11 @@ export async function POST(req: Request) {
                 fromName: smtpSettings.fromName ? encrypt(smtpSettings.fromName, secretKey) : null, // Encrypt sender name
                 name: json.name ? encrypt(json.name, secretKey) : null, // Encrypt campaign name
                 userId: userId, // SECURE: Use authenticated user ID
+
+                // Track Usage Vectors
+                senderIpHash: ipHash,
+                smtpUserHash: smtpHash,
+
                 attachments: attachments && attachments.length > 0 ? {
                     create: attachments.map((att: any) => ({
                         filename: encrypt(att.filename, secretKey), // Encrypt filename

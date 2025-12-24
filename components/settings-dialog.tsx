@@ -13,6 +13,8 @@ import { SmtpConfig } from "@/lib/mail"
 import { Settings, Save, RotateCcw, Eye, EyeOff, Zap, CheckCircle, XCircle, RefreshCw, Trash2, Cloud, Check } from "lucide-react"
 import { toast } from "sonner"
 import { PasskeyManager } from "@/components/passkey-manager"
+import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 
 
@@ -38,6 +40,16 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
     const [startingCron, setStartingCron] = useState(false)
     const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
     const [hasLoaded, setHasLoaded] = useState(false)
+    const [usageInfo, setUsageInfo] = useState<any>(null)
+
+    useEffect(() => {
+        if (open && session?.user) {
+            fetch('/api/user/limit')
+                .then(res => res.json())
+                .then(data => setUsageInfo(data))
+                .catch(err => console.error("Failed to fetch limits", err));
+        }
+    }, [open, session]);
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -194,6 +206,53 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
             <ScrollArea className="flex-1 h-full max-h-[60vh] md:max-h-[70vh] pr-4 overflow-y-auto">
 
                 <div className="grid gap-6 pt-4 pb-4">
+                    {/* Usage Limit Section */}
+                    {session?.user && usageInfo && (
+                        <div className="p-4 rounded-lg border bg-neutral-50 dark:bg-neutral-900/50">
+                            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-amber-500" />
+                                Account Usage
+                            </h3>
+                            {usageInfo.plan === "UNLIMITED" ? (
+                                <div className="text-sm text-green-600 font-medium flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4" />
+                                    Unlimited Plan Active
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span>Monthly Emails</span>
+                                        <span className={usageInfo.usage >= usageInfo.limit ? "text-red-500 font-bold" : ""}>
+                                            {usageInfo.usage} / {usageInfo.limit}
+                                        </span>
+                                    </div>
+                                    <Progress value={(usageInfo.usage / usageInfo.limit) * 100} className="h-2" />
+
+                                    {usageInfo.usage >= usageInfo.limit && (
+                                        <div className="text-xs text-red-500 font-medium mt-2 flex items-center gap-1">
+                                            <XCircle className="h-3 w-3" />
+                                            Limit reached. Please upgrade.
+                                        </div>
+                                    )}
+
+                                    <TooltipProvider>
+                                        <Tooltip delayDuration={0}>
+                                            <TooltipTrigger asChild>
+                                                <div className="cursor-not-allowed w-full">
+                                                    <Button className="w-full mt-2" variant="outline" disabled>
+                                                        Upgrade to Pro
+                                                    </Button>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">
+                                                <p>Upgrade coming soon!</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
 
                     {/* Server Settings */}

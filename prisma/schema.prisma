@@ -179,6 +179,10 @@ model Campaign {
   fromName  String?    // Optional sender display name
   name      String?    // Optional campaign name for UI organization
   
+  // Usage Limiting & Privacy
+  senderIpHash String?  // SHA-256 hash of sender's IP (for rate limiting)
+  smtpUserHash String?  // SHA-256 hash of SMTP username (for preventing multi-account abuse)
+  
   // Privacy
   userId    String     @default("anonymous")
   
