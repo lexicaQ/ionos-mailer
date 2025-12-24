@@ -685,7 +685,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
                     <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-2 py-2 flex text-[10px] font-bold text-muted-foreground uppercase tracking-wider gap-1">
                         <div className="w-[65px] sm:w-[100px]">Status</div>
-                        <div className="w-[45px] sm:w-[110px]">Opened</div>
+                        <div className="w-[60px] sm:w-[110px]">Opened</div>
                         <div className="flex-1 min-w-0">Recipient</div>
                         <div className="w-[45px] sm:w-[140px] text-right">Time</div>
                     </div>
@@ -760,22 +760,24 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                 </div>
 
                                 {/* Opened Status - SECOND */}
-                                <div className="w-[45px] sm:w-[110px] flex-shrink-0">
+                                <div className="w-[60px] sm:w-[110px] flex-shrink-0">
                                     {job.openedAt ? (
-                                        <div className="flex flex-col leading-none sm:leading-tight">
-                                            <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide whitespace-nowrap">
-                                                <span className="block sm:inline">{format(new Date(job.openedAt), "dd.MM")}</span>
-                                                <span className="hidden sm:inline"> at </span>
-                                                <span className="block sm:inline">{format(new Date(job.openedAt), "HH:mm")}</span>
+                                        <div className="flex flex-col leading-tight">
+                                            <div className="text-green-600 dark:text-green-500 font-medium text-[9px] sm:text-[10px] tracking-wide">
+                                                {/* Mobile: Two lines (Date, then Time) */}
+                                                <span className="block sm:hidden">{format(new Date(job.openedAt), "dd.MM")}</span>
+                                                <span className="block sm:hidden">{format(new Date(job.openedAt), "HH:mm")}</span>
+                                                {/* Desktop: One line (Date at Time) */}
+                                                <span className="hidden sm:inline">{format(new Date(job.openedAt), "dd.MM")} at {format(new Date(job.openedAt), "HH:mm")}</span>
                                             </div>
                                         </div>
                                     ) : (
-                                        <span className="text-[10px] text-muted-foreground pl-1 opacity-50">—</span>
+                                        <span className="text-[10px] text-muted-foreground opacity-50">—</span>
                                     )}
                                 </div>
 
-                                {/* Recipient - THIRD (constrained width on mobile) */}
-                                <div className="flex-1 min-w-0 max-w-[calc(100%-120px)] sm:max-w-none">
+                                {/* Recipient - THIRD */}
+                                <div className="flex-1 min-w-0 pl-1 sm:pl-0">
                                     <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
                                         {job.recipient}
                                     </div>
