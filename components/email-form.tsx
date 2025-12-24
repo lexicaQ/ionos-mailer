@@ -86,24 +86,22 @@ export function EmailForm() {
                 return;
             }
 
-            // 2. Merge with local history
-            setHistory(prev => {
+            // 2. Server is source of truth - use server data directly
+            // This ensures deletions on other devices are synced
+            setHistory(() => {
                 // Final safety check inside functional update
                 if (historyManuallyCleared.current) return [];
 
-                const map = new Map<string, HistoryBatch>()
-                // Populate map with CURRENT state (which might be [] if cleared)
-                prev.forEach(b => map.set(b.id, b))
+                // Server data IS the truth - local items not in server are deleted
+                const serverIds = new Set(serverData.map(b => b.id));
 
-                // Server data is authoritative for status
-                serverData.forEach(b => map.set(b.id, { ...map.get(b.id), ...b }))
-
-                const merged = Array.from(map.values()).sort((a, b) =>
+                // Use server data as base, sorted by date
+                const result = [...serverData].sort((a, b) =>
                     new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
-                )
+                );
 
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(merged))
-                return merged
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(result))
+                return result
             })
         } catch (error) {
             console.error("History sync failed", error)

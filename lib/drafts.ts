@@ -96,14 +96,28 @@ export async function loadDrafts(): Promise<EmailDraft[]> {
 
 /**
  * Sync drafts from cloud to local DB
+ * IMPORTANT: This also DELETES local drafts that no longer exist in cloud
  */
 export async function syncDrafts(): Promise<void> {
     try {
         const res = await fetch('/api/sync/drafts');
         if (res.ok) {
-            const { drafts } = await res.json();
-            if (Array.isArray(drafts)) {
-                for (const d of drafts) {
+            const { drafts: cloudDrafts } = await res.json();
+            if (Array.isArray(cloudDrafts)) {
+                // Get all local drafts
+                const localDrafts = await getAllDraftsDB();
+                const cloudIds = new Set(cloudDrafts.map((d: any) => d.id));
+
+                // DELETE local drafts that don't exist in cloud anymore
+                for (const local of localDrafts) {
+                    if (!cloudIds.has(local.id)) {
+                        console.log(`[Sync] Deleting local draft ${local.id} - not in cloud`);
+                        await deleteDraftDB(local.id);
+                    }
+                }
+
+                // UPSERT cloud drafts to local
+                for (const d of cloudDrafts) {
                     // Encrypt Cloud Data for Local Storage
                     const payload = {
                         subject: d.subject || "",
@@ -252,7 +266,7 @@ export async function saveDraft(draft: Omit<EmailDraft, 'id' | 'createdAt' | 'up
 export async function deleteDraft(id: string): Promise<void> {
     // Delete locally FIRST (optimistic)
     await deleteDraftDB(id);
-    
+
     // Then sync to cloud
     try {
         const res = await fetch('/api/sync/drafts', {
