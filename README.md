@@ -117,24 +117,46 @@ If hosted on Neon:
 
 3.  **Environment Configuration (Crucial Step)**
     This step connects your app to the database and secures it.
+    
     1.  In your project folder (root), create a new file named `.env`.
-    2.  Copy the following content into it:
+    2.  Copy the template below and fill in the values using the **"Where to find?"** guide below.
 
     ```env
-    # 1. DATABASE (Get this from Neon Console > Dashboard > Connection Details)
-    # Ensure you select " pooled" connection if available, or add ?pgbouncer=true manually
-    POSTGRES_PRISMA_DATABASE_URL="postgresql://neondb_owner:Cy7...example@ep-round...neon.tech/neondb?sslmode=require&pgbouncer=true"
-    POSTGRES_URL="postgresql://neondb_owner:Cy7...example@ep-round...neon.tech/neondb?sslmode=require"
+    # 1. DATABASE CONFIGURATION
+    POSTGRES_PRISMA_DATABASE_URL="postgresql://..." # Needs ?pgbouncer=true
+    POSTGRES_URL="postgresql://..."
 
-    # 2. SECURITY SECRETS (Generate new random strings for security)
-    # Run this command in terminal to generate a key: openssl rand -base64 32
-    AUTH_SECRET="your-generated-32-char-secret-here"
-    ENCRYPTION_KEY="your-generated-32-char-secret-here" 
-    CRON_SECRET="create-a-random-password-for-cron"
+    # 2. SECURITY SECRETS (You generate these)
+    AUTH_SECRET="<generate-new>"
+    ENCRYPTION_KEY="<generate-new>" 
+    CRON_SECRET="<create-your-own>"
 
-    # 3. PUBLIC URL
+    # 3. APP URL
     NEXT_PUBLIC_BASE_URL="http://localhost:3000"
     ```
+    
+    ### 🕵️‍♂️ Where to find these values?
+
+    **1. DATABASE URLs (`POSTGRES_...`)**
+    *   Go to [Neon Console](https://console.neon.tech/app/projects).
+    *   Select your project.
+    *   On the **Dashboard**, look for **Connection Details**.
+    *   **Important**: Check the box **"Pooled connection"** (top right of the code block).
+    *   Copy the connection string.
+    *   Paste it into *both* `POSTGRES_PRISMA_DATABASE_URL` and `POSTGRES_URL`.
+    *   *Verify*: The URL should end with `?sslmode=require&pgbouncer=true` (or similar). If `pgbouncer=true` is missing from the first one, add it manually!
+
+    **2. SECURITY SECRETS (`AUTH_` / `ENCRYPTION_KEY`)**
+    *   These are master keys you create. Do not reuse keys from other projects.
+    *   **Mac/Linux Terminal**: Run this command twice:
+        ```bash
+        openssl rand -base64 32
+        ```
+    *   Copy the output (a long random string) and paste it into `AUTH_SECRET` and `ENCRYPTION_KEY`.
+
+    **3. CRON SECRET**
+    *   Invent a secure password (e.g., `SecureCronTrigger2025!`).
+    *   Paste it here. You will need this password later for Step 4.4.
 
 4.  **Database Migration**
     Push the schema to your Neon instance.
