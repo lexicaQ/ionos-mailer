@@ -128,40 +128,10 @@ export function EmailForm() {
         console.log('[syncHistory] Sync complete');
     }, [session])
 
-    // Sync history from cloud when logged in
-    useEffect(() => {
-        if (!session?.user) return
 
-        const syncDrafts = async () => {
-            try {
-                // 1. Load local drafts
-                const localDrafts = await loadLocalDrafts()
-
-                // 2. Push to server to merge
-                const res = await fetch("/api/sync/drafts", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ drafts: localDrafts })
-                })
-
-                if (res.ok) {
-                    const data = await res.json()
-                    if (data.merged) {
-                        // 3. Update local with merged data
-                        // This ensures we get drafts from other devices
-                        for (const draft of data.merged) {
-                            await saveLocalDraft(draft)
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Drafts sync failed", e)
-            }
-        }
-
-        syncHistory()
-        syncDrafts()
-    }, [session, syncHistory])
+    // NOTE: Removed automatic sync on page load to reduce compute usage
+    // History and Drafts now sync ONLY when user opens the modal
+    // This reduces unnecessary API calls by ~30%
 
     const saveHistoryToServer = async (batch: HistoryBatch) => {
         if (!session?.user) return

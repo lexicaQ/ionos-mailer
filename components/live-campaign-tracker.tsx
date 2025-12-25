@@ -201,10 +201,8 @@ export function LiveCampaignTracker() {
 
 
 
-    // Separate Effect for Intervals to avoid resetting timer when campaigns update
+    // Event listeners for instant updates (NO automatic polling)
     useEffect(() => {
-        // NO automatic fetch on mount - only fetch when modal opens or events trigger
-
         // Debounce handler for creation events (prevent multiple rapid calls)
         let debounceTimer: NodeJS.Timeout | null = null;
         const handleCreation = () => {
@@ -215,53 +213,6 @@ export function LiveCampaignTracker() {
         };
         window.addEventListener('campaign-created', handleCreation);
 
-        // SMART POLLING: Only when necessary (replaces 1s ultra-fast polling)
-        let pollInterval: NodeJS.Timeout | null = null;
-
-        const shouldPoll = () => {
-            // Only poll if:
-            // 1. Modal is open
-            // 2. There are active campaigns (pending emails)
-            // 3. Browser tab is visible
-            const hasActiveCampaigns = activeCampaigns.length > 0;
-            const isVisible = document.visibilityState === 'visible';
-            return open && hasActiveCampaigns && isVisible;
-        };
-
-        const startPolling = () => {
-            if (pollInterval) return; // Already polling
-
-            if (shouldPoll()) {
-                // Optimized to 7s for balanced sync and reduced DB load
-                pollInterval = setInterval(() => {
-                    if (shouldPoll()) {
-                        fetchCampaigns(true);
-                    } else {
-                        stopPolling();
-                    }
-                }, 7000); // 7 seconds for optimal balance
-            }
-        };
-
-        const stopPolling = () => {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-        };
-
-        // Browser visibility change handler
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                stopPolling(); // Pause when tab inactive
-            } else if (open) {
-                fetchCampaigns(true); // Refresh on tab activation
-                startPolling();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
         // Instant sync on campaign updates
         const handleUpdate = () => {
             console.log('[LiveTracker] Update event, fetching immediately...');
@@ -270,37 +221,20 @@ export function LiveCampaignTracker() {
         window.addEventListener('campaign-updated', handleUpdate);
         window.addEventListener('email-sent', handleUpdate);
 
-        // Start polling if conditions are met
-        startPolling();
-
-        // NOTE: Auto-process trigger REMOVED to reduce Fluid Active CPU usage
-        // Email processing is now handled ONLY by external cron-job.org (1x/minute)
-        // or manual "Start Cron" button in Settings
-
         return () => {
             window.removeEventListener('campaign-created', handleCreation);
             window.removeEventListener('campaign-updated', handleUpdate);
             window.removeEventListener('email-sent', handleUpdate);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            stopPolling();
             if (debounceTimer) clearTimeout(debounceTimer);
         };
-    }, [fetchCampaigns, open, campaigns]);
+    }, [fetchCampaigns]);
 
     useEffect(() => {
-        // Show subtle sync indicator only on first open after page load
+        // Fetch campaigns only when modal opens (NO auto-polling)
         if (open) {
-            if (isFirstSync) {
-                setIsSyncing(true);
-                // Clear after 5 seconds
-                setTimeout(() => {
-                    setIsSyncing(false);
-                    setIsFirstSync(false);
-                }, 5000);
-            }
             fetchCampaigns(true);
         }
-    }, [open, fetchCampaigns, isFirstSync]);
+    }, [open, fetchCampaigns]);
 
 
     const deleteCampaign = async (id: string, e?: React.MouseEvent) => {
@@ -499,21 +433,21 @@ export function LiveCampaignTracker() {
                                 <div>
                                     <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                     <p className="text-xs text-muted-foreground">
-                                        {isSyncing ? (
-                                            <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                                                <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                                </span>
-                                                Syncing latest data...
-                                            </span>
-                                        ) : (
-                                            <>Updates frequently • Delays may occur to reduce compute time</>
-                                        )}
+                                        Manual refresh • Click refresh button to update
                                     </p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fetchCampaigns(true)}
+                                    disabled={loading}
+                                    className="gap-2 h-8 text-xs"
+                                >
+                                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </Button>
                                 <Button variant="outline" size="sm" onClick={exportToExcel} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
                                     <FileSpreadsheet className="h-3.5 w-3.5" />
                                     Excel

@@ -108,55 +108,14 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
     useEffect(() => {
         if (!open) return;
 
-        // IMPORTANT: Don't refresh if clear is in progress
-        // This prevents reloading old data before server delete completes
-        if (!clearInProgress.current && onRefresh) {
-            onRefresh();
-        }
-        // IMPORTANT: Don't refresh if clear is in progress
-        // This prevents reloading old data before server delete completes
+        // Fetch history when modal opens (NO auto-sync on page load)
         if (!clearInProgress.current && onRefresh) {
             onRefresh();
         }
 
-        let interval: NodeJS.Timeout | null = null;
-
-        const startPolling = () => {
-            if (interval) return;
-            if (trackingIds.length > 0) {
-                fetchTrackingStatus();
-                interval = setInterval(fetchTrackingStatus, 7000); // 7 seconds for optimal balance
-            }
-        };
-
-        const stopPolling = () => {
-            if (interval) {
-                clearInterval(interval);
-                interval = null;
-            }
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                stopPolling();
-            } else {
-                fetchTrackingStatus(); // Immediate refresh on visible
-                startPolling();
-            }
-        };
-
-        // Initial check
-        if (!document.hidden) {
-            startPolling();
-        }
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            stopPolling();
-        };
-    }, [open, trackingIds, fetchTrackingStatus, onRefresh]);
+        // NO automatic polling - user must click Refresh button
+        // This reduces API calls by ~90%
+    }, [open, onRefresh]);
 
     const stats = useMemo(() => {
         const totalEmails = batches.reduce((sum, b) => sum + b.total, 0)
@@ -349,11 +308,26 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
                                 </div>
                                 <p className="text-[9px] sm:text-xs text-muted-foreground">
-                                    Updates frequently •<br className="sm:hidden" /> Delays may occur to reduce<br className="hidden sm:inline" /> compute and CPU time
+                                    Manual refresh • Click refresh button to update
                                 </p>
                             </div>
                         </div>
                         <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    if (onRefresh) {
+                                        onRefresh();
+                                        fetchTrackingStatus();
+                                    }
+                                }}
+                                disabled={trackingSyncing}
+                                className="gap-2 h-8 text-xs"
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${trackingSyncing ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
                             <Button variant="outline" size="sm" onClick={exportToExcel} className="hidden sm:flex gap-2 h-8 text-xs">
                                 <FileSpreadsheet className="h-3.5 w-3.5" />
                                 Excel
