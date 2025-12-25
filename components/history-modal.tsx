@@ -58,6 +58,7 @@ function shortId(id: string): string {
 }
 
 export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: HistoryModalProps) {
+    const [isRefreshing, setIsRefreshing] = useState(false)
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
@@ -304,8 +305,11 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                 <History className="h-5 w-5 text-white dark:text-black" />
                             </div>
                             <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <h2 className="text-xl font-bold tracking-tight">Email History</h2>
+                                    {(isRefreshing || trackingSyncing) && (
+                                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+                                    )}
                                 </div>
                                 <p className="text-[9px] sm:text-xs text-muted-foreground">
                                     Manual refresh • Click refresh button to update
@@ -316,16 +320,21 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                    if (onRefresh) {
-                                        onRefresh();
-                                        fetchTrackingStatus();
+                                onClick={async () => {
+                                    setIsRefreshing(true);
+                                    try {
+                                        if (onRefresh) {
+                                            onRefresh();
+                                        }
+                                        await fetchTrackingStatus();
+                                    } finally {
+                                        setTimeout(() => setIsRefreshing(false), 500);
                                     }
                                 }}
-                                disabled={trackingSyncing}
+                                disabled={trackingSyncing || isRefreshing}
                                 className="gap-2 h-8 text-xs"
                             >
-                                <RefreshCw className={`h-3.5 w-3.5 ${trackingSyncing ? 'animate-spin' : ''}`} />
+                                <RefreshCw className={`h-3.5 w-3.5 ${(trackingSyncing || isRefreshing) ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
                             <Button variant="outline" size="sm" onClick={exportToExcel} className="hidden sm:flex gap-2 h-8 text-xs">

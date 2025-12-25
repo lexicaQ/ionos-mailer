@@ -431,7 +431,12 @@ export function LiveCampaignTracker() {
                                     <Activity className="h-5 w-5 text-white dark:text-black" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
+                                        {loading && (
+                                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+                                        )}
+                                    </div>
                                     <p className="text-xs text-muted-foreground">
                                         Manual refresh • Click refresh button to update
                                     </p>
