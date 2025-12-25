@@ -4,12 +4,13 @@ import { decryptStrict, decryptMaybeLegacy, encrypt } from '@/lib/encryption';
 import { sendEmail } from '@/lib/mail';
 import { processBodyWithTracking } from '@/lib/tracking';
 import { extractCompanyFromEmail } from '@/lib/company-scraper';
+import { auth } from '@/auth';
 
 // Helper function for the core logic (reused by GET and POST)
 async function handleCronRequest(req: NextRequest) {
     // Security Check - Allow:
     // 1. Vercel native cron (Authorization: Bearer CRON_SECRET)
-    // 2. Manual trigger from same domain (x-manual-trigger: true)
+    // 2. Manual trigger from same domain with valid session
     // 3. GitHub Actions with x-vercel-protection-bypass header
     const authHeader = req.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
@@ -17,13 +18,30 @@ async function handleCronRequest(req: NextRequest) {
     const isManualTrigger = req.headers.get('x-manual-trigger') === 'true';
     const hasProtectionBypass = !!req.headers.get('x-vercel-protection-bypass');
 
+    // SECURITY: Manual trigger now requires authentication
+    if (isManualTrigger) {
+        // Validate Sec-Fetch-Site header (same-origin only)
+        const secFetchSite = req.headers.get('sec-fetch-site');
+        if (secFetchSite && secFetchSite !== 'same-origin') {
+            console.log('Cron: Manual trigger rejected - not same-origin');
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
+
+        // Require auth session for manual triggers
+        const session = await auth();
+        if (!session?.user?.id) {
+            console.log('Cron: Manual trigger rejected - no session');
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
+    }
+
     // In production, verify the request is legitimate
     if (process.env.NODE_ENV === 'production' && !isVercelCron && !isManualTrigger && !hasProtectionBypass) {
-        // Allow if referer is from our own domain
-        const referer = req.headers.get('referer') || '';
+        // Strict origin matching (not just includes)
         const origin = req.headers.get('origin') || '';
         const host = req.headers.get('host') || '';
-        const isFromSameDomain = (referer && referer.includes(host)) || (origin && origin.includes(host));
+        const expectedDomain = `https://${host}`;
+        const isFromSameDomain = origin === expectedDomain || origin === `http://${host}`;
 
         if (!isFromSameDomain) {
             console.log('Cron: Unauthorized request rejected');

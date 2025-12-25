@@ -30,6 +30,53 @@ export async function POST(req: Request) {
 
         const { subject, body, recipients, smtpSettings, attachments } = result.data as any;
 
+        // ============================================================
+        // SECURITY: Attachment Validation (DoS Prevention)
+        // ============================================================
+        const MAX_ATTACHMENTS = 5;
+        const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB per file (decoded)
+        const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20MB total (decoded)
+
+        if (attachments && attachments.length > 0) {
+            // Check count
+            if (attachments.length > MAX_ATTACHMENTS) {
+                return NextResponse.json(
+                    { error: `Too many attachments. Maximum ${MAX_ATTACHMENTS} allowed.` },
+                    { status: 400 }
+                );
+            }
+
+            let totalSize = 0;
+            for (const att of attachments) {
+                // Decode base64 to get actual size
+                try {
+                    const decodedSize = Buffer.from(att.content, 'base64').length;
+
+                    if (decodedSize > MAX_ATTACHMENT_SIZE) {
+                        return NextResponse.json(
+                            { error: `Attachment "${att.filename}" exceeds ${MAX_ATTACHMENT_SIZE / 1024 / 1024}MB limit.` },
+                            { status: 413 }
+                        );
+                    }
+
+                    totalSize += decodedSize;
+                } catch {
+                    return NextResponse.json(
+                        { error: `Invalid attachment data for "${att.filename}".` },
+                        { status: 400 }
+                    );
+                }
+            }
+
+            if (totalSize > MAX_TOTAL_SIZE) {
+                return NextResponse.json(
+                    { error: `Total attachment size exceeds ${MAX_TOTAL_SIZE / 1024 / 1024}MB limit.` },
+                    { status: 413 }
+                );
+            }
+        }
+        // ============================================================
+
         const encryptionKey = process.env.ENCRYPTION_KEY;
         if (!encryptionKey) {
             console.error("No ENCRYPTION_KEY configured");

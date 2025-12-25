@@ -15,6 +15,7 @@ import { EmailDraft, loadDrafts, saveDraft, deleteDraft } from '@/lib/drafts'
 import { Attachment } from '@/lib/schemas'
 import { toast } from 'sonner'
 import { cn } from "@/lib/utils"
+import { sanitizeHtmlPreview } from "@/lib/sanitize-html"
 
 interface DraftsModalProps {
     currentSubject: string
@@ -267,10 +268,7 @@ export function DraftsModal({
                                                         <div
                                                             className="text-xs text-muted-foreground line-clamp-3 leading-relaxed opacity-70"
                                                             dangerouslySetInnerHTML={{
-                                                                __html: draft.body
-                                                                    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-                                                                    .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-                                                                    .replace(/<(img|iframe|object|embed)[^>]*>/gi, "") || "No content"
+                                                                __html: sanitizeHtmlPreview(draft.body) || "No content"
                                                             }}
                                                         />
                                                     </div>

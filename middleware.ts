@@ -48,7 +48,7 @@ export function middleware(request: NextRequest) {
         // Content Security Policy - Restrict resource loading
         'Content-Security-Policy': [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required for Next.js
+            "script-src 'self' 'unsafe-inline'", // Removed unsafe-eval (Phase 1 CSP hardening)
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
