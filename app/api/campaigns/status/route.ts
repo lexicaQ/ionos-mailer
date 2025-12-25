@@ -90,13 +90,19 @@ export async function GET(req: NextRequest) {
                     sentViaCron: job.sentViaCron || false,
                     // Tracking data
                     openedAt: job.openedAt?.toISOString() || null,
-                    openCount: job.openCount
+                    openCount: job.openCount,
+                    // Bounce tracking
+                    isBounce: job.isBounce || false,
+                    bounceCode: job.bounceCode || null,
+                    bounceReason: job.bounceReason || null,
+                    bouncedAt: job.bouncedAt?.toISOString() || null,
                 })),
                 stats: {
                     total: campaign.jobs.length,
                     sent: campaign.jobs.filter((j: any) => j.status === 'SENT').length,
                     pending: campaign.jobs.filter((j: any) => j.status === 'PENDING').length,
                     failed: campaign.jobs.filter((j: any) => j.status === 'FAILED').length,
+                    bounced: campaign.jobs.filter((j: any) => j.status === 'BOUNCED' || j.isBounce).length,
                     opened: campaign.jobs.filter((j: any) => j.openedAt).length
                 }
             };

@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/mail';
 import { processBodyWithTracking } from '@/lib/tracking';
 import { extractCompanyFromEmail } from '@/lib/company-scraper';
 import { auth } from '@/auth';
+import { processBounceEmails } from '@/lib/bounce-parser';
 
 // Helper function for the core logic (reused by GET and POST)
 async function handleCronRequest(req: NextRequest) {
@@ -372,10 +373,24 @@ async function handleCronRequest(req: NextRequest) {
             await triggerNextBatch();
         }
 
+        // BOUNCE PROCESSING: Check for NDR emails and update job status
+        // Runs after email sending to avoid slowing down delivery
+        let bounceResult = { processed: 0, errors: 0 };
+        try {
+            bounceResult = await processBounceEmails();
+            if (bounceResult.processed > 0) {
+                console.log(`[Cron] Processed ${bounceResult.processed} bounce emails`);
+            }
+        } catch (bounceError) {
+            console.error('[Cron] Bounce processing failed (non-fatal):', bounceError);
+            // Don't fail the whole cron job if bounce parsing fails
+        }
+
         return NextResponse.json({
             processed: results.length,
             batchSize: BATCH_SIZE,
-            results
+            results,
+            bounces: bounceResult
         });
 
     } catch (error: any) {

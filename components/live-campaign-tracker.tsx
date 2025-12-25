@@ -24,7 +24,7 @@ interface EmailJob {
     id: string
     recipient: string
     subject: string
-    status: "PENDING" | "SENT" | "FAILED" | "CANCELLED"
+    status: "PENDING" | "SENT" | "FAILED" | "CANCELLED" | "BOUNCED"
     scheduledFor: string
     originalScheduledFor?: string | null
     sentAt: string | null
@@ -32,6 +32,11 @@ interface EmailJob {
     openedAt: string | null
     ipAddress?: string | null
     sentViaCron?: boolean
+    // Bounce tracking
+    isBounce?: boolean
+    bounceCode?: string | null
+    bounceReason?: string | null
+    bouncedAt?: string | null
 }
 
 interface Campaign {
@@ -45,6 +50,7 @@ interface Campaign {
         sent: number
         pending: number
         failed: number
+        bounced?: number
         opened: number
     }
 }

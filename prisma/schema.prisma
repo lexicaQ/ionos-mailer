@@ -236,7 +236,7 @@ model EmailJob {
   subject      String
   body         String
   
-  status       String    @default("PENDING") // PENDING, SENDING, SENT, FAILED
+  status       String    @default("PENDING") // PENDING, SENDING, SENT, FAILED, BOUNCED
   error        String?
   
   scheduledFor DateTime
@@ -247,6 +247,12 @@ model EmailJob {
   maxRetries           Int       @default(3)     // Max allowed retries
   nextRetryAt          DateTime?                 // When to retry (for manual cron pacing)
   originalScheduledFor DateTime?                 // Original time for delay calculation
+  
+  // Bounce Tracking (populated by NDR parser)
+  isBounce     Boolean   @default(false)
+  bounceCode   String?   // SMTP status (e.g., "5.0.0", "4.4.7")
+  bounceReason String?   // Human-readable reason
+  bouncedAt    DateTime?
   
   // Tracking
   trackingId   String    @unique @default(uuid())
@@ -261,6 +267,7 @@ model EmailJob {
   @@index([status, scheduledFor])
   @@index([trackingId])
   @@index([nextRetryAt])
+  @@index([isBounce]) // For fast bounce queries
 }
 
 
