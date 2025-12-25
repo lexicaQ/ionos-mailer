@@ -498,7 +498,10 @@ export function LiveCampaignTracker() {
                                     <div className="flex items-center gap-3">
                                         <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                         {loading && (
-                                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+                                            <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                                <span>Synchronizing...</span>
+                                            </div>
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground max-w-md">
