@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { parseRecipients, RecipientStatus } from "@/lib/recipient-utils"
-import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch, Upload, Search } from "lucide-react"
+import { X, Check, AlertTriangle, UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, Sparkles, ShieldCheck, Radar, ScanSearch, Upload, Search, AlertCircle, FileUp, Mail } from "lucide-react"
 import { isGenericDomain } from "@/lib/domains"
 import { cn } from "@/lib/utils"
 import { parseFile, ExtractionResult } from "@/lib/parsers"
@@ -339,7 +339,11 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                     placeholder={"max@mustermann.de\nerika@musterfrau.de\n..."}
                     value={rawInput}
                     onChange={(e) => setRawInput(e.target.value)}
-                    onBlur={handleParse}
+                    onBlur={() => {
+                        // ALWAYS parse on blur, even if empty
+                        // This ensures when user clears input and clicks away, recipients are cleared too
+                        handleParse();
+                    }}
                     onKeyDown={(e) => {
                         // Crucial: Prevent Enter key from bubbling up to the form and triggering submit
                         if (e.key === 'Enter') {
@@ -352,9 +356,13 @@ export function RecipientInput({ onRecipientsChange, disabled, externalRecipient
                 <div className="flex justify-between items-center h-5">
                     <span className="text-xs flex items-center gap-2">
                         {isChecking ? (
-                            <span className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-medium animate-pulse">
-                                <ScanSearch className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
-                                Validating recipients...
+                            <span className="flex items-center gap-2 relative">
+                                {/* Blue shimmer gradient animation */}
+                                <span className="absolute inset-0 bg-gradient-to-r from-blue-400 via-blue-600 to-blue-400 bg-[length:200%_100%] animate-[shimmer_1.5s_ease-in-out_infinite] blur-sm opacity-30" />
+                                <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400 relative z-10 animate-pulse" />
+                                <span className="text-blue-700 dark:text-blue-300 font-medium relative z-10">
+                                    Validating recipients...
+                                </span>
                             </span>
                         ) : (
                             <span className="text-xs flex items-center gap-2 text-muted-foreground">
