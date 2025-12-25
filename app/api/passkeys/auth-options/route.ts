@@ -8,10 +8,11 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const { email } = body
 
-    // Clean up expired challenges
-    await prisma.authChallenge.deleteMany({
+    // Clean up expired challenges (NON-BLOCKING - don't wait)
+    // This prevents slow DB queries from delaying the passkey prompt
+    prisma.authChallenge.deleteMany({
         where: { expiresAt: { lt: new Date() } }
-    })
+    }).catch(() => { }) // Ignore errors, cleanup is best-effort
 
     let allowCredentials: any[] | undefined = undefined
 

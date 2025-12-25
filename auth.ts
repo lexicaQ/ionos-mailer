@@ -85,17 +85,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 if (verification.verified) {
                     const { authenticationInfo } = verification
 
-                    // Update counter
-                    await prisma.passkey.update({
-                        where: { id: passkey.id },
-                        data: {
-                            counter: authenticationInfo.newCounter,
-                            lastUsedAt: new Date()
-                        }
-                    })
-
-                    // Delete challenge
-                    await prisma.authChallenge.delete({ where: { id: challenge.id } })
+                    // PARALLEL: Update counter and delete challenge simultaneously
+                    // These are independent operations, no need to wait sequentially
+                    await Promise.all([
+                        prisma.passkey.update({
+                            where: { id: passkey.id },
+                            data: {
+                                counter: authenticationInfo.newCounter,
+                                lastUsedAt: new Date()
+                            }
+                        }),
+                        // Challenge delete is best-effort (non-critical)
+                        prisma.authChallenge.delete({ where: { id: challenge.id } }).catch(() => { })
+                    ])
 
                     return {
                         id: passkey.user.id,
