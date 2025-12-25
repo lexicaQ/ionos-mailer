@@ -17,16 +17,20 @@ export async function GET(req: NextRequest) {
 
         const userId = session.user.id;
 
+        // Check for lazy loading mode
+        const { searchParams } = new URL(req.url);
+        const mode = searchParams.get('mode') || 'full'; // 'overview' or 'full'
+
         // Get all campaigns with their jobs and tracking info
         const campaigns = await prisma.campaign.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
             take: 15, // Reduced from 50 for faster sync logic
-            include: {
+            include: mode === 'full' ? {
                 jobs: {
                     orderBy: { createdAt: 'desc' }
                 }
-            }
+            } : undefined
         });
 
         const secretKey = process.env.ENCRYPTION_KEY!;
@@ -44,6 +48,25 @@ export async function GET(req: NextRequest) {
                 }
             }
 
+            // In overview mode, don't include jobs to reduce response size
+            if (mode === 'overview') {
+                return {
+                    id: campaign.id,
+                    name: decryptedName,
+                    isDirect: campaign.host === 'DIRECT' || campaign.name === 'DIRECT',
+                    createdAt: campaign.createdAt.toISOString(),
+                    jobs: [], // Empty array for lazy loading
+                    stats: {
+                        total: campaign._count?.jobs || 0,
+                        sent: 0, // Will be calculated when jobs load
+                        pending: 0,
+                        failed: 0,
+                        opened: 0
+                    }
+                };
+            }
+
+            // Full mode - include all jobs
             return {
                 id: campaign.id,
                 name: decryptedName,
