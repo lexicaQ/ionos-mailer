@@ -65,17 +65,13 @@ function checkRateLimit(userId: string): boolean {
 
 export async function POST(req: Request) {
     try {
-        // SECURITY: Require authentication
+        // SECURITY: Authentication is optional (users need to test before sign-in)
+        // But we still rate-limit by session or IP
         const session = await auth();
-        if (!session?.user?.id) {
-            return NextResponse.json(
-                { success: false, error: "Authentication required" },
-                { status: 401 }
-            );
-        }
+        const userId = session?.user?.id || req.headers.get('x-forwarded-for')?.split(',')[0] || 'anonymous';
 
         // SECURITY: Rate limiting
-        if (!checkRateLimit(session.user.id)) {
+        if (!checkRateLimit(userId)) {
             return NextResponse.json(
                 { success: false, error: "Rate limit exceeded. Please wait 1 minute." },
                 { status: 429 }

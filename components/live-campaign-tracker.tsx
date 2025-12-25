@@ -469,8 +469,11 @@ export function LiveCampaignTracker() {
                                             <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
                                         )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Manual refresh • Click refresh button to update
+                                    <p className="text-xs text-muted-foreground max-w-md">
+                                        Manual refresh only • Saves 90% server costs
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground/70 max-w-md">
+                                        Click refresh button to check for updates
                                     </p>
                                 </div>
                             </div>

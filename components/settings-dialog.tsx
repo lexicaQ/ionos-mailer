@@ -523,6 +523,69 @@ export function SettingsDialog({ onSettingsChange, currentSettings }: SettingsDi
                             Delete All Data
                         </Button>
                     </div>
+                    {/* Delete Account - Permanent */}
+                    {session?.user && (
+                        <div className="flex items-center justify-between pt-4 border-t border-red-200 dark:border-red-900/30">
+                            <div className="text-xs text-muted-foreground">
+                                <p className="font-medium text-red-600 dark:text-red-400">Delete Account</p>
+                                <p>(Permanently deletes your account and all data)</p>
+                            </div>
+                            <Button variant="destructive" size="sm" onClick={async () => {
+                                const firstConfirm = confirm("⚠️ DELETE ACCOUNT?\n\nThis will PERMANENTLY delete:\n• Your account\n• All campaigns and emails\n• All history and drafts\n• All settings and passkeys\n\nThis action CANNOT be undone!\n\nType 'DELETE' in the next prompt to confirm.");
+                                if (!firstConfirm) return;
+
+                                const confirmText = prompt("Type 'DELETE' in ALL CAPS to confirm account deletion:");
+                                if (confirmText !== 'DELETE') {
+                                    toast.error('Account deletion cancelled.');
+                                    return;
+                                }
+
+                                try {
+                                    toast.loading('Deleting account...', { id: 'delete-account' });
+
+                                    const res = await fetch('/api/user/account', {
+                                        method: 'DELETE'
+                                    });
+
+                                    const data = await res.json();
+
+                                    if (!res.ok) {
+                                        throw new Error(data.error || 'Failed to delete account');
+                                    }
+
+                                    // Clear all local data
+                                    const keysToDelete = [
+                                        'ionos-mailer-history',
+                                        'smtp-config-full',
+                                        'ionos-mailer-campaigns-cache',
+                                        'ionos-mailer-deleted-campaigns',
+                                        'ionos-mailer-email-whitelist'
+                                    ];
+                                    keysToDelete.forEach(key => localStorage.removeItem(key));
+
+                                    // Clear caches
+                                    if ('caches' in window) {
+                                        const cacheNames = await caches.keys();
+                                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                                    }
+
+                                    toast.success('Account deleted. Redirecting...', { id: 'delete-account' });
+
+                                    // Sign out and redirect
+                                    setTimeout(async () => {
+                                        await signOut({ redirect: true, callbackUrl: '/' });
+                                    }, 1500);
+
+                                } catch (e: any) {
+                                    console.error('Account deletion failed:', e);
+                                    toast.error(e.message || 'Failed to delete account', { id: 'delete-account' });
+                                }
+                            }}>
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Delete Account
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
 
