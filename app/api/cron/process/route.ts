@@ -1,4 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
+
+export const maxDuration = 60; // Attempt to extend timeout for Pro users
 import { prisma } from '@/lib/prisma';
 import { decryptStrict, decryptMaybeLegacy, encrypt } from '@/lib/encryption';
 import { sendEmail } from '@/lib/mail';
@@ -161,7 +163,15 @@ async function handleCronRequest(req: NextRequest) {
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
         // Process Batch
+        const startTime = Date.now();
         for (const job of pendingJobs) {
+            // TIMEOUT PROTECTION: Vercel Hobby has 10s limit. 
+            // If we're getting close (e.g., > 8s), stop and recurse.
+            if (Date.now() - startTime > 8000) {
+                console.log("[Cron] Reached execution time limit. Stopping batch early.");
+                break; // Break loop to trigger recursion immediately
+            }
+
             // CONCURRENCY LOCK: Atomic update to ensure no double-processing
             // Accept both PENDING and FAILED status (for auto-retry of failed emails)
             const locked = await prisma.emailJob.updateMany({
@@ -334,10 +344,11 @@ async function handleCronRequest(req: NextRequest) {
             // await delay(500);
         }
 
-        // RECURSION: If we processed a full batch, there might be more.
-        // Trigger immediately with retry logic for reliability
-        if (pendingJobs.length === BATCH_SIZE) {
-            console.log("Full batch processed. Triggering next batch immediately.");
+        // RECURSION LOGIC
+        // Only recurse if we have a full batch OR we stopped early due to timeout
+        // (logic: if we processed at least 1 item and there might be more)
+        if (pendingJobs.length > 0) {
+            console.log("Triggering next batch recursively.");
             const triggerUrl = `${baseUrl}/api/cron/process?t=${Date.now()}`;
 
             // Retry logic to ensure recursion doesn't fail silently
@@ -347,7 +358,8 @@ async function handleCronRequest(req: NextRequest) {
                         const response = await fetch(triggerUrl, {
                             method: 'POST',
                             headers: {
-                                'x-manual-trigger': 'true',
+                                // CRITICAL FIX: Do NOT send x-manual-trigger used for client-side calls
+                                // This avoids the session check which fails for server-side fetch
                                 'User-Agent': 'vercel-cron/1.0',
                                 ...(process.env.CRON_SECRET ? { 'Authorization': `Bearer ${process.env.CRON_SECRET}` } : {}),
                                 ...(process.env.VERCEL_PROTECTION_BYPASS ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS } : {})
