@@ -143,8 +143,8 @@ export function LiveCampaignTracker() {
                 }
             }
 
-            // 2. Only set loading if NO data exists (server or cache)
-            if (!isBackground && campaignsRef.current.length === 0) {
+            // 2. Set loading state for visual feedback
+            if (!isBackground) {
                 setLoading(true);
             }
 
