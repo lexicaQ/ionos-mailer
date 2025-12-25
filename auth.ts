@@ -127,11 +127,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 if (!user) {
                     // Auto-create user on first login
+                    // Cost 8 = ~40ms (vs 10 = ~160ms) - still secure but faster on serverless
                     user = await prisma.user.create({
                         data: {
                             email,
                             name: email,
-                            passwordHash: await bcrypt.hash(password, 10),
+                            passwordHash: await bcrypt.hash(password, 8),
                             emailVerified: new Date(),
                         }
                     })
@@ -143,10 +144,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     const hashToVerify = user.passwordHash || (user as any).password;
 
                     if (!hashToVerify) {
-                        // Update/Set password if missing
+                        // Update/Set password if missing (cost 8 for speed)
                         await prisma.user.update({
                             where: { id: user.id },
-                            data: { passwordHash: await bcrypt.hash(password, 10) }
+                            data: { passwordHash: await bcrypt.hash(password, 8) }
                         })
                     } else {
                         const isValid = await bcrypt.compare(password, hashToVerify)
