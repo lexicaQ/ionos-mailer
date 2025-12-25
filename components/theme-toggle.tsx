@@ -16,7 +16,7 @@ export function ThemeToggle() {
     const { setTheme, theme } = useTheme()
 
     return (
-        <div className="fixed top-4 right-4 z-50 sm:bottom-4 sm:top-auto">
+        <div className="fixed top-4 right-4 z-[9999] sm:bottom-4 sm:top-auto">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button

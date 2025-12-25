@@ -65,7 +65,7 @@ export function SecurityInfoPanel() {
         <>
             {/* Trigger Button - Fixed Bottom */}
             <motion.div
-                className="fixed top-[18px] left-1/2 -translate-x-1/2 sm:translate-x-0 sm:top-auto sm:left-4 sm:bottom-4 z-50"
+                className="fixed top-[18px] left-1/2 -translate-x-1/2 sm:translate-x-0 sm:top-auto sm:left-4 sm:bottom-4 z-[9999]"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
