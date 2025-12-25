@@ -10,6 +10,7 @@ import { AuthProvider } from "@/components/auth-provider"
 import { SecurityInfoPanel } from "@/components/security-info-panel"
 import { CampaignPreloader } from "@/components/campaign-preloader"
 import { OfflineIndicator } from "@/components/offline-indicator"
+import { BotIdProtection } from "@/components/botid-protection"
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -174,6 +175,7 @@ export default function RootLayout({
             <OfflineIndicator />
             <Toaster />
             <Analytics />
+            <BotIdProtection />
           </AuthProvider>
         </ThemeProvider>
       </body>
