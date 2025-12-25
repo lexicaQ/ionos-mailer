@@ -200,6 +200,59 @@ export function EmailForm() {
         }
     }, [startImmediately])
 
+    // RECOVERY: Check for unsaved content from previous session
+    useEffect(() => {
+        const recoveryData = localStorage.getItem('ionos-mailer-recovery');
+        if (recoveryData) {
+            try {
+                const data = JSON.parse(recoveryData);
+                const savedAt = new Date(data.savedAt);
+                const ageMinutes = (Date.now() - savedAt.getTime()) / 60000;
+
+                // Only offer recovery for data less than 24 hours old
+                if (ageMinutes < 1440) {
+                    toast(
+                        "Unsaved content found from your previous session",
+                        {
+                            duration: 15000,
+                            action: {
+                                label: "Restore",
+                                onClick: () => {
+                                    // Restore content
+                                    if (data.subject) form.setValue('subject', data.subject);
+                                    if (data.body) {
+                                        form.setValue('body', data.body);
+                                        setEditorKey(prev => prev + 1); // Force editor refresh
+                                    }
+                                    if (data.recipients?.length > 0) {
+                                        const recipientsWithIds = data.recipients.map((r: any) => ({
+                                            email: r.email,
+                                            id: r.id || crypto.randomUUID()
+                                        }));
+                                        form.setValue('recipients', recipientsWithIds);
+                                        setLoadedRecipients(recipientsWithIds);
+                                    }
+                                    toast.success("Content restored!");
+                                    localStorage.removeItem('ionos-mailer-recovery');
+                                }
+                            },
+                            onDismiss: () => {
+                                // User dismissed - clear recovery data
+                                localStorage.removeItem('ionos-mailer-recovery');
+                            }
+                        }
+                    );
+                } else {
+                    // Data too old - clear it
+                    localStorage.removeItem('ionos-mailer-recovery');
+                }
+            } catch (e) {
+                // Invalid data - clear it
+                localStorage.removeItem('ionos-mailer-recovery');
+            }
+        }
+    }, []); // Run once on mount
+
     const onSubmit = useCallback(async (data: EmailFormValues) => {
         if (!smtpSettings) {
             toast.error("Please configure the SMTP settings first (gear icon).");
@@ -328,24 +381,62 @@ export function EmailForm() {
         }
     }, [history])
 
-    // Close App Warning - Show only ONCE
+    // UNSAVED CHANGES WARNING - Prevent accidental data loss
+    // Detects if form has content and prompts before close
     useEffect(() => {
+        // Helper to check if form has meaningful content
+        const hasUnsavedContent = () => {
+            const subject = form.getValues('subject') || '';
+            const body = form.getValues('body') || '';
+            const recipients = form.getValues('recipients') || [];
+
+            // Check if body has actual content (not just empty HTML tags)
+            const bodyHasContent = body.replace(/<[^>]*>/g, '').trim().length > 0;
+
+            return subject.trim().length > 0 || bodyHasContent || recipients.length > 0;
+        };
+
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isSending && useBackground) {
-                // Check if user has seen warning
-                const hasSeenWarning = localStorage.getItem("ionos-mailer-seen-warning");
-                if (!hasSeenWarning) {
-                    e.preventDefault();
-                    e.returnValue = "The delivery will continue in the background, but with a delay. Do you really want to close?";
-                    localStorage.setItem("ionos-mailer-seen-warning", "true");
-                    return e.returnValue;
+            // Only warn if there's unsaved content and NOT currently sending
+            if (!isSending && hasUnsavedContent()) {
+                e.preventDefault();
+                // Modern browsers ignore custom messages, but we still need to set this
+                e.returnValue = "You have unsaved content. Are you sure you want to leave?";
+
+                // AUTO-SAVE attempt before page unload (sync, limited time)
+                // This is a best-effort save - browsers may kill it
+                const subject = form.getValues('subject') || '';
+                const body = form.getValues('body') || '';
+                const recipients = form.getValues('recipients') || [];
+
+                // Use localStorage as a quick recovery mechanism  
+                // (IndexedDB is async and may not complete)
+                try {
+                    const recoveryData = {
+                        subject,
+                        body,
+                        recipients,
+                        savedAt: new Date().toISOString()
+                    };
+                    localStorage.setItem('ionos-mailer-recovery', JSON.stringify(recoveryData));
+                } catch (err) {
+                    // Best effort - ignore errors
                 }
+
+                return e.returnValue;
+            }
+
+            // Also warn during active sending (original behavior)
+            if (isSending && useBackground) {
+                e.preventDefault();
+                e.returnValue = "Emails are being sent. Are you sure you want to leave?";
+                return e.returnValue;
             }
         };
 
         window.addEventListener("beforeunload", handleBeforeUnload);
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [isSending, useBackground]);
+    }, [isSending, useBackground, form]);
 
     const handleRecipientsChange = (newRecipients: { email: string; id: string }[]) => {
         form.setValue("recipients", newRecipients, { shouldValidate: true });
