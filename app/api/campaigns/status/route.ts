@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         const campaigns = await prisma.campaign.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
-            take: 15, // Reduced from 50 for faster sync logic
+            take: 5, // Reduced to 5 to significantly lower Compute Unit usage (User request)
             include: {
                 jobs: {
                     orderBy: { createdAt: 'desc' }
