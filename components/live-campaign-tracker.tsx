@@ -558,8 +558,22 @@ export function LiveCampaignTracker() {
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
                         {loading && filteredCampaigns.length === 0 ? (
-                            <div className="flex h-full items-center justify-center">
-                                <SecurityLoader />
+                            <div className="flex h-full items-center justify-center relative">
+                                {/* Animated gradient background */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-blue-950/30 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]" />
+
+                                {/* Main content */}
+                                <div className="relative z-10 flex flex-col items-center gap-4">
+                                    <Activity className="h-12 w-12 text-blue-600 dark:text-blue-400 animate-bounce" />
+                                    <div className="flex flex-col items-center gap-2">
+                                        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Synchronizing campaigns...</p>
+                                        <div className="flex gap-1">
+                                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.2s]"></span>
+                                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.4s]"></span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         ) : filteredCampaigns.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
@@ -614,26 +628,34 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
         return (completed / c.stats.total) * 100;
     };
 
-    const [isOpen, setIsOpen] = useState(() => {
-        // Auto-collapse if 100% finished, UNLESS searching
-        if (searchTerm) return true;
-        return calculateProgress(campaign) < 100;
-    });
+    const [isOpen, setIsOpen] = useState(false);
 
-    // Auto-open if search term matches something inside
+    // Reset collapse state based on progress whenever it changes
     useEffect(() => {
-        if (searchTerm) setIsOpen(true);
-    }, [searchTerm]);
+        // Auto-collapse if 100% finished,UNLESS searching
+        if (searchTerm) {
+            setIsOpen(true);
+        } else {
+            setIsOpen(calculateProgress(campaign) < 100);
+        }
+    }, [campaign.stats.sent, campaign.stats.failed, campaign.stats.total, searchTerm]);
 
     const progress = calculateProgress(campaign);
 
-    // Filter jobs based on search term
-    const filteredJobs = campaign.jobs.filter(job =>
-        !searchTerm ||
-        job.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.subject.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter and SORT jobs: earliest scheduled first
+    const filteredJobs = campaign.jobs
+        .filter(job =>
+            !searchTerm ||
+            job.recipient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            job.subject.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            // Sort by scheduled time: earliest first
+            const timeA = new Date(a.scheduledFor).getTime();
+            const timeB = new Date(b.scheduledFor).getTime();
+            return timeA - timeB;
+        });
 
     // Identify the next job to be processed (first PENDING in sorted list)
     const nextJobId = campaign.jobs.find(j => j.status === 'PENDING')?.id;
