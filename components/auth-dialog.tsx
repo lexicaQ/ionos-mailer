@@ -56,14 +56,10 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
         toast.success("Disconnected from cloud sync")
     }
 
-    // Loading state
-    if (status === "loading") {
-        return (
-            <Button variant="ghost" size="sm" disabled>
-                <Loader2 className="h-4 w-4 animate-spin" />
-            </Button>
-        )
-    }
+    // OPTIMIZED: Don't show loading spinner, just show Sign In button by default
+    // This makes the UI feel instant. If session loads and user IS logged in, 
+    // it will flip to the Logout button (which is fine).
+    // if (status === "loading") { ... } <-- REMOVED
 
     // Logged in state - Minimalist (Just Logout Icon, matches Settings)
     if (session?.user) {
