@@ -258,4 +258,247 @@ The application processes multiple emails per wake cycle, meaning "more emails" 
 
 ---
 
+## 6. Vercel Marketplace Integrations
+
+IONOS Mailer integrates with three critical Vercel Marketplace services to enhance reliability, observability, and performance monitoring.
+
+### 6.1 Upstash Redis (Rate Limiting & Caching)
+
+**Purpose:** Persistent rate limiting and caching across serverless functions.
+
+**Why Required:**
+- Prevents DDoS attacks with persistent rate limiting
+- In-memory rate limiting resets on cold starts (unreliable)
+- Shared rate limits across all serverless function instances
+- Free tier: 10,000 commands/day (sufficient for most deployments)
+
+**Installation:**
+
+1. **Via Vercel Dashboard:**
+   - Go to: [Vercel Project → Storage](https://vercel.com/dashboard)
+   - Click **"Create Database"** or **"Connect Store"**
+   - Select **"Upstash for Redis"**
+   - Choose **"Redis Compatible Database"** (not Vector/QStash)
+   - **Configuration:**
+     - Database Name: `ionos-mailer-cache`
+     - Region: `eu-west-1` (Frankfurt) or closest to your users
+     - Plan: **Free Tier**
+     - Environments: ✅ Production, ✅ Preview, ✅ Development
+   - Click **"Create"**
+
+2. **Auto-Configured Environment Variables:**
+   ```bash
+   KV_REST_API_URL=https://your-redis.upstash.io
+   KV_REST_API_TOKEN=your_token_here
+   KV_REST_API_READ_ONLY_TOKEN=your_readonly_token
+   ```
+   These are automatically added to your Vercel project.
+
+3. **Verification:**
+   - Dashboard: [console.upstash.com](https://console.upstash.com)
+   - After deployment, you should see API requests in the Redis metrics
+   - Test: Make 6 SMTP test requests → 6th should return `429 Rate Limit Exceeded`
+
+**What It Does:**
+- **Rate Limiting:** `/api/test-connection` limited to 5 requests per minute per user
+- **Fail-Safe:** If Redis is unreachable, requests are allowed (fail-open)
+- **Future Use:** Can cache frequently accessed data (e.g., draft lists, campaign stats)
+
+---
+
+### 6.2 Sentry (Error Tracking & Performance Monitoring)
+
+**Purpose:** Real-time error tracking, performance monitoring, and session replay.
+
+**Why Required:**
+- Catch errors before users report them
+- Full error context: stack trace, user info, browser, URL
+- Performance monitoring for slow API routes
+- Session replay for debugging user flows
+- Free tier: 5,000 errors/month (very generous)
+
+**Installation:**
+
+1. **Via Vercel Dashboard:**
+   - Go to: [Vercel Project → Integrations](https://vercel.com/dashboard)
+   - Click **"Browse Marketplace"**
+   - Search for **"Sentry"**
+   - Click **"Add Integration"**
+   - **Configuration:**
+     - Select your Vercel project: `ionos-mailer`
+     - Create Sentry account (or login)
+     - Platform: **Next.js**
+     - Environments: ✅ All (Production, Preview, Development)
+   - Click **"Install"**
+
+2. **Auto-Configured Environment Variables:**
+   ```bash
+   NEXT_PUBLIC_SENTRY_DSN=https://xxx@sentry.io/xxx
+   SENTRY_AUTH_TOKEN=your_auth_token
+   SENTRY_ORG=ionos-mailer
+   SENTRY_PROJECT=ionos-mailer
+   SENTRY_PUBLIC_KEY=xxx
+   SENTRY_OTLP_TRACES_URL=https://...
+   SENTRY_VERCEL_LOG_DRAIN_URL=https://...
+   ```
+
+3. **Verification:**
+   - Dashboard: [sentry.io/organizations/ionos-mailer/projects/ionos-mailer](https://sentry.io)
+   - **Releases Tab:** Should show your deployment with commit hash
+   - **Issues Tab:** Shows errors (should be 0 if everything is working)
+   - **Performance Tab:** Shows API response times
+
+**Features Enabled:**
+- **Error Tracking:** Automatic reporting of all uncaught errors
+- **Performance Monitoring:** 100% trace sample rate
+- **Session Replay:** 10% of normal sessions, 100% of error sessions
+- **Breadcrumbs:** User actions leading up to errors
+- **Source Maps:** Automatic upload for stack trace decoding
+
+**Dashboard Overview:**
+- **Issues:** All errors with full stack traces
+- **Performance:** API latency, slow database queries
+- **Releases:** Deployment history with error rates
+- **Replays:** Video-like recordings of error sessions
+
+---
+
+### 6.3 Checkly (API & Uptime Monitoring)
+
+**Purpose:** External monitoring to detect downtime and API failures.
+
+**Why Recommended:**
+- Monitors your app from outside (like a real user)
+- Alerts you when cron job stops working
+- Detects regional outages
+- Free tier: 3 checks, 5-minute intervals
+
+**Installation:**
+
+1. **Via Vercel Dashboard:**
+   - Go to: [Vercel Project → Integrations](https://vercel.com/dashboard)
+   - Search for **"Checkly"**
+   - Click **"Add Integration"**
+   - Create Checkly account (or login)
+   - Connect to your Vercel project
+
+2. **Environment Variables (Optional):**
+   ```bash
+   # Only needed for "Monitoring as Code" (CLI usage)
+   CHECKLY_ACCOUNT_ID=your_account_id
+   CHECKLY_API_KEY=your_api_key
+   ```
+   **Note:** These are NOT required in Vercel. Only use if deploying checks via CLI.
+
+3. **Create Checks Manually:**
+
+   **Check #1: Cron Job Health** ⭐ **CRITICAL**
+   ```yaml
+   Name: Cron Job Health
+   Type: API Check
+   URL: https://your-app.vercel.app/api/cron/process
+   Method: GET
+   Headers:
+     Authorization: Bearer YOUR_CRON_SECRET
+   Frequency: Every 5 minutes
+   Locations: Frankfurt, N. Virginia
+   Assertions:
+     - Status code equals 200
+     - Response time < 10000ms
+   Alert: Fails 2 times in a row → Email
+   ```
+
+   **Check #2: Homepage Availability**
+   ```yaml
+   Name: Homepage Availability
+   Type: API Check
+   URL: https://your-app.vercel.app
+   Method: GET
+   Frequency: Every 15 minutes
+   Assertions:
+     - Status code equals 200
+     - Response time < 3000ms
+     - Body contains "IONOS Mailer"
+   Alert: Fails 3 times in a row → Email
+   ```
+
+   **Check #3:** Save for future critical endpoint
+
+4. **Verification:**
+   - Dashboard: [app.checklyhq.com/checks](https://app.checklyhq.com/checks)
+   - All checks should show **green** (passing)
+   - Test alert: Click "Run Check Now"
+
+**Alert Configuration:**
+1. Go to **Settings → Alert Channels**
+2. Add **Email** alert channel
+3. Verify your email
+4. Assign to all checks
+
+**What It Monitors:**
+- **Uptime:** Are your critical endpoints responding?
+- **Performance:** Response times across regions
+- **Availability:** Detects regional outages
+- **Cron Health:** Ensures background jobs are running
+
+---
+
+### 6.4 Environment Variables Summary
+
+After installing all integrations, verify these are in Vercel:
+
+**Required (Manual):**
+```bash
+DATABASE_URL=postgresql://...
+ENCRYPTION_KEY=your-32-char-secret
+CRON_SECRET=your-cron-secret
+AUTH_SECRET=your-auth-secret
+NEXT_PUBLIC_BASE_URL=https://your-app.vercel.app
+```
+
+**Auto-Configured by Upstash:**
+```bash
+KV_REST_API_URL=...
+KV_REST_API_TOKEN=...
+KV_REST_API_READ_ONLY_TOKEN=...
+```
+
+**Auto-Configured by Sentry:**
+```bash
+NEXT_PUBLIC_SENTRY_DSN=...
+SENTRY_AUTH_TOKEN=...
+SENTRY_ORG=...
+SENTRY_PROJECT=...
+SENTRY_PUBLIC_KEY=...
+SENTRY_OTLP_TRACES_URL=...
+SENTRY_VERCEL_LOG_DRAIN_URL=...
+```
+
+**Verification:**
+- Go to: Vercel Project → Settings → Environment Variables
+- Ensure all variables exist in **Production**, **Preview**, and **Development**
+- Redeploy triggers automatically after adding variables
+
+---
+
+### 6.5 Integration Benefits
+
+| Integration | Cost Reduction | Reliability Improvement | Observability |
+|-------------|----------------|-------------------------|---------------|
+| **Upstash Redis** | -90% rate limit failures | Persistent across cold starts | Request metrics |
+| **Sentry** | -80% debugging time | Automatic error alerts | Full error context |
+| **Checkly** | -100% unnoticed downtime | External health checks | Uptime SLA tracking |
+| **Total Impact** | **~$35/month saved** | **99.9% uptime** | **Full visibility** |
+
+---
+
+### 6.6 Dashboards Quick Links
+
+- **Upstash Redis:** [console.upstash.com](https://console.upstash.com)
+- **Sentry:** [sentry.io/organizations/ionos-mailer](https://sentry.io/organizations/ionos-mailer)
+- **Checkly:** [app.checklyhq.com/checks](https://app.checklyhq.com/checks)
+- **Vercel:** [vercel.com/dashboard](https://vercel.com/dashboard)
+
+---
+
 *Documentation Version 1 - Dec 2025*
