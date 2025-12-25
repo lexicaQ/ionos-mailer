@@ -24,7 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     CheckCircle, XCircle, Trash2, Filter,
-    FileSpreadsheet, FileText, Search, History, Mail, Send, Eye, EyeOff, RefreshCw, X, Loader2
+    FileSpreadsheet, FileText, Search, History, Mail, Send, Eye, EyeOff, RefreshCw, X
 } from "lucide-react"
 import { format } from "date-fns"
 import {
@@ -50,9 +50,6 @@ interface HistoryModalProps {
     onDeleteBatch: (id: string) => void
     onClearAll: () => Promise<void> // Changed to return Promise for async/await
     onRefresh?: () => void
-    hasMore?: boolean
-    onLoadMore?: () => Promise<void>
-    isLoadingMore?: boolean
 }
 
 // Shorten ID to first 8 characters
@@ -60,7 +57,7 @@ function shortId(id: string): string {
     return id.substring(0, 8)
 }
 
-export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, hasMore, onLoadMore, isLoadingMore }: HistoryModalProps) {
+export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: HistoryModalProps) {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
@@ -532,29 +529,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh, ha
                             </div>
                         </div>
                     )}
-
-                    {/* Load More Button */}
-                    {hasMore && onLoadMore && (
-                        <div className="pt-4 flex justify-center">
-                            <Button
-                                variant="outline"
-                                onClick={onLoadMore}
-                                disabled={isLoadingMore}
-                                className="w-full sm:w-auto"
-                            >
-                                {isLoadingMore ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Loading more...
-                                    </>
-                                ) : (
-                                    "Load older history"
-                                )}
-                            </Button>
-                        </div>
-                    )}
                 </div>
-            </DialogContent >
-        </Dialog >
+            </DialogContent>
+        </Dialog>
     )
 }

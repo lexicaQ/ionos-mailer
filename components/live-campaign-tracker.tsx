@@ -13,7 +13,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail, Loader2
+    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail
 } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
@@ -72,7 +72,6 @@ export function LiveCampaignTracker() {
     const [searchTerm, setSearchTerm] = useState("")
     const deletedCampaigns = useRef<Set<string>>(new Set())
     const [isFirstSync, setIsFirstSync] = useState(true) // Track first sync only
-    const [hasFetchedFreshData, setHasFetchedFreshData] = useState(false) // Prevent stale overdue warnings
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -153,10 +152,6 @@ export function LiveCampaignTracker() {
             const res = await fetch("/api/campaigns/status", { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
-
-                // Mark data as fresh immediately after successful fetch
-                setHasFetchedFreshData(true);
-
                 // Sort by date DESCENDING (Newest First -> #1)
                 data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -184,20 +179,9 @@ export function LiveCampaignTracker() {
                         setTimeout(() => setIsSyncing(false), 7000); // Match 7s polling interval
                     }
 
-                    setCampaigns(prev => {
-                        const newCampaigns = filtered.map((newC: any) => {
-                            const existing = prev.find(p => p.id === newC.id);
-                            // PRESERVE JOBS: If we already loaded jobs for this campaign, keep them!
-                            if (existing && existing.jobs && existing.jobs.length > 0) {
-                                return { ...newC, jobs: existing.jobs };
-                            }
-                            return newC;
-                        });
-
-                        // Update cache
-                        localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(newCampaigns));
-                        return newCampaigns;
-                    });
+                    setCampaigns(filtered);
+                    // Update cache WITHOUT deleted campaigns
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
                 }
             }
         } catch (error) {
@@ -491,24 +475,6 @@ export function LiveCampaignTracker() {
 
     const activeCampaigns = campaigns.filter(c => c.stats.pending > 0)
 
-    // Lazy Load Jobs Handler
-    const fetchCampaignDetails = async (id: string) => {
-        try {
-            const res = await fetch(`/api/campaigns/${id}`);
-            if (!res.ok) throw new Error("Failed to load details");
-            const detailedCampaign = await res.json();
-
-            setCampaigns(prev => prev.map(c => {
-                if (c.id === id) {
-                    return detailedCampaign; // Replace summary with full details
-                }
-                return c;
-            }));
-        } catch (e) {
-            console.error("Lazy load failed", e);
-        }
-    };
-
     return (
         <>
             <Dialog open={open} onOpenChange={setOpen}>
@@ -532,7 +498,7 @@ export function LiveCampaignTracker() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
-                                    <p className="text-xs text-muted-foreground mr-1">
+                                    <p className="text-xs text-muted-foreground">
                                         {isSyncing ? (
                                             <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
                                                 <span className="relative flex h-2 w-2">
@@ -600,8 +566,6 @@ export function LiveCampaignTracker() {
                                         onCancelJob={cancelJob}
                                         searchTerm={searchTerm}
                                         isFirstSync={isFirstSync}
-                                        hasFreshData={hasFetchedFreshData}
-                                        onExpand={(id) => fetchCampaignDetails(id)}
                                     />
                                 ))}
                                 {/* Anchor to scroll to bottom if needed in future */}
@@ -615,13 +579,11 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, isFirstSync, hasFreshData, onExpand }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string, isFirstSync: boolean, hasFreshData: boolean, onExpand: (id: string) => void }) {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, isFirstSync }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string, isFirstSync: boolean }) {
     const calculateProgress = (c: Campaign) => {
         if (c.stats.total === 0) return 0;
-        // Count sent, failed as "completed" - calculating from STATS not jobs array (which might be empty)
-        // If jobs array is empty, we must rely 100% on stats.
-        // Stats are populated by the API now.
-        const completed = c.stats.sent + c.stats.failed;
+        // Count sent, failed, AND cancelled as "completed"
+        const completed = c.stats.sent + c.stats.failed + c.jobs.filter(j => j.status === 'CANCELLED').length;
         return (completed / c.stats.total) * 100;
     };
 
@@ -635,15 +597,6 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
     useEffect(() => {
         if (searchTerm) setIsOpen(true);
     }, [searchTerm]);
-
-
-
-    // Lazy Load Effect
-    useEffect(() => {
-        if (isOpen && campaign.jobs.length === 0) {
-            onExpand(campaign.id);
-        }
-    }, [isOpen, campaign.jobs.length, campaign.id, onExpand]);
 
     const progress = calculateProgress(campaign);
 
@@ -737,16 +690,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                         <div className="flex-1 min-w-0">Recipient</div>
                         <div className="w-[45px] sm:w-[140px] text-right">Time</div>
                     </div>
-
-                    {/* LOADING STATE for lazy load */}
-                    {campaign.jobs.length === 0 && (
-                        <div className="py-8 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            <span className="text-xs">Loading detailed job list...</span>
-                        </div>
-                    )}
-
-                    {campaign.jobs.length > 0 && filteredJobs.length === 0 && (
+                    {filteredJobs.length === 0 && (
                         <div className="p-4 text-center text-xs text-muted-foreground">
                             No emails match "{searchTerm}"
                         </div>
@@ -760,18 +704,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                         const scheduledDate = new Date(job.scheduledFor);
                         const now = new Date();
                         const diffInMinutes = Math.floor((now.getTime() - scheduledDate.getTime()) / 60000);
-
-                        // Overdue Logic:
-                        // 1. Must be PENDING
-                        // 2. Must be > 2 mins late
-                        // 3. Must have fresh data (prevent false positive on load)
-                        // 4. User request: Only show if related to "manual cron start" retries? 
-                        //    Interpretation: The user said "only... delay... for manual cron start... otherwise not"
-                        //    If 'sentViaCron' is true (previous attempt), maybe that's the trigger?
-                        //    Or maybe they just meant "don't show false positives"
-                        //    We will aggressively hide it if we are unsure.
-                        //    Update: Logic -> Only show specific delay container if it's genuinely stalled AND we are sure.
-                        const isOverdue = isPending && diffInMinutes > 2 && hasFreshData && !isFirstSync;
+                        // Only show as overdue if: 1) still pending, 2) more than 2 minutes late, 3) NOT first sync (data may be stale)
+                        const isOverdue = isPending && diffInMinutes > 2 && !isFirstSync;
 
                         // Calculate delay for sent items if data exists, otherwise approximate
                         let sentDelay = 0;

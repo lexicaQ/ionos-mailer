@@ -42,9 +42,6 @@ export function EmailForm() {
     const [sendProgress, setSendProgress] = useState(0)
     const [currentResults, setCurrentResults] = useState<SendResult[]>([])
     const [history, setHistory] = useState<HistoryBatch[]>([])
-    const [historyPage, setHistoryPage] = useState(0)
-    const [hasMoreHistory, setHasMoreHistory] = useState(false)
-    const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false)
     const [smtpSettings, setSmtpSettings] = useState<SmtpConfig | undefined>(undefined)
     const [durationMinutes, setDurationMinutes] = useState(60)
     const [startTime, setStartTime] = useState<string>("")
@@ -60,7 +57,6 @@ export function EmailForm() {
     const [startImmediately, setStartImmediately] = useState(true)
     const [isBackgroundForced, setIsBackgroundForced] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
-    const toastShownRef = useRef(false)
 
     // Load history from localStorage on mount
     useEffect(() => {
@@ -74,93 +70,63 @@ export function EmailForm() {
         }
     }, [])
 
-    const syncHistory = useCallback(async (reset = true) => {
-        if (!session?.user) return
-
-        console.log(`[syncHistory] Starting sync (reset=${reset})...`);
-
-        if (reset) {
-            setIsHistorySyncing(true)
-            setHistoryPage(0);
-        } else {
-            setIsHistoryLoadingMore(true);
+    const syncHistory = useCallback(async () => {
+        if (!session?.user || historyManuallyCleared.current) {
+            console.log('[syncHistory] Skipping - no session or manually cleared');
+            return;
         }
 
+        console.log('[syncHistory] Starting history sync...');
+        setIsHistorySyncing(true)
         try {
-            // Calculate skip/take
-            // Initial load or reset: take 5, skip 0
-            // Load more: take 5, skip current_length based on page or array
-            // We use history.length for skip to be safe against concurrency
-
-            const take = 5;
-            // If resetting, skip 0. If loading more, skip history.length (assuming history is fully loaded so far)
-            // But wait, history comes from localStorage initially.
-            // If we "Load More", we want to fetch *older* items.
-            // Server always returns top N items.
-            // We need pagination by OFFSET.
-
-            // To make this robust:
-            // reset=true -> fetch top 5. Replace everything?
-            // No, if user has 20 items in local, and calls sync(true), we want to REFRESH visible items?
-            // User requested: "history only last 5... then Load More".
-            // So sync(true) SHOULD replace local history with just top 5.
-
-            const skip = reset ? 0 : history.length;
-
-            const res = await fetch(`/api/sync/history?take=${take}&skip=${skip}&t=` + Date.now(), {
+            // 1. Fetch server history
+            // We use 'no-store' or timestamp to ensure fresh data
+            const res = await fetch("/api/sync/history?t=" + Date.now(), {
                 cache: 'no-store',
                 headers: { 'Cache-Control': 'no-cache' }
             });
-
             if (!res.ok) {
                 console.error('[syncHistory] API error:', res.status, res.statusText);
                 return;
             }
+            const serverData: HistoryBatch[] = await res.json()
+            console.log(`[syncHistory] Got ${serverData.length} history batches from server`);
 
-            const data = await res.json()
-            const serverData: HistoryBatch[] = Array.isArray(data) ? data : data.history || [];
-            const hasMoreServer = data.hasMore || false;
-
-            console.log(`[syncHistory] Got ${serverData.length} records. Has more: ${hasMoreServer}`);
-
-            if (historyManuallyCleared.current && serverData.length > 0 && reset) {
+            // RACED CONDITION CHECK: If user cleared history while we were fetching, STOP.
+            if (historyManuallyCleared.current && serverData.length > 0) {
+                console.log("[syncHistory] ⚠️ Refusing to merge stale server data into cleared local history");
                 return;
             }
 
-            setHasMoreHistory(hasMoreServer);
-
-            setHistory(prev => {
-                if (historyManuallyCleared.current) return [];
-
-                let newHistory: HistoryBatch[];
-
-                if (reset) {
-                    newHistory = serverData;
-                } else {
-                    // Append and deduplicate
-                    const existingIds = new Set(prev.map(p => p.id));
-                    const uniqueNew = serverData.filter(d => !existingIds.has(d.id));
-                    newHistory = [...prev, ...uniqueNew];
+            // 2. Server is source of truth - use server data directly
+            // This ensures deletions on other devices are synced
+            setHistory(() => {
+                // Final safety check inside functional update
+                if (historyManuallyCleared.current) {
+                    console.log('[syncHistory] Cleared flag is set, returning empty');
+                    return [];
                 }
 
-                // Sort
-                newHistory.sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+                // Server data IS the truth - local items not in server are deleted
+                const serverIds = new Set(serverData.map(b => b.id));
+                console.log('[syncHistory] Server batch IDs:', Array.from(serverIds));
 
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(newHistory))
-                return newHistory
+                // Use server data as base, sorted by date
+                const result = [...serverData].sort((a, b) =>
+                    new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
+                );
+
+                console.log(`[syncHistory] Replacing local history with ${result.length} server batches`);
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(result))
+                return result
             })
         } catch (error) {
             console.error("[syncHistory] Sync failed:", error)
         } finally {
             setIsHistorySyncing(false)
-            setIsHistoryLoadingMore(false)
         }
-    }, [session, history.length])
-
-    const loadMoreHistory = useCallback(() => {
-        if (!hasMoreHistory || isHistoryLoadingMore) return;
-        syncHistory(false); // reset=false -> append mode
-    }, [hasMoreHistory, isHistoryLoadingMore, syncHistory]);
+        console.log('[syncHistory] Sync complete');
+    }, [session])
 
     // Sync history from cloud when logged in
     useEffect(() => {
@@ -224,27 +190,22 @@ export function EmailForm() {
     const recipients = form.watch("recipients");
 
     // Auto-enable background mode if more than 10 recipients
+    // Using toast ID to prevent duplicate notifications
     useEffect(() => {
         if (recipients?.length > 10) {
             if (!useBackground) {
-                // Prevent double toast (React.StrictMode or race condition)
-                const toastId = "background-forced";
-                if (!toastShownRef.current) {
-                    setUseBackground(true)
-                    toast.info("Background Delivery activated automatically to ensure stability.", {
-                        duration: 5000,
-                        id: toastId
-                    })
-                    toastShownRef.current = true;
-                } else {
-                    setUseBackground(true) // Still set state
-                }
+                setUseBackground(true)
+                // Toast ID 'background-forced' ensures only one notification even if effect runs multiple times
+                toast.info("Background Delivery activated automatically for more than 10 recipients to ensure stability.", {
+                    duration: 5000,
+                    id: "background-forced"
+                })
             }
             setIsBackgroundForced(true)
         } else {
             setIsBackgroundForced(false)
         }
-    }, [recipients?.length, useBackground])
+    }, [recipients?.length]) // Removed useBackground from deps to prevent double trigger
 
     // Reset start time when immediate mode is enabled
     useEffect(() => {
@@ -624,10 +585,7 @@ export function EmailForm() {
                         batches={history}
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
-                        onRefresh={() => syncHistory(true)}
-                        hasMore={hasMoreHistory}
-                        onLoadMore={async () => loadMoreHistory()}
-                        isLoadingMore={isHistoryLoadingMore}
+                        onRefresh={syncHistory}
                     />
                     <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <div className="hidden md:flex items-center gap-2 shrink-0">
