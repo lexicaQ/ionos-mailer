@@ -449,7 +449,7 @@ export function LiveCampaignTracker() {
                                     disabled={loading}
                                     className="gap-2 h-8 text-xs"
                                 >
-                                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                    <RefreshCw className="h-3.5 w-3.5" />
                                     Refresh
                                 </Button>
                                 <Button variant="outline" size="sm" onClick={exportToExcel} disabled={campaigns.length === 0} className="hidden sm:flex gap-2 h-8 text-xs">
