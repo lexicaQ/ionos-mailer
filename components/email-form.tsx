@@ -18,7 +18,7 @@ import { AuthDialog } from "@/components/auth-dialog"
 import { FileImportModal } from "@/components/file-import-modal"
 import { ExtractionResult } from "@/lib/parsers"
 import { SmtpConfig } from "@/lib/mail"
-import { Send, Loader2, Clock, Sparkles, FileUp } from "lucide-react"
+import { Send, Loader2, Clock, Sparkles, FileUp, Info, Mail } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { Switch } from "@/components/ui/switch"
@@ -183,7 +183,7 @@ export function EmailForm() {
             if (!useBackground) {
                 setUseBackground(true)
                 // Toast ID 'background-forced' ensures only one notification even if effect runs multiple times
-                toast.info("Kampagne automatisch aktiviert für mehr als 10 Empfänger.", {
+                toast.info("Campaign enabled automatically for more than 10 recipients.", {
                     duration: 5000,
                     id: "background-forced"
                 })
@@ -787,11 +787,11 @@ export function EmailForm() {
                                     <Clock className="h-4 w-4 text-white dark:text-black" />
                                 </div>
                                 <div>
-                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Kampagne</Label>
+                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Campaign</Label>
                                     <p className="text-xs text-neutral-500">
                                         {isBackgroundForced
-                                            ? "Erforderlich für mehr als 10 Empfänger"
-                                            : "Automatischer Versand im Hintergrund nach Zeitplan"}
+                                            ? "Required for more than 10 recipients"
+                                            : "Automated background delivery on schedule"}
                                     </p>
                                 </div>
                             </div>
@@ -803,20 +803,27 @@ export function EmailForm() {
                                     disabled={isBackgroundForced}
                                 />
                                 {isBackgroundForced && (
-                                    <span className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">Erforderlich</span>
+                                    <span className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">Required</span>
                                 )}
                             </div>
                         </div>
 
+
                         {useBackground && (
                             <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-4">
                                 {/* Info Box */}
-                                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
-                                    <p className="text-xs text-blue-900 dark:text-blue-100 leading-relaxed">
-                                        ℹ️ <strong>Kampagnen laufen im Hintergrund</strong>, auch wenn der Browser oder das Gerät ausgeschaltet ist.
-                                        Ein externer Dienst versendet E-Mails nach Zeitplan mit <strong>kleinen Verzögerungen</strong> (5-Min-Cron-Intervall zur Kostenoptimierung).
-                                        <strong className="block mt-1">📧 Optimales Intervall: 6 Minuten</strong>
-                                    </p>
+                                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 flex gap-2">
+                                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                    <div className="text-xs text-blue-900 dark:text-blue-100 leading-relaxed space-y-1">
+                                        <p>
+                                            <strong>Campaigns run in the background</strong>, even when your browser or device is off.
+                                            An external service sends emails on schedule with <strong>small delays</strong> (5-minute cron interval for cost optimization).
+                                        </p>
+                                        <div className="flex items-center gap-1.5 mt-1 font-medium">
+                                            <Mail className="h-3.5 w-3.5" />
+                                            <span>Optimal interval: 6 minutes</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <FormField
@@ -824,10 +831,10 @@ export function EmailForm() {
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-sm font-semibold">Kampagnen-Name (Optional)</FormLabel>
+                                            <FormLabel className="text-sm font-semibold">Campaign Name (Optional)</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="z.B. Newsletter Dezember 2024"
+                                                    placeholder="e.g. Newsletter December 2024"
                                                     {...field}
                                                     disabled={isSending}
                                                     className="h-10"
@@ -840,7 +847,7 @@ export function EmailForm() {
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <Label htmlFor="immediate-mode" className="text-sm font-medium">Sofort starten</Label>
+                                        <Label htmlFor="immediate-mode" className="text-sm font-medium">Start Immediately</Label>
                                         <Switch
                                             id="immediate-mode"
                                             checked={startImmediately}
@@ -851,8 +858,15 @@ export function EmailForm() {
                                     {!startImmediately && (
                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
                                             <div className="flex items-center justify-between">
-                                                <Label htmlFor="start-time" className="text-sm font-medium">Startzeit</Label>
-                                                <p className="text-[10px] text-muted-foreground">Automatisch auf 5-Min-Takt gerundet</p>
+                                                <Label htmlFor="start-time" className="text-sm font-medium">Start Time</Label>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] text-muted-foreground">Auto-rounded to 5-min intervals</p>
+                                                    {startTime && (
+                                                        <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                                                            Optimal: {format(new Date(startTime), "HH:mm")}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                             <Input
                                                 id="start-time"
@@ -868,21 +882,21 @@ export function EmailForm() {
 
                                 {/* Interval Selector */}
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-medium">E-Mail-Intervall</Label>
+                                    <Label className="text-sm font-medium">Email Interval</Label>
                                     <select
                                         value={intervalMinutes}
                                         onChange={(e) => setIntervalMinutes(parseInt(e.target.value))}
                                         className="w-full h-10 px-3 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-sm"
                                     >
-                                        <option value={2}>2 Minuten</option>
-                                        <option value={5}>5 Minuten</option>
-                                        <option value={6}>6 Minuten (Optimal)</option>
-                                        <option value={10}>10 Minuten</option>
-                                        <option value={15}>15 Minuten</option>
-                                        <option value={30}>30 Minuten</option>
+                                        <option value={2}>2 Minutes</option>
+                                        <option value={5}>5 Minutes</option>
+                                        <option value={6}>6 Minutes (Optimal)</option>
+                                        <option value={10}>10 Minutes</option>
+                                        <option value={15}>15 Minutes</option>
+                                        <option value={30}>30 Minutes</option>
                                     </select>
                                     <p className="text-xs text-muted-foreground">
-                                        Zeit zwischen einzelnen E-Mails (6 Min = bestes Preis-Geschwindigkeits-Verhältnis)
+                                        Time between individual emails (6 min = best cost/speed ratio)
                                     </p>
                                 </div>
 
