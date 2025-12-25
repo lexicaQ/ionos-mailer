@@ -54,9 +54,10 @@ export function EmailForm() {
 
     const [isHistorySyncing, setIsHistorySyncing] = useState(false)
     const historyManuallyCleared = useRef(false) // Track if user cleared history
-    const [startImmediately, setStartImmediately] = useState(true)
+    const [startImmediately, setStartImmediately] = useState(false) // Changed: default to scheduled
     const [isBackgroundForced, setIsBackgroundForced] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
+    const [intervalMinutes, setIntervalMinutes] = useState(6) // NEW: Campaign interval in minutes
 
     // Load history from localStorage on mount
     useEffect(() => {
@@ -182,7 +183,7 @@ export function EmailForm() {
             if (!useBackground) {
                 setUseBackground(true)
                 // Toast ID 'background-forced' ensures only one notification even if effect runs multiple times
-                toast.info("Background Delivery activated automatically for more than 10 recipients to ensure stability.", {
+                toast.info("Kampagne automatisch aktiviert für mehr als 10 Empfänger.", {
                     duration: 5000,
                     id: "background-forced"
                 })
@@ -199,6 +200,31 @@ export function EmailForm() {
             setStartTime("")
         }
     }, [startImmediately])
+
+    // SMART SCHEDULING: Round to next 5-minute mark when campaign is enabled
+    useEffect(() => {
+        if (useBackground && !startImmediately && !startTime) {
+            const roundToNext5Minutes = (date: Date): Date => {
+                const minutes = date.getMinutes();
+                const roundedMinutes = Math.ceil((minutes + 1) / 5) * 5; // +1 to ensure future time
+                const newDate = new Date(date);
+
+                if (roundedMinutes >= 60) {
+                    newDate.setHours(newDate.getHours() + 1);
+                    newDate.setMinutes(0);
+                } else {
+                    newDate.setMinutes(roundedMinutes);
+                }
+
+                newDate.setSeconds(0);
+                newDate.setMilliseconds(0);
+                return newDate;
+            };
+
+            const smartStart = roundToNext5Minutes(new Date());
+            setStartTime(smartStart.toISOString().slice(0, 16));
+        }
+    }, [useBackground, startImmediately])
 
     // RECOVERY: Check for unsaved content from previous session
     useEffect(() => {
@@ -753,7 +779,7 @@ export function EmailForm() {
                         )}
                     />
 
-                    {/* Background Mode Section */}
+                    {/* Campaign Mode Section */}
                     <div className="rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/40 p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -761,11 +787,11 @@ export function EmailForm() {
                                     <Clock className="h-4 w-4 text-white dark:text-black" />
                                 </div>
                                 <div>
-                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Background Delivery</Label>
+                                    <Label htmlFor="bg-mode" className="font-semibold cursor-pointer">Kampagne</Label>
                                     <p className="text-xs text-neutral-500">
                                         {isBackgroundForced
-                                            ? "Required for more than 10 recipients"
-                                            : "Emails are sent distributed over time"}
+                                            ? "Erforderlich für mehr als 10 Empfänger"
+                                            : "Automatischer Versand im Hintergrund nach Zeitplan"}
                                     </p>
                                 </div>
                             </div>
@@ -777,22 +803,31 @@ export function EmailForm() {
                                     disabled={isBackgroundForced}
                                 />
                                 {isBackgroundForced && (
-                                    <span className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">Required</span>
+                                    <span className="text-[9px] font-bold text-orange-500 uppercase tracking-tighter">Erforderlich</span>
                                 )}
                             </div>
                         </div>
 
                         {useBackground && (
                             <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700 space-y-4">
+                                {/* Info Box */}
+                                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+                                    <p className="text-xs text-blue-900 dark:text-blue-100 leading-relaxed">
+                                        ℹ️ <strong>Kampagnen laufen im Hintergrund</strong>, auch wenn der Browser oder das Gerät ausgeschaltet ist.
+                                        Ein externer Dienst versendet E-Mails nach Zeitplan mit <strong>kleinen Verzögerungen</strong> (5-Min-Cron-Intervall zur Kostenoptimierung).
+                                        <strong className="block mt-1">📧 Optimales Intervall: 6 Minuten</strong>
+                                    </p>
+                                </div>
+
                                 <FormField
                                     control={form.control}
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-sm font-semibold">Campaign Name (Optional)</FormLabel>
+                                            <FormLabel className="text-sm font-semibold">Kampagnen-Name (Optional)</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    placeholder="e.g. Newsletter December 2024"
+                                                    placeholder="z.B. Newsletter Dezember 2024"
                                                     {...field}
                                                     disabled={isSending}
                                                     className="h-10"
@@ -805,7 +840,7 @@ export function EmailForm() {
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <Label htmlFor="immediate-mode" className="text-sm font-medium">Start Immediately</Label>
+                                        <Label htmlFor="immediate-mode" className="text-sm font-medium">Sofort starten</Label>
                                         <Switch
                                             id="immediate-mode"
                                             checked={startImmediately}
@@ -815,7 +850,10 @@ export function EmailForm() {
 
                                     {!startImmediately && (
                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                            <Label htmlFor="start-time" className="text-sm font-medium">Start Time</Label>
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="start-time" className="text-sm font-medium">Startzeit</Label>
+                                                <p className="text-[10px] text-muted-foreground">Automatisch auf 5-Min-Takt gerundet</p>
+                                            </div>
                                             <Input
                                                 id="start-time"
                                                 type="datetime-local"
@@ -828,47 +866,40 @@ export function EmailForm() {
                                     )}
                                 </div>
 
-                                <div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <Label className="text-sm font-medium">Distribution Duration</Label>
-                                        <span className="text-sm font-mono bg-white dark:bg-neutral-800 px-3 py-1 rounded-lg shadow-sm">
-                                            {durationMinutes >= 60
-                                                ? `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`
-                                                : `${durationMinutes} min`
-                                            }
-                                        </span>
-                                    </div>
-                                    <Slider
-                                        value={[durationMinutes]}
-                                        min={1} // Minimum 1 minute
-                                        max={1440} // 24 hours
-                                        step={1}
-                                        onValueChange={(vals) => setDurationMinutes(vals[0])}
-                                        className="mb-3"
-                                    />
-                                    <div className="flex justify-between text-xs text-neutral-400 mt-1">
-                                        <span>1 min</span>
-                                        <span>24 hours</span>
-                                    </div>
+                                {/* Interval Selector */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">E-Mail-Intervall</Label>
+                                    <select
+                                        value={intervalMinutes}
+                                        onChange={(e) => setIntervalMinutes(parseInt(e.target.value))}
+                                        className="w-full h-10 px-3 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-sm"
+                                    >
+                                        <option value={2}>2 Minuten</option>
+                                        <option value={5}>5 Minuten</option>
+                                        <option value={6}>6 Minuten (Optimal)</option>
+                                        <option value={10}>10 Minuten</option>
+                                        <option value={15}>15 Minuten</option>
+                                        <option value={30}>30 Minuten</option>
+                                    </select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Zeit zwischen einzelnen E-Mails (6 Min = bestes Preis-Geschwindigkeits-Verhältnis)
+                                    </p>
                                 </div>
+
                                 <div className="p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-3">
                                     <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-neutral-800">
-                                        <p className="text-sm font-semibold">Delivery Schedule</p>
-                                        <p className="text-xs font-mono">{recipients.length} Recipients</p>
+                                        <p className="text-sm font-semibold">Zeitplan</p>
+                                        <p className="text-xs font-mono">{recipients.length} Empfänger</p>
                                     </div>
                                     <div className="space-y-2 text-xs">
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Interval:</span>
-                                            <span className="font-mono">
-                                                {recipients.length > 1
-                                                    ? `Every ${(durationMinutes / (recipients.length - 1)).toFixed(1)} minutes`
-                                                    : "Immediate"}
-                                            </span>
+                                            <span className="text-muted-foreground">Intervall:</span>
+                                            <span className="font-mono">{intervalMinutes} Min/E-Mail</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Start:</span>
                                             <span className="font-mono">
-                                                {startTime ? format(new Date(startTime), "HH:mm") : "Immediate"}
+                                                {startTime ? format(new Date(startTime), "HH:mm") : "Sofort"}
                                             </span>
                                         </div>
                                     </div>
