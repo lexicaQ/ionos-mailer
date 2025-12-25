@@ -49,7 +49,7 @@ interface HistoryModalProps {
     batches: HistoryBatch[]
     onDeleteBatch: (id: string) => void
     onClearAll: () => Promise<void> // Changed to return Promise for async/await
-    onRefresh?: () => void
+    onRefresh?: (force?: boolean) => void
 }
 
 // Shorten ID to first 8 characters
@@ -111,7 +111,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
 
         // Fetch history when modal opens (NO auto-sync on page load)
         if (!clearInProgress.current && onRefresh) {
-            onRefresh();
+            onRefresh(false); // Default: Don't force, use cache
         }
 
         // NO automatic polling - user must click Refresh button
@@ -312,7 +312,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                     )}
                                 </div>
                                 <p className="text-xs text-muted-foreground max-w-md">
-                                    Manual refresh only • Saves 90% server costs
+                                    Manual refresh only
                                 </p>
                                 <p className="text-[10px] text-muted-foreground/70 max-w-md">
                                     Click refresh button to check for updates
@@ -327,7 +327,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                     setIsRefreshing(true);
                                     try {
                                         if (onRefresh) {
-                                            onRefresh();
+                                            onRefresh(true); // Force Refresh!
                                         }
                                         await fetchTrackingStatus();
                                     } finally {

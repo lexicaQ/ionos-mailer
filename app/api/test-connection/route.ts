@@ -118,9 +118,10 @@ export async function POST(req: Request) {
             }
 
             // Don't include raw verifyError in response (security)
+            // Return 400 for verification errors (client input issue), 500 only for crashes
             return NextResponse.json(
                 { success: false, error: errorMessage },
-                { status: 500 }
+                { status: 400 }
             );
         }
 

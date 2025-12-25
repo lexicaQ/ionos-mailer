@@ -70,10 +70,22 @@ export function EmailForm() {
         }
     }, [])
 
-    const syncHistory = useCallback(async () => {
+    const syncHistory = useCallback(async (force = false) => {
         if (!session?.user || historyManuallyCleared.current) {
             console.log('[syncHistory] Skipping - no session or manually cleared');
             return;
+        }
+
+        // TTL CACHING LOGIC (5 Minutes)
+        if (!force) {
+            const lastSync = localStorage.getItem("ionos-mailer-history-last-sync");
+            if (lastSync) {
+                const age = Date.now() - parseInt(lastSync, 10);
+                if (age < 300000) { // 5 minutes
+                    console.log(`[syncHistory] Cache is fresh (${Math.floor(age / 1000)}s old). Skipping fetch.`);
+                    return;
+                }
+            }
         }
 
         console.log('[syncHistory] Starting history sync...');
@@ -118,6 +130,10 @@ export function EmailForm() {
 
                 console.log(`[syncHistory] Replacing local history with ${result.length} server batches`);
                 localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(result))
+
+                // UPDATE TTL TIMESTAMP
+                localStorage.setItem("ionos-mailer-history-last-sync", Date.now().toString());
+
                 return result
             })
         } catch (error) {

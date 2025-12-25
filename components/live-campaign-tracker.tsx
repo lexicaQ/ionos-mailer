@@ -127,6 +127,29 @@ export function LiveCampaignTracker() {
             return;
         }
 
+        // TTL CACHING LOGIC (5 Minutes)
+        if (!isBackground) {
+            const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
+            if (lastFetch) {
+                const age = Date.now() - parseInt(lastFetch, 10);
+                // If cache is younger than 5 minutes (300000ms), SKIP fetch
+                if (age < 300000) {
+                    console.log(`[LiveTracker] Cache is fresh (${Math.floor(age / 1000)}s old). Skipping fetch.`);
+
+                    // Still load cache just in case state is empty (e.g. hard refresh)
+                    if (campaignsRef.current.length === 0) {
+                        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+                        if (cached) {
+                            try {
+                                setCampaigns(JSON.parse(cached));
+                            } catch (e) { }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
         isFetching.current = true;
 
         // Track if this is the very first sync (to show animation once)
@@ -185,6 +208,9 @@ export function LiveCampaignTracker() {
                     setCampaigns(filtered);
                     // Update cache WITHOUT deleted campaigns
                     localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
+
+                    // UPDATE TTL TIMESTAMP
+                    localStorage.setItem("ionos-mailer-campaigns-last-fetch", Date.now().toString());
                 }
             }
         } catch (error) {
@@ -470,7 +496,7 @@ export function LiveCampaignTracker() {
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground max-w-md">
-                                        Manual refresh only • Saves 90% server costs
+                                        Manual refresh only
                                     </p>
                                     <p className="text-[10px] text-muted-foreground/70 max-w-md">
                                         Click refresh button to check for updates
@@ -481,7 +507,11 @@ export function LiveCampaignTracker() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => fetchCampaigns(false)}
+                                    onClick={() => {
+                                        // FORCE REFRESH: Clear timestamp so fetch happens
+                                        localStorage.removeItem("ionos-mailer-campaigns-last-fetch");
+                                        fetchCampaigns(false);
+                                    }}
                                     disabled={loading}
                                     className="gap-2 h-8 text-xs"
                                 >
