@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { ResponsiveModal } from "@/components/responsive-modal"
 import { toast } from "sonner"
 import { LogOut, Loader2, Cloud, Mail } from "lucide-react"
+
+const SESSION_HINT_KEY = "ionos-mailer-logged-in"
 
 interface AuthDialogProps {
     customTrigger?: React.ReactNode
@@ -18,6 +20,25 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
+    // LOCAL HINT: Check localStorage for instant UI (before server responds)
+    const [localHint, setLocalHint] = useState<boolean | null>(null)
+
+    useEffect(() => {
+        // Read hint on mount
+        const hint = localStorage.getItem(SESSION_HINT_KEY)
+        setLocalHint(hint === "true")
+    }, [])
+
+    // Sync localStorage when session changes
+    useEffect(() => {
+        if (status === "authenticated" && session?.user) {
+            localStorage.setItem(SESSION_HINT_KEY, "true")
+            setLocalHint(true)
+        } else if (status === "unauthenticated") {
+            localStorage.removeItem(SESSION_HINT_KEY)
+            setLocalHint(false)
+        }
+    }, [status, session])
 
     // Form state
     const [email, setEmail] = useState("")
@@ -37,6 +58,9 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
             if (result?.error) {
                 toast.error("Invalid credentials. Please check your IONOS email and password.")
             } else {
+                // Save hint IMMEDIATELY for instant UI on next load
+                localStorage.setItem(SESSION_HINT_KEY, "true")
+                setLocalHint(true)
                 toast.success("Connected! Your data is now synced across devices.")
                 setOpen(false)
                 setEmail("")
@@ -49,20 +73,20 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
         }
     }
 
-
-
     const handleLogout = async () => {
+        // Clear hint IMMEDIATELY for instant UI
+        localStorage.removeItem(SESSION_HINT_KEY)
+        setLocalHint(false)
         await signOut({ redirect: false })
         toast.success("Disconnected from cloud sync")
     }
 
-    // OPTIMIZED: Don't show loading spinner, just show Sign In button by default
-    // This makes the UI feel instant. If session loads and user IS logged in, 
-    // it will flip to the Logout button (which is fine).
-    // if (status === "loading") { ... } <-- REMOVED
+    // INSTANT UI: Use localStorage hint OR actual session
+    // Priority: session (source of truth) > localStorage hint > default (signed out)
+    const isLoggedIn = session?.user || (status === "loading" && localHint === true)
 
-    // Logged in state - Minimalist (Just Logout Icon, matches Settings)
-    if (session?.user) {
+    // Logged in state - Minimalist (Just Logout Icon)
+    if (isLoggedIn) {
         return (
             <Button variant="outline" size="icon" onClick={handleLogout} title="Disconnect">
                 <LogOut className="h-4 w-4" />
