@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { auth } from '@/auth';
+import { checkRateLimit } from '@/lib/redis';
 
 // ============================================================
 // SECURITY: Port and Host Restrictions
@@ -41,28 +42,6 @@ function isValidFQDN(host: string): boolean {
     return true;
 }
 
-// Rate limiting (simple in-memory, resets on cold start)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 5; // Max 5 tests per minute
-const RATE_WINDOW = 60 * 1000; // 1 minute
-
-function checkRateLimit(userId: string): boolean {
-    const now = Date.now();
-    const entry = rateLimitMap.get(userId);
-
-    if (!entry || now > entry.resetAt) {
-        rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW });
-        return true;
-    }
-
-    if (entry.count >= RATE_LIMIT) {
-        return false;
-    }
-
-    entry.count++;
-    return true;
-}
-
 export async function POST(req: Request) {
     try {
         // SECURITY: Authentication is optional (users need to test before sign-in)
@@ -70,8 +49,11 @@ export async function POST(req: Request) {
         const session = await auth();
         const userId = session?.user?.id || req.headers.get('x-forwarded-for')?.split(',')[0] || 'anonymous';
 
-        // SECURITY: Rate limiting
-        if (!checkRateLimit(userId)) {
+        // SECURITY: Rate limiting with Redis (persistent across functions)
+        const rateLimitKey = `rate-limit:test-connection:${userId}`;
+        const allowed = await checkRateLimit(rateLimitKey, 5, 60); // 5 requests per 60 seconds
+
+        if (!allowed) {
             return NextResponse.json(
                 { success: false, error: "Rate limit exceeded. Please wait 1 minute." },
                 { status: 429 }

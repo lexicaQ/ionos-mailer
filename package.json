@@ -42,6 +42,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/papaparse": "^5.5.2",
     "@types/uuid": "^10.0.0",
+    "@upstash/redis": "^1.36.0",
     "@vercel/analytics": "^1.6.1",
     "ai": "^5.0.110",
     "bcryptjs": "^3.0.3",
