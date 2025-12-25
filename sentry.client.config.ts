@@ -12,6 +12,17 @@ Sentry.init({
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
 
+    // User Feedback widget - allows users to report bugs
+    integrations: [
+        Sentry.feedbackIntegration({
+            // Display name and email form fields
+            colorScheme: "system",
+            isNameRequired: true,
+            isEmailRequired: true,
+            enableScreenshot: true,
+        }),
+    ],
+
     // Note: if you want to override the automatic release value, do not set a
     // `release` value here - use the environment variable `SENTRY_RELEASE`, so
     // that it will also get attached to your source maps
