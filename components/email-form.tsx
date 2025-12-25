@@ -42,6 +42,9 @@ export function EmailForm() {
     const [sendProgress, setSendProgress] = useState(0)
     const [currentResults, setCurrentResults] = useState<SendResult[]>([])
     const [history, setHistory] = useState<HistoryBatch[]>([])
+    const [historyPage, setHistoryPage] = useState(0)
+    const [hasMoreHistory, setHasMoreHistory] = useState(false)
+    const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false)
     const [smtpSettings, setSmtpSettings] = useState<SmtpConfig | undefined>(undefined)
     const [durationMinutes, setDurationMinutes] = useState(60)
     const [startTime, setStartTime] = useState<string>("")
@@ -71,63 +74,93 @@ export function EmailForm() {
         }
     }, [])
 
-    const syncHistory = useCallback(async () => {
-        if (!session?.user || historyManuallyCleared.current) {
-            console.log('[syncHistory] Skipping - no session or manually cleared');
-            return;
+    const syncHistory = useCallback(async (reset = true) => {
+        if (!session?.user) return
+
+        console.log(`[syncHistory] Starting sync (reset=${reset})...`);
+
+        if (reset) {
+            setIsHistorySyncing(true)
+            setHistoryPage(0);
+        } else {
+            setIsHistoryLoadingMore(true);
         }
 
-        console.log('[syncHistory] Starting history sync...');
-        setIsHistorySyncing(true)
         try {
-            // 1. Fetch server history
-            // We use 'no-store' or timestamp to ensure fresh data
-            const res = await fetch("/api/sync/history?t=" + Date.now(), {
+            // Calculate skip/take
+            // Initial load or reset: take 5, skip 0
+            // Load more: take 5, skip current_length based on page or array
+            // We use history.length for skip to be safe against concurrency
+
+            const take = 5;
+            // If resetting, skip 0. If loading more, skip history.length (assuming history is fully loaded so far)
+            // But wait, history comes from localStorage initially.
+            // If we "Load More", we want to fetch *older* items.
+            // Server always returns top N items.
+            // We need pagination by OFFSET.
+
+            // To make this robust:
+            // reset=true -> fetch top 5. Replace everything?
+            // No, if user has 20 items in local, and calls sync(true), we want to REFRESH visible items?
+            // User requested: "history only last 5... then Load More".
+            // So sync(true) SHOULD replace local history with just top 5.
+
+            const skip = reset ? 0 : history.length;
+
+            const res = await fetch(`/api/sync/history?take=${take}&skip=${skip}&t=` + Date.now(), {
                 cache: 'no-store',
                 headers: { 'Cache-Control': 'no-cache' }
             });
+
             if (!res.ok) {
                 console.error('[syncHistory] API error:', res.status, res.statusText);
                 return;
             }
-            const serverData: HistoryBatch[] = await res.json()
-            console.log(`[syncHistory] Got ${serverData.length} history batches from server`);
 
-            // RACED CONDITION CHECK: If user cleared history while we were fetching, STOP.
-            if (historyManuallyCleared.current && serverData.length > 0) {
-                console.log("[syncHistory] ⚠️ Refusing to merge stale server data into cleared local history");
+            const data = await res.json()
+            const serverData: HistoryBatch[] = Array.isArray(data) ? data : data.history || [];
+            const hasMoreServer = data.hasMore || false;
+
+            console.log(`[syncHistory] Got ${serverData.length} records. Has more: ${hasMoreServer}`);
+
+            if (historyManuallyCleared.current && serverData.length > 0 && reset) {
                 return;
             }
 
-            // 2. Server is source of truth - use server data directly
-            // This ensures deletions on other devices are synced
-            setHistory(() => {
-                // Final safety check inside functional update
-                if (historyManuallyCleared.current) {
-                    console.log('[syncHistory] Cleared flag is set, returning empty');
-                    return [];
+            setHasMoreHistory(hasMoreServer);
+
+            setHistory(prev => {
+                if (historyManuallyCleared.current) return [];
+
+                let newHistory: HistoryBatch[];
+
+                if (reset) {
+                    newHistory = serverData;
+                } else {
+                    // Append and deduplicate
+                    const existingIds = new Set(prev.map(p => p.id));
+                    const uniqueNew = serverData.filter(d => !existingIds.has(d.id));
+                    newHistory = [...prev, ...uniqueNew];
                 }
 
-                // Server data IS the truth - local items not in server are deleted
-                const serverIds = new Set(serverData.map(b => b.id));
-                console.log('[syncHistory] Server batch IDs:', Array.from(serverIds));
+                // Sort
+                newHistory.sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
 
-                // Use server data as base, sorted by date
-                const result = [...serverData].sort((a, b) =>
-                    new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
-                );
-
-                console.log(`[syncHistory] Replacing local history with ${result.length} server batches`);
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(result))
-                return result
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(newHistory))
+                return newHistory
             })
         } catch (error) {
             console.error("[syncHistory] Sync failed:", error)
         } finally {
             setIsHistorySyncing(false)
+            setIsHistoryLoadingMore(false)
         }
-        console.log('[syncHistory] Sync complete');
-    }, [session])
+    }, [session, history.length])
+
+    const loadMoreHistory = useCallback(() => {
+        if (!hasMoreHistory || isHistoryLoadingMore) return;
+        syncHistory(false); // reset=false -> append mode
+    }, [hasMoreHistory, isHistoryLoadingMore, syncHistory]);
 
     // Sync history from cloud when logged in
     useEffect(() => {
@@ -591,7 +624,10 @@ export function EmailForm() {
                         batches={history}
                         onDeleteBatch={handleDeleteBatch}
                         onClearAll={handleClearAllHistory}
-                        onRefresh={syncHistory}
+                        onRefresh={() => syncHistory(true)}
+                        hasMore={hasMoreHistory}
+                        onLoadMore={async () => loadMoreHistory()}
+                        isLoadingMore={isHistoryLoadingMore}
                     />
                     <SettingsDialog onSettingsChange={setSmtpSettings} currentSettings={smtpSettings} />
                     <div className="hidden md:flex items-center gap-2 shrink-0">

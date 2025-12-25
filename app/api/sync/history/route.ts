@@ -16,6 +16,10 @@ export async function GET(req: Request) {
         const secretKey = process.env.ENCRYPTION_KEY;
         if (!secretKey) throw new Error("Encryption key missing");
 
+        const { searchParams } = new URL(req.url);
+        const take = parseInt(searchParams.get('take') || '5'); // Default to 5 as requested
+        const skip = parseInt(searchParams.get('skip') || '0');
+
         // Fetch Campaigns (Direct Batches)
         // Direct sends have name="DIRECT" (unencrypted)
         // Background campaigns may have encrypted names
@@ -28,7 +32,8 @@ export async function GET(req: Request) {
                     { name: "DIRECT" }   // New Async Direct Sends (unencrypted marker)
                 ]
             },
-            take: 20, // Limit to 20 most recent batches
+            take,
+            skip,
             orderBy: { createdAt: 'desc' },
             include: {
                 jobs: {
@@ -36,6 +41,16 @@ export async function GET(req: Request) {
                 }
             }
         });
+
+        // Check if there are more (for load more button)
+        const totalCount = await prisma.campaign.count({
+            where: {
+                userId: session.user.id,
+                OR: [{ host: "DIRECT" }, { name: "DIRECT" }]
+            }
+        });
+
+        const hasMore = (skip + take) < totalCount;
 
         // Map to expected history format (HistoryBatch)
         const history = campaigns.map(campaign => {
@@ -89,7 +104,11 @@ export async function GET(req: Request) {
             }
         });
 
-        return NextResponse.json(history)
+        return NextResponse.json({
+            history,
+            hasMore,
+            totalCount
+        })
 
     } catch (error) {
         console.error("Failed to fetch history:", error)

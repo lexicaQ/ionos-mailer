@@ -22,62 +22,58 @@ export async function GET(req: NextRequest) {
             where: { userId },
             orderBy: { createdAt: 'desc' },
             take: 5, // Reduced to 5 to significantly lower Compute Unit usage (User request)
-            include: {
-                jobs: {
-                    orderBy: { createdAt: 'desc' }
-                }
-            }
+            // include: { jobs: ... } REMOVED for optimization. We fetch stats via groupBy instead.
         });
 
         const secretKey = process.env.ENCRYPTION_KEY!;
 
-        // Transform data for frontend with decryption
-        const result = campaigns.map((campaign: any) => {
-            // Decrypt campaign name (may be null or legacy unencrypted)
+        // Efficiently fetch only metadata + stats (No heavy jobs array)
+        const result = await Promise.all(campaigns.map(async (campaign: any) => {
+            // Decrypt campaign name
             let decryptedName = campaign.name;
             if (campaign.name) {
                 try {
                     decryptedName = decrypt(campaign.name, secretKey);
                 } catch (e) {
-                    // Legacy unencrypted name, keep as-is
                     decryptedName = campaign.name;
                 }
             }
+
+            // 1. Get Status Counts via GroupBy (Very fast)
+            const statusCounts = await prisma.emailJob.groupBy({
+                by: ['status'],
+                where: { campaignId: campaign.id },
+                _count: true
+            });
+
+            // 2. Get Open Count via count (fast index scan)
+            const openedCount = await prisma.emailJob.count({
+                where: {
+                    campaignId: campaign.id,
+                    openedAt: { not: null }
+                }
+            });
+
+            const statsMap = statusCounts.reduce((acc, curr) => {
+                acc[curr.status] = curr._count;
+                return acc;
+            }, {} as Record<string, number>);
 
             return {
                 id: campaign.id,
                 name: decryptedName,
                 isDirect: campaign.host === 'DIRECT' || campaign.name === 'DIRECT',
                 createdAt: campaign.createdAt.toISOString(),
-                jobs: campaign.jobs.map((job: any) => ({
-                    id: job.id,
-                    trackingId: job.trackingId,
-                    recipient: decrypt(job.recipient, process.env.ENCRYPTION_KEY!),
-                    subject: decrypt(job.subject, process.env.ENCRYPTION_KEY!),
-                    status: job.status,
-                    scheduledFor: job.scheduledFor.toISOString(),
-                    originalScheduledFor: job.originalScheduledFor?.toISOString() || null,
-                    sentAt: job.sentAt?.toISOString() || null,
-                    error: job.error,
-                    // Retry tracking
-                    retryCount: job.retryCount || 0,
-                    maxRetries: job.maxRetries || 3,
-                    nextRetryAt: job.nextRetryAt?.toISOString() || null,
-                    // Cron tracking
-                    sentViaCron: job.sentViaCron || false,
-                    // Tracking data
-                    openedAt: job.openedAt?.toISOString() || null,
-                    openCount: job.openCount
-                })),
+                jobs: [], // EMPTY by default to save bandwidth/DB
                 stats: {
-                    total: campaign.jobs.length,
-                    sent: campaign.jobs.filter((j: any) => j.status === 'SENT').length,
-                    pending: campaign.jobs.filter((j: any) => j.status === 'PENDING').length,
-                    failed: campaign.jobs.filter((j: any) => j.status === 'FAILED').length,
-                    opened: campaign.jobs.filter((j: any) => j.openedAt).length
+                    total: Object.values(statsMap).reduce((a, b) => a + b, 0),
+                    sent: statsMap['SENT'] || 0,
+                    pending: statsMap['PENDING'] || 0,
+                    failed: statsMap['FAILED'] || 0,
+                    opened: openedCount
                 }
             };
-        });
+        }));
 
         return NextResponse.json(result);
     } catch (error: any) {
