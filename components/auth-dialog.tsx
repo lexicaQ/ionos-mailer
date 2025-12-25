@@ -74,21 +74,37 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     }
 
     const handleLogout = async () => {
-        // Clear hint IMMEDIATELY for instant UI
+        // INSTANT LOGOUT: Clear localStorage hint immediately (optimistic)
         localStorage.removeItem(SESSION_HINT_KEY)
         setLocalHint(false)
-        await signOut({ redirect: false })
-        toast.success("Disconnected from cloud sync")
+
+        // Show logout toast immediately
+        toast.success("Logged out successfully", {
+            duration: 2000,
+            className: "animate-out fade-out duration-300"
+        })
+
+        // Sign out in background (don't wait)
+        signOut({ redirect: false }).catch(() => {
+            // If sign out fails, just log it - user already sees logged out UI
+            console.error('Background sign out failed')
+        })
     }
 
     // INSTANT UI: Use localStorage hint OR actual session
     // Priority: session (source of truth) > localStorage hint > default (signed out)
     const isLoggedIn = session?.user || (status === "loading" && localHint === true)
 
-    // Logged in state - Minimalist (Just Logout Icon)
+    // Logged in state - Minimalist (Just Logout Icon) with fade animation
     if (isLoggedIn) {
         return (
-            <Button variant="outline" size="icon" onClick={handleLogout} title="Disconnect">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={handleLogout}
+                title="Disconnect"
+                className="transition-opacity duration-300 hover:opacity-70"
+            >
                 <LogOut className="h-4 w-4" />
             </Button>
         )
