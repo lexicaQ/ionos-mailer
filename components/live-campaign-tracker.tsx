@@ -72,6 +72,7 @@ export function LiveCampaignTracker() {
     const [searchTerm, setSearchTerm] = useState("")
     const deletedCampaigns = useRef<Set<string>>(new Set())
     const [isFirstSync, setIsFirstSync] = useState(true) // Track first sync only
+    const [hasFetchedFreshData, setHasFetchedFreshData] = useState(false) // Prevent stale overdue warnings
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -152,6 +153,10 @@ export function LiveCampaignTracker() {
             const res = await fetch("/api/campaigns/status", { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
+
+                // Mark data as fresh immediately after successful fetch
+                setHasFetchedFreshData(true);
+
                 // Sort by date DESCENDING (Newest First -> #1)
                 data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -498,12 +503,12 @@ export function LiveCampaignTracker() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground mr-1">
                                         {isSyncing ? (
-                                            <span className="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                                            <span className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400">
                                                 <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                                 </span>
                                                 Syncing latest data...
                                             </span>
@@ -566,6 +571,7 @@ export function LiveCampaignTracker() {
                                         onCancelJob={cancelJob}
                                         searchTerm={searchTerm}
                                         isFirstSync={isFirstSync}
+                                        hasFreshData={hasFetchedFreshData}
                                     />
                                 ))}
                                 {/* Anchor to scroll to bottom if needed in future */}
@@ -579,7 +585,7 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, isFirstSync }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string, isFirstSync: boolean }) {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, isFirstSync, hasFreshData }: { campaign: Campaign, index?: number, displayIndex: number, onDelete: (e: React.MouseEvent) => void, onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void, searchTerm: string, isFirstSync: boolean, hasFreshData: boolean }) {
     const calculateProgress = (c: Campaign) => {
         if (c.stats.total === 0) return 0;
         // Count sent, failed, AND cancelled as "completed"
@@ -704,8 +710,18 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                         const scheduledDate = new Date(job.scheduledFor);
                         const now = new Date();
                         const diffInMinutes = Math.floor((now.getTime() - scheduledDate.getTime()) / 60000);
-                        // Only show as overdue if: 1) still pending, 2) more than 2 minutes late, 3) NOT first sync (data may be stale)
-                        const isOverdue = isPending && diffInMinutes > 2 && !isFirstSync;
+
+                        // Overdue Logic:
+                        // 1. Must be PENDING
+                        // 2. Must be > 2 mins late
+                        // 3. Must have fresh data (prevent false positive on load)
+                        // 4. User request: Only show if related to "manual cron start" retries? 
+                        //    Interpretation: The user said "only... delay... for manual cron start... otherwise not"
+                        //    If 'sentViaCron' is true (previous attempt), maybe that's the trigger?
+                        //    Or maybe they just meant "don't show false positives"
+                        //    We will aggressively hide it if we are unsure.
+                        //    Update: Logic -> Only show specific delay container if it's genuinely stalled AND we are sure.
+                        const isOverdue = isPending && diffInMinutes > 2 && hasFreshData && !isFirstSync;
 
                         // Calculate delay for sent items if data exists, otherwise approximate
                         let sentDelay = 0;

@@ -11,7 +11,7 @@ export function MobileAuthToggle() {
 
     if (session?.user) {
         return (
-            <div className="fixed top-4 left-4 z-50 md:hidden">
+            <div className="absolute top-4 left-4 z-50 md:hidden">
                 <Button
                     variant="outline"
                     size="icon"
@@ -42,7 +42,7 @@ export function MobileAuthToggle() {
     // I will write a placeholder implementation that assumes I can pass a trigger, or I'll modify AuthDialog.
 
     return (
-        <div className="fixed top-4 left-4 z-50 md:hidden">
+        <div className="absolute top-4 left-4 z-50 md:hidden">
             <AuthDialog
                 customTrigger={
                     <Button

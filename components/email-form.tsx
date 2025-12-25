@@ -57,6 +57,7 @@ export function EmailForm() {
     const [startImmediately, setStartImmediately] = useState(true)
     const [isBackgroundForced, setIsBackgroundForced] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
+    const toastShownRef = useRef(false)
 
     // Load history from localStorage on mount
     useEffect(() => {
@@ -193,11 +194,18 @@ export function EmailForm() {
     useEffect(() => {
         if (recipients?.length > 10) {
             if (!useBackground) {
-                setUseBackground(true)
-                toast.info("Background Delivery activated automatically for more than 10 recipients to ensure stability.", {
-                    duration: 5000,
-                    id: "background-forced"
-                })
+                // Prevent double toast (React.StrictMode or race condition)
+                const toastId = "background-forced";
+                if (!toastShownRef.current) {
+                    setUseBackground(true)
+                    toast.info("Background Delivery activated automatically to ensure stability.", {
+                        duration: 5000,
+                        id: toastId
+                    })
+                    toastShownRef.current = true;
+                } else {
+                    setUseBackground(true) // Still set state
+                }
             }
             setIsBackgroundForced(true)
         } else {
