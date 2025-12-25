@@ -144,9 +144,8 @@ export function LiveCampaignTracker() {
             }
 
             // 2. Set loading state for visual feedback
-            if (!isBackground) {
-                setLoading(true);
-            }
+            // We ALWAYS show button/header spinner, but only show SecurityLoader if no content
+            setLoading(true);
 
             // 3. Fetch fresh data from server in background
             const res = await fetch("/api/campaigns/status", { cache: 'no-store' });
@@ -446,7 +445,7 @@ export function LiveCampaignTracker() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => fetchCampaigns(true)}
+                                    onClick={() => fetchCampaigns(false)}
                                     disabled={loading}
                                     className="gap-2 h-8 text-xs"
                                 >
@@ -483,7 +482,7 @@ export function LiveCampaignTracker() {
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
-                        {loading ? (
+                        {loading && filteredCampaigns.length === 0 ? (
                             <div className="flex h-full items-center justify-center">
                                 <SecurityLoader />
                             </div>
