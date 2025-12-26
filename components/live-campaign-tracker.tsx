@@ -347,8 +347,9 @@ export function LiveCampaignTracker() {
                 });
             }
 
-            // Still fetch from server to ensure consistency (background)
-            fetchCampaigns(true);
+            // RELIABILITY: Do NOT fetch immediately to avoid race conditions with eventual consistency
+            // The optimistic update is sufficient and safe since it comes from the server response
+            // fetchCampaigns(true); <-- CAUSES DISAPPEARANCE IF SERVER IS SLOW TO INDEX
         };
 
         window.addEventListener('campaign-created', handleCreation);
