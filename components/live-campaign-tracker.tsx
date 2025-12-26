@@ -155,6 +155,22 @@ export function LiveCampaignTracker() {
                 const campaignCount = data.filter((c: any) => !c.isDirect).length;
                 console.log(`[LiveTracker] Server returned ${data.length} total: ${campaignCount} campaigns, ${directCount} direct sends`);
 
+                // ENHANCEMENT: Merge cached job details into campaigns
+                // This makes previously expanded campaigns show stats immediately
+                const enrichedData = data.map((campaign: any) => {
+                    const cachedJobs = localStorage.getItem(`campaign-jobs-${campaign.id}`);
+                    if (cachedJobs) {
+                        try {
+                            const { jobs, stats } = JSON.parse(cachedJobs);
+                            console.log(`[LiveTracker] Found cached jobs for campaign ${campaign.id}`);
+                            return { ...campaign, jobs, stats };
+                        } catch (e) {
+                            console.error('Failed to parse cached jobs:', e);
+                        }
+                    }
+                    return campaign;
+                });
+
                 // Safe Merge: Preserve local campaigns that are:
                 // 1. Not in server response
                 // 2. Created recently (< 15 seconds ago) - likely optimistic updates
@@ -166,12 +182,12 @@ export function LiveCampaignTracker() {
                 if (optimisticCampaigns.length > 0) {
                     console.log(`[LiveTracker] Preserving ${optimisticCampaigns.length} optimistic campaigns`);
                     // Merge and re-sort
-                    const merged = [...data, ...optimisticCampaigns];
+                    const merged = [...enrichedData, ...optimisticCampaigns];
                     merged.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                     return merged;
                 }
 
-                return data;
+                return enrichedData;
             });
 
         } catch (error) {
