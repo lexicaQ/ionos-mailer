@@ -74,12 +74,12 @@ export function SurveyInsertDialog({ onInsert }: SurveyInsertDialogProps) {
 
                             {/* Preview */}
                             <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 border">
-                                <div style={{ background: '#ffffff', padding: '24px', textAlign: 'center', borderRadius: '16px', border: '2px solid #e5e7eb' }}>
-                                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#111827', marginBottom: '20px' }}>Are you interested?</p>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        <span style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}>✓   Yes, I'm interested!</span>
-                                        <span style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}>?   Let me think about it</span>
-                                        <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}>✕   Not interested</span>
+                                <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%)', padding: '24px 16px', textAlign: 'center', borderRadius: '12px', border: '2px solid #38bdf8' }}>
+                                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#0c4a6e', marginBottom: '16px' }}>What do you think?</p>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                        <span style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '10px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, minWidth: '100px' }}>✓ Yes!</span>
+                                        <span style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', padding: '10px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, minWidth: '100px' }}>? Maybe</span>
+                                        <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '10px 18px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, minWidth: '100px' }}>✕ No</span>
                                     </div>
                                 </div>
                             </div>

@@ -154,15 +154,15 @@ export function LiveCampaignTracker() {
     const isFetching = useRef(false);
 
     // FETCH CAMPAIGNS - INSTANT CACHE DISPLAY (LIKE HISTORY)
-    const fetchCampaigns = useCallback(async (isBackground = false) => {
+    const fetchCampaigns = useCallback(async (force = false) => {
         // Prevent concurrent fetches
         if (isFetching.current) {
             console.log('Fetch already in progress, skipping...');
             return;
         }
 
-        // TTL CACHING LOGIC (5 Minutes)
-        if (!isBackground) {
+        // TTL CACHING LOGIC (5 Minutes) - SKIP if force=true
+        if (!force) {
             const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
             if (lastFetch) {
                 const age = Date.now() - parseInt(lastFetch, 10);
@@ -191,7 +191,7 @@ export function LiveCampaignTracker() {
 
         try {
             // 1. INSTANT CACHE LOAD FIRST (synchronous, before any async operations)
-            if (!isBackground) {
+            if (!force) {
                 const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
                 if (cached) {
                     try {
