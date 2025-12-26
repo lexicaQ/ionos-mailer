@@ -20,13 +20,18 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const { data: session, status } = useSession()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
     const [mounted, setMounted] = useState(false)
+    const [localHint, setLocalHint] = useState<boolean | null>(null)
+
+    // Refs
+    const prefetchedOptions = useRef<{ options: any, challengeId: string } | null>(null)
+    const isPrefetching = useRef(false)
+
     useEffect(() => setMounted(true), [])
 
     // LOCAL HINT: For instant UI feedback
-    const [localHint, setLocalHint] = useState<boolean | null>(null)
-
     useEffect(() => {
         const hint = localStorage.getItem(SESSION_HINT_KEY)
         setLocalHint(hint === "true")
@@ -44,10 +49,6 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     }, [status, session])
 
     // BACKEND WARMUP: Speculative Prefetching of auth options
-    // This makes the Face ID/PIN prompt appear INSTANTLY
-    const prefetchedOptions = useRef<{ options: any, challengeId: string } | null>(null)
-    const isPrefetching = useRef(false)
-
     const prefetchOptions = async (emailToUse?: string) => {
         if (isPrefetching.current) return
         isPrefetching.current = true
@@ -79,10 +80,6 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
             return () => clearTimeout(timer)
         }
     }, [email, open])
-
-    // Form state
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
 
     const handleConnect = async (e: React.FormEvent) => {
         e.preventDefault()
