@@ -25,13 +25,14 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const [mounted, setMounted] = useState(false)
     useEffect(() => setMounted(true), [])
 
-    // LOCAL HINT: For instant UI feedback
-    const [localHint, setLocalHint] = useState<boolean | null>(null)
-
-    useEffect(() => {
-        const hint = localStorage.getItem(SESSION_HINT_KEY)
-        setLocalHint(hint === "true")
-    }, [])
+    // LOCAL HINT: Read synchronously for instant UI feedback (avoids flash)
+    const [localHint, setLocalHint] = useState<boolean | null>(() => {
+        if (typeof window !== 'undefined') {
+            const hint = localStorage.getItem(SESSION_HINT_KEY)
+            return hint === "true"
+        }
+        return null
+    })
 
     // Sync localStorage when session changes (session is source of truth)
     useEffect(() => {

@@ -256,16 +256,13 @@ export function LiveCampaignTracker() {
                         return;
                     }
 
-                    // SMART MERGE V2: Preserve optimistic campaigns (< 5 mins old) not yet in server list
-                    // Increased window to 5 minutes to be more resilient to indexing delays
+                    // SMART MERGE V3: Preserve ALL local campaigns not in server response
+                    // Removed time limit - keep everything local that server doesn't know about
                     const serverIds = new Set(filtered.map((c: any) => c.id));
-                    const now = Date.now();
-                    const preservedOptimistic = campaignsRef.current.filter(c =>
-                        !serverIds.has(c.id) &&
-                        (now - new Date(c.createdAt).getTime() < 300000) // Keep if < 5 mins old (300k ms)
-                    );
+                    const preservedLocal = campaignsRef.current.filter(c => !serverIds.has(c.id));
 
-                    const merged = [...preservedOptimistic, ...filtered];
+                    // Merge: Local campaigns first (that aren't on server), then server data
+                    const merged = [...preservedLocal, ...filtered];
                     // Ensure uniqueness by ID (server wins if duplicate)
                     const uniqueMap = new Map();
                     merged.forEach(c => uniqueMap.set(c.id, c));
