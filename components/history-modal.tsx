@@ -62,7 +62,20 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [statusFilter, setStatusFilter] = useState<"all" | "success" | "failed" | "waiting">("all")
-    const [trackingStatus, setTrackingStatus] = useState<Record<string, { opened: boolean; openedAt: string | null }>>({})
+    const [trackingStatus, setTrackingStatus] = useState<Record<string, { opened: boolean; openedAt: string | null }>>(() => {
+        // Load tracking status from localStorage on init
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-tracking-status");
+            if (cached) {
+                try {
+                    return JSON.parse(cached);
+                } catch (e) {
+                    return {};
+                }
+            }
+        }
+        return {};
+    })
     const [isClearing, setIsClearing] = useState(false)
     const [trackingSyncing, setTrackingSyncing] = useState(false)
 
@@ -97,6 +110,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
             if (res.ok) {
                 const data = await res.json()
                 setTrackingStatus(data)
+                // Persist to localStorage
+                localStorage.setItem("ionos-mailer-tracking-status", JSON.stringify(data));
             }
         } catch (e) {
             console.error('Failed to fetch tracking status:', e)

@@ -256,11 +256,18 @@ export function LiveCampaignTracker() {
                 const { jobs, stats } = await res.json();
 
                 // Update the specific campaign with jobs
-                setCampaigns(prev => prev.map(c =>
-                    c.id === campaignId
-                        ? { ...c, jobs, stats }
-                        : c
-                ));
+                setCampaigns(prev => {
+                    const updated = prev.map(c =>
+                        c.id === campaignId
+                            ? { ...c, jobs, stats }
+                            : c
+                    );
+
+                    // Persist updated campaigns to cache
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(updated));
+
+                    return updated;
+                });
 
                 // Cache jobs for this campaign
                 localStorage.setItem(`campaign-jobs-${campaignId}`, JSON.stringify({ jobs, stats }));
