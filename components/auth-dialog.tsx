@@ -20,16 +20,11 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
-    // LOCAL HINT: Check localStorage for instant UI (before server responds)
+    // LOCAL HINT: Only used for optimistic UI updates, NOT for initial state
+    // We don't read from localStorage on mount to avoid showing "logged in" before session loads
     const [localHint, setLocalHint] = useState<boolean | null>(null)
 
-    useEffect(() => {
-        // Read hint on mount
-        const hint = localStorage.getItem(SESSION_HINT_KEY)
-        setLocalHint(hint === "true")
-    }, [])
-
-    // Sync localStorage when session changes
+    // Sync localStorage when session changes (for optimistic UI on next visit)
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
             localStorage.setItem(SESSION_HINT_KEY, "true")
