@@ -4,7 +4,7 @@ import { useState } from "react"
 import { SendResult } from "@/lib/schemas"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CheckCircle, XCircle, Download, ChevronDown, ChevronUp, Mail, AlertCircle } from "lucide-react"
+import { CheckCircle, XCircle, Download, ChevronDown, ChevronUp, Mail, AlertCircle, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { exportHistoryToCsv } from "@/lib/export-utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -109,7 +109,9 @@ export function HistoryList({ batches, trackingStatus = {} }: HistoryListProps) 
                                         {batch.results.map((result, idx) => (
                                             <TableRow key={idx} className="hover:bg-white dark:hover:bg-neutral-800/50">
                                                 <TableCell>
-                                                    {result.success ? (
+                                                    {result.status === 'waiting' || (!result.success && !result.error) ? (
+                                                        <Clock className="h-5 w-5 text-neutral-400 animate-pulse" />
+                                                    ) : result.success ? (
                                                         <CheckCircle className="h-5 w-5 text-green-600" />
                                                     ) : (
                                                         <XCircle className="h-5 w-5 text-red-600" />
