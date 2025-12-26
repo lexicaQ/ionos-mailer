@@ -111,12 +111,14 @@ export function LiveCampaignTracker() {
         return {};
     })
 
-    // Retrieve campaigns
+    // Retrieve campaigns - SHOW ALL (Direct and Named)
     const filteredCampaigns = campaigns.filter(c =>
-        !c.isDirect && (
-            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
-        )
+    // Remove !c.isDirect filter to show everything the user sends
+    // !c.isDirect && (
+    (
+        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
     );
 
     // Cache Validation & Migration
