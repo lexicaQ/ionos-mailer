@@ -214,21 +214,8 @@ export function LiveCampaignTracker() {
         const hasInitialData = campaignsRef.current.length > 0;
 
         try {
-            // 1. INSTANT CACHE LOAD FIRST (synchronous, before any async operations)
-            if (!force) {
-                const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-                if (cached) {
-                    try {
-                        const parsed = JSON.parse(cached);
-                        setCampaigns(parsed); // Instant display!
-                    } catch (e) {
-                        console.error('Cache parse failed:', e);
-                    }
-                }
-            }
-
-            // 2. Set loading state for visual feedback
-            // We ALWAYS show button/header spinner, but only show SecurityLoader if no content
+            // Set loading state for visual feedback (spinner in header only)
+            // Cache is already loaded by the modal open effect - don't reload here
             setLoading(true);
 
             // 3. Fetch fresh data from server in background (overview mode for speed)
@@ -279,11 +266,11 @@ export function LiveCampaignTracker() {
                     merged.forEach(c => uniqueMap.set(c.id, c));
                     const uniqueMerged = Array.from(uniqueMap.values());
 
-                    // FIX: Don't wipe cache if server returns empty but we have local data
-                    // This protects against network issues or server-side bugs
-                    if (uniqueMerged.length === 0 && campaignsRef.current.length > 0) {
-                        console.log('[LiveTracker] Server returned empty but we have cached data. Preserving cache.');
-                        return; // Don't update state with empty data
+                    // FIX: NEVER wipe displayed data with empty server response
+                    // This protects the user's view no matter what the server returns
+                    if (filtered.length === 0 && campaignsRef.current.length > 0) {
+                        console.log('[LiveTracker] Server returned empty but we have local data. Keeping your campaigns visible.');
+                        return;
                     }
 
                     // Re-sort to ensure newest is always on top
