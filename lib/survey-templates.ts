@@ -4,55 +4,63 @@
  */
 
 export interface SurveyTemplate {
-    id: string
-    name: string
-    description: string
-    html: string  // Template with placeholders: {{TRACKING_URL_YES}}, {{TRACKING_URL_MAYBE}}, {{TRACKING_URL_NO}}
+  id: string
+  name: string
+  description: string
+  html: string  // Template with placeholders: {{TRACKING_URL_YES}}, {{TRACKING_URL_MAYBE}}, {{TRACKING_URL_NO}}
 }
 
 /**
  * Get survey tracking URL for a specific choice
  */
 export function getSurveyTrackingUrl(trackingId: string, choice: string, baseUrl: string): string {
-    return `${baseUrl}/api/track/survey/${trackingId}/${encodeURIComponent(choice)}`
+  return `${baseUrl}/api/track/survey/${trackingId}/${encodeURIComponent(choice)}`
 }
 
 /**
  * Process survey template - replaces placeholders with actual tracking URLs
  */
 export function processSurveyTemplate(
-    template: string,
-    trackingId: string,
-    baseUrl: string
+  template: string,
+  trackingId: string,
+  baseUrl: string
 ): string {
-    return template
-        .replace(/\{\{TRACKING_URL_YES\}\}/g, getSurveyTrackingUrl(trackingId, 'yes', baseUrl))
-        .replace(/\{\{TRACKING_URL_MAYBE\}\}/g, getSurveyTrackingUrl(trackingId, 'maybe', baseUrl))
-        .replace(/\{\{TRACKING_URL_NO\}\}/g, getSurveyTrackingUrl(trackingId, 'no', baseUrl))
-        .replace(/\{\{TRACKING_ID\}\}/g, trackingId)
-        .replace(/\{\{BASE_URL\}\}/g, baseUrl)
+  return template
+    .replace(/\{\{TRACKING_URL_YES\}\}/g, getSurveyTrackingUrl(trackingId, 'yes', baseUrl))
+    .replace(/\{\{TRACKING_URL_MAYBE\}\}/g, getSurveyTrackingUrl(trackingId, 'maybe', baseUrl))
+    .replace(/\{\{TRACKING_URL_NO\}\}/g, getSurveyTrackingUrl(trackingId, 'no', baseUrl))
+    .replace(/\{\{TRACKING_ID\}\}/g, trackingId)
+    .replace(/\{\{BASE_URL\}\}/g, baseUrl)
 }
 
 /**
  * Default 3-Button Survey Template (English)
- * Modern, responsive design with gradient buttons
+ * Modern, responsive design with stacked buttons for better spacing
  */
 export const DEFAULT_SURVEY_TEMPLATE = `
-<div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 32px; text-align: center; border-radius: 16px; margin: 24px 0; border: 1px solid #e2e8f0;">
-  <p style="font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 24px 0;">Are you interested?</p>
-  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
-    <tr>
-      <td style="padding: 0 8px;">
-        <a href="{{TRACKING_URL_YES}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);">Yes, I'm in!</a>
-      </td>
-      <td style="padding: 0 8px;">
-        <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">Let me think</a>
-      </td>
-      <td style="padding: 0 8px;">
-        <a href="{{TRACKING_URL_NO}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">Not interested</a>
-      </td>
-    </tr>
-  </table>
+<div style="background: #ffffff; padding: 40px 24px; text-align: center; border-radius: 20px; margin: 24px auto; border: 2px solid #e5e7eb; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
+  <p style="font-size: 22px; font-weight: 800; color: #111827; margin: 0 0 32px 0; letter-spacing: -0.5px;">Are you interested?</p>
+  
+  <!-- Yes Button -->
+  <div style="margin-bottom: 16px;">
+    <a href="{{TRACKING_URL_YES}}" target="_blank" style="display: block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 18px 32px; border-radius: 14px; text-decoration: none; font-weight: 700; font-size: 17px; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35); letter-spacing: 0.3px;">
+      ✓&nbsp;&nbsp;&nbsp;Yes, I'm interested!
+    </a>
+  </div>
+  
+  <!-- Maybe Button -->
+  <div style="margin-bottom: 16px;">
+    <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="display: block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 18px 32px; border-radius: 14px; text-decoration: none; font-weight: 700; font-size: 17px; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35); letter-spacing: 0.3px;">
+      ?&nbsp;&nbsp;&nbsp;Let me think about it
+    </a>
+  </div>
+  
+  <!-- No Button -->
+  <div>
+    <a href="{{TRACKING_URL_NO}}" target="_blank" style="display: block; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 18px 32px; border-radius: 14px; text-decoration: none; font-weight: 700; font-size: 17px; box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35); letter-spacing: 0.3px;">
+      ✕&nbsp;&nbsp;&nbsp;Not interested
+    </a>
+  </div>
 </div>
 `
 
@@ -60,42 +68,42 @@ export const DEFAULT_SURVEY_TEMPLATE = `
  * All available survey templates
  */
 export const SURVEY_TEMPLATES: SurveyTemplate[] = [
-    {
-        id: 'default',
-        name: 'Interest Survey',
-        description: '3 buttons: Yes, Maybe, No with gradient styling',
-        html: DEFAULT_SURVEY_TEMPLATE
-    }
+  {
+    id: 'default',
+    name: 'Interest Survey',
+    description: '3 buttons: Yes, Maybe, No with gradient styling',
+    html: DEFAULT_SURVEY_TEMPLATE
+  }
 ]
 
 /**
  * Generate the HTML confirmation page shown after clicking a survey button
  */
 export function getConfirmationPageHtml(choice: string): string {
-    const choiceConfig: Record<string, { icon: string; title: string; color: string; bgGradient: string }> = {
-        yes: {
-            icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
-            title: 'Awesome!',
-            color: '#22c55e',
-            bgGradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-        },
-        maybe: {
-            icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-            title: 'No problem!',
-            color: '#f97316',
-            bgGradient: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)'
-        },
-        no: {
-            icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
-            title: 'Understood!',
-            color: '#ef4444',
-            bgGradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-        }
+  const choiceConfig: Record<string, { icon: string; title: string; color: string; bgGradient: string }> = {
+    yes: {
+      icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+      title: 'Awesome!',
+      color: '#22c55e',
+      bgGradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+    },
+    maybe: {
+      icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      title: 'No problem!',
+      color: '#f97316',
+      bgGradient: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)'
+    },
+    no: {
+      icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+      title: 'Understood!',
+      color: '#ef4444',
+      bgGradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
     }
+  }
 
-    const config = choiceConfig[choice] || choiceConfig.yes
+  const config = choiceConfig[choice] || choiceConfig.yes
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -186,8 +194,8 @@ export function getConfirmationPageHtml(choice: string): string {
 <body>
   <div class="sparkles">
     ${Array.from({ length: 20 }, (_, i) =>
-        `<div class="sparkle" style="left: ${Math.random() * 100}%; animation-delay: ${Math.random() * 2}s; animation-duration: ${2 + Math.random() * 2}s;"></div>`
-    ).join('')}
+    `<div class="sparkle" style="left: ${Math.random() * 100}%; animation-delay: ${Math.random() * 2}s; animation-duration: ${2 + Math.random() * 2}s;"></div>`
+  ).join('')}
   </div>
   <div class="card">
     <div class="icon">${config.icon}</div>

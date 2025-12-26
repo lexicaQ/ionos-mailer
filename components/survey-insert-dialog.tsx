@@ -74,12 +74,12 @@ export function SurveyInsertDialog({ onInsert }: SurveyInsertDialogProps) {
 
                             {/* Preview */}
                             <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 border">
-                                <div style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', padding: '24px', textAlign: 'center', borderRadius: '12px' }}>
-                                    <p style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b', marginBottom: '16px' }}>Are you interested?</p>
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                        <span style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600 }}>Yes, I'm in!</span>
-                                        <span style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600 }}>Let me think</span>
-                                        <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600 }}>Not interested</span>
+                                <div style={{ background: '#ffffff', padding: '24px', textAlign: 'center', borderRadius: '16px', border: '2px solid #e5e7eb' }}>
+                                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#111827', marginBottom: '20px' }}>Are you interested?</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <span style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}>✓   Yes, I'm interested!</span>
+                                        <span style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}>?   Let me think about it</span>
+                                        <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '12px 20px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}>✕   Not interested</span>
                                     </div>
                                 </div>
                             </div>
