@@ -195,7 +195,9 @@ export function LiveCampaignTracker() {
                     // Still load cache just in case state is empty (e.g. hard refresh)
                     if (campaignsRef.current.length === 0) {
                         try {
-                            setCampaigns(JSON.parse(cachedData!));
+                            const parsed = JSON.parse(cachedData!);
+                            setCampaigns(parsed);
+                            campaignsRef.current = parsed; // Keep ref in sync
                         } catch (e) { }
                     }
                     return;
@@ -428,6 +430,9 @@ export function LiveCampaignTracker() {
                     const parsed = JSON.parse(cachedData);
                     if (parsed.length > 0) {
                         setCampaigns(parsed);
+                        // CRITICAL: Also update ref immediately so fetchCampaigns can see it
+                        // The useEffect for ref sync runs AFTER render, but fetchCampaigns runs NOW
+                        campaignsRef.current = parsed;
                         console.log("[LiveTracker] Loaded data from cache immediately");
                     }
                 } catch (e) {
