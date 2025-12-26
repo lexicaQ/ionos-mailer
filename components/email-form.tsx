@@ -534,13 +534,15 @@ export function EmailForm() {
         if (history.length === 0) return;
 
         const previousHistory = [...history];
+        const idsToDelete = previousHistory.map(h => h.id);
         historyManuallyCleared.current = true; // Prevent auto-sync refill
 
-        try {
-            // Collect all IDs to ensure we delete EXACTLY what the user sees
-            const idsToDelete = previousHistory.map(h => h.id);
+        // OPTIMISTIC: Clear UI immediately for instant feedback
+        setHistory([]);
+        localStorage.removeItem("ionos-mailer-history");
 
-            // Delete from server - this is the source of truth
+        // Background: Send delete request to server
+        try {
             const res = await fetch('/api/history', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
@@ -548,27 +550,12 @@ export function EmailForm() {
             });
 
             if (!res.ok) {
-                // Try to parse error message, but handle HTML/empty responses safely
-                let errorMessage = 'Server delete failed';
-                try {
-                    const data = await res.json();
-                    errorMessage = data.error || errorMessage;
-                } catch (e) { }
-                throw new Error(errorMessage);
+                console.error('Server delete failed, but keeping UI clear');
+                // Don't revert - user already saw the clear, just log the error
             }
-
-            // Success - Now clear local state
-            setHistory([]);
-            localStorage.removeItem("ionos-mailer-history");
-            toast.success("History cleared", { duration: 1500 });
-
         } catch (e) {
             console.error('Failed to clear history from server:', e);
-            // Revert on error
-            setHistory(previousHistory);
-            localStorage.setItem("ionos-mailer-history", JSON.stringify(previousHistory));
-            historyManuallyCleared.current = false;
-            toast.error("Failed to clear history. Try again.");
+            // Don't revert - keep UI clear, server will eventually sync
         }
     }
     const handleLoadDraft = useCallback((draft: EmailDraft) => {
