@@ -45,18 +45,19 @@ export function DraftsModal({
     const [searchTerm, setSearchTerm] = useState('')
 
 
-    const safeLoadDrafts = async () => {
-        setIsLoading(true)
+    const safeLoadDrafts = async (isBackground = false) => {
+        if (!isBackground) setIsLoading(true)
         try {
             // 1. Initial Load (Local DB - Instant)
             const local = await loadDrafts()
             setDrafts(local || [])
-            setIsLoading(false) // Show data immediately
+            if (!isBackground) setIsLoading(false) // Show data immediately
 
             // 2. Background Sync (Cloud)
             setIsBackgroundSyncing(true)
             // Dynamically import to safely call new function without breaking if file not fully reloaded (though in agent mode it is)
             const { syncDrafts } = await import('@/lib/drafts');
+            // Force strict sync? No, standard sync is fine.
             await syncDrafts();
 
             // 3. Reload after sync
@@ -64,9 +65,9 @@ export function DraftsModal({
             setDrafts(synced || [])
         } catch (e) {
             console.error("Failed to load drafts:", e)
-            toast.error("Error loading drafts.")
+            if (!isBackground) toast.error("Error loading drafts.")
         } finally {
-            setIsLoading(false)
+            if (!isBackground) setIsLoading(false)
             setIsBackgroundSyncing(false)
         }
     }
@@ -77,10 +78,19 @@ export function DraftsModal({
     }, []);
 
     useEffect(() => {
+        let interval: NodeJS.Timeout;
         if (open) {
             safeLoadDrafts() // Refresh when modal opens
+
+            // Poll for changes from other devices every 5s
+            interval = setInterval(() => {
+                if (!isSaving && !isBackgroundSyncing) {
+                    safeLoadDrafts(true); // Silent background sync
+                }
+            }, 5000);
         }
-    }, [open])
+        return () => clearInterval(interval);
+    }, [open, isSaving, isBackgroundSyncing])
 
     const handleSaveDraft = async () => {
         if (!draftName.trim()) return
@@ -130,13 +140,18 @@ export function DraftsModal({
 
         try {
             await deleteDraft(id)
-            await safeLoadDrafts()
-            toast.success("Draft deleted and synced across devices")
+            // UPDATE LOCAL STATE ONLY (No Sync) to prevent "resurrection" race condition
+            // The server is deleting it currently. If we sync now, we might get the old state back.
+            // Next poll will confirm.
+            const local = await loadDrafts()
+            setDrafts(local || [])
+            toast.success("Draft deleted")
         } catch (error: any) {
             console.error("Draft deletion failed:", error)
             toast.error("Draft deleted locally, but cloud sync failed. Try again.")
             // Still reload to show local state
-            await safeLoadDrafts()
+            const local = await loadDrafts()
+            setDrafts(local || [])
         }
     }
 
