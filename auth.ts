@@ -108,36 +108,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token.id = user.id
+                token.id = user.id;
             }
-            return token
+            return token;
         },
         async session({ session, token }) {
             if (session.user && token.sub) {
-                // OPTIMIZATION: Skip DB check if recently verified (within 10 min)
-                // This prevents cold-start DB queries on every session access
-                const now = Date.now();
-                const lastChecked = (token as any).userCheckedAt || 0;
-                const TEN_MINUTES = 10 * 60 * 1000;
-
-                if (now - lastChecked > TEN_MINUTES) {
-                    // Verify user still exists in DB (but only every 10 min)
-                    const userExists = await prisma.user.findUnique({
-                        where: { id: token.sub },
-                        select: { id: true }
-                    });
-
-                    if (!userExists) {
-                        // User deleted - kill session
-                        return {} as any;
-                    }
-                    // Update check timestamp in token (will persist)
-                    (token as any).userCheckedAt = now;
-                }
-
                 session.user.id = token.sub;
             }
-            return session
+            return session;
         }
     }
 })

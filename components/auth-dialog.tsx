@@ -35,14 +35,16 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     })
 
     // Sync localStorage when session changes (session is source of truth)
+    // IMPORTANT: Only CLEAR hint on explicit logout via handleLogout
+    // Don't clear on "unauthenticated" status because that can be a transient state
     useEffect(() => {
         if (status === "authenticated" && session?.user) {
             localStorage.setItem(SESSION_HINT_KEY, "true")
             setLocalHint(true)
-        } else if (status === "unauthenticated") {
-            localStorage.removeItem(SESSION_HINT_KEY)
-            setLocalHint(false)
         }
+        // Note: We intentionally DON'T clear localHint on "unauthenticated"
+        // because the status can flicker during page load.
+        // The hint is only cleared explicitly in handleLogout.
     }, [status, session])
 
     // BACKEND WARMUP: Wake up serverless functions for Passkeys when modal opens
