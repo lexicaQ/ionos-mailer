@@ -651,12 +651,10 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
         if (searchTerm) {
             // When searching, always expand
             setIsOpen(true);
-        } else {
-            // On initial render, only expand if campaign is NOT complete
-            const progress = calculateProgress(campaign);
-            setIsOpen(progress < 100);
         }
-    }, [searchTerm]); // Removed dependencies - only run on searchTerm change or mount
+        // If no search term, keep current state (don't auto-expand anything)
+        // 100% completed campaigns start collapsed (isOpen=false from useState)
+    }, [searchTerm]);
 
     const progress = calculateProgress(campaign);
 
@@ -773,19 +771,10 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
                     {/* Show loading animation if jobs are being fetched */}
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 gap-4">
-                            {/* Animated gradient background */}
-                            <div className="relative w-full h-32 overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-blue-950/30 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]" />
-                                <div className="relative z-10 flex flex-col items-center justify-center h-full gap-3">
-                                    <Activity className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-bounce" />
-                                    <div className="flex gap-1">
-                                        <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
-                                        <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.2s]"></span>
-                                        <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.4s]"></span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="flex items-center justify-center py-8 gap-2">
+                            <span className="h-2 w-2 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-pulse"></span>
+                            <span className="h-2 w-2 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-pulse [animation-delay:0.2s]"></span>
+                            <span className="h-2 w-2 rounded-full bg-neutral-400 dark:bg-neutral-500 animate-pulse [animation-delay:0.4s]"></span>
                         </div>
                     ) : (
                         <>
@@ -893,9 +882,9 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                 {job.surveyChoice && (
                                                     <span
                                                         className={`cursor-pointer px-1.5 py-0.5 rounded text-[7px] sm:text-[9px] font-bold uppercase tracking-wider ${job.surveyChoice === 'yes' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                                job.surveyChoice === 'maybe' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                                    job.surveyChoice === 'no' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                                        'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                                                            job.surveyChoice === 'maybe' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                job.surveyChoice === 'no' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                    'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
                                                             }`}
                                                         title={`Survey response: ${job.surveyChoice}`}
                                                     >
