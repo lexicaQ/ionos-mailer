@@ -181,26 +181,13 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
         }
     }, [result, onImport, handleOpenChange]);
 
-    // Dropzone configuration - now supports multiple files
-    const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
-        onDrop: (acceptedFiles) => {
-            if (acceptedFiles.length > 0) {
-                handleFiles(acceptedFiles);
-            }
-        },
-        accept: {
-            'application/pdf': ['.pdf'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-            'application/vnd.ms-excel': ['.xls'],
-            'text/csv': ['.csv'],
-            'text/plain': ['.txt'],
-            'application/json': ['.json'],
-            // Image files removed - OCR was unreliable and files should not be uploaded
-        },
-        maxFiles: 20,
-        disabled: stage === 'parsing',
-    });
+
+    // Dropzone logic moved to FileDropzone component to prevent sticky isDragActive state
+    const handleDrop = useCallback((acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0) {
+            handleFiles(acceptedFiles);
+        }
+    }, [handleFiles]);
 
     // Preview content - Grouped by File
     const previewContent = useMemo(() => {
@@ -306,32 +293,7 @@ export function FileImportModal({ open, onOpenChange, onImport }: FileImportModa
             <div className="flex-1 overflow-hidden p-1">
                 {/* Stage: Idle - Dropzone (Monochrome) */}
                 {stage === 'idle' && (
-                    <div
-                        {...getRootProps()}
-                        className={cn(
-                            'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200',
-                            isDragActive && !isDragReject && 'border-black dark:border-white bg-neutral-50 dark:bg-neutral-900',
-                            !isDragActive && 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 bg-white dark:bg-black'
-                        )}
-                    >
-                        <input {...getInputProps()} />
-                        <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
-                            <Upload className="h-6 w-6 text-neutral-900 dark:text-white" />
-                        </div>
-                        <p className="font-semibold text-neutral-900 dark:text-white mb-2">
-                            {isDragActive ? 'Release to analyze' : 'Upload File'}
-                        </p>
-                        <p className="text-sm text-neutral-500 mb-6">
-                            Click or drag file here
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-2 opacity-60">
-                            {['JSON', 'PDF', 'EXCEL', 'CSV', 'WORD', 'TXT'].map((type) => (
-                                <Badge key={type} variant="secondary" className="text-[10px] bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-bold hover:bg-neutral-200 dark:hover:bg-neutral-800 border-none">
-                                    {type}
-                                </Badge>
-                            ))}
-                        </div>
-                    </div>
+                    <FileDropzone onDrop={handleDrop} />
                 )}
 
                 {/* Stage: Parsing - Progress (Monochrome) */}
