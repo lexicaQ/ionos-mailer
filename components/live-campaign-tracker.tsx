@@ -249,6 +249,29 @@ export function LiveCampaignTracker() {
 
     // FETCH JOBS FOR SPECIFIC CAMPAIGN (Lazy Loading)
     const fetchCampaignJobs = useCallback(async (campaignId: string) => {
+        // First, try to load from cache
+        const cachedJobs = localStorage.getItem(`campaign-jobs-${campaignId}`);
+        if (cachedJobs) {
+            try {
+                const { jobs, stats } = JSON.parse(cachedJobs);
+                // Immediately show cached data
+                setCampaigns(prev => {
+                    const updated = prev.map(c =>
+                        c.id === campaignId
+                            ? { ...c, jobs, stats }
+                            : c
+                    );
+                    return updated;
+                });
+                // Mark as loaded so we don't fetch again
+                setLoadedCampaignIds(prev => new Set(prev).add(campaignId));
+                return; // Don't fetch from server if we have cache
+            } catch (e) {
+                console.error('Failed to parse cached jobs:', e);
+            }
+        }
+
+        // If no cache, fetch from server
         try {
             setLoadingCampaignId(campaignId);
 
