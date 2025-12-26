@@ -3,6 +3,7 @@ import { saveDraftDB, getAllDraftsDB, deleteDraftDB, getDraftDB, clearAllDraftsD
 import { encryptData, decryptData } from '@/lib/client-encryption';
 
 const DRAFTS_STORAGE_KEY = 'ionos-mailer-drafts';
+const pendingDeletions = new Set<string>();
 
 export interface EmailDraft {
     id: string;
@@ -140,6 +141,12 @@ export async function syncDrafts(): Promise<void> {
                 // UPSERT cloud drafts to local
                 let upsertedCount = 0;
                 for (const d of cloudDrafts) {
+                    // PROTECTION: If draft is being deleted locally, DO NOT re-add it from cloud
+                    if (pendingDeletions.has(d.id)) {
+                        console.log(`[syncDrafts] 🗑️ Skipping sync of deleting draft "${d.name}"`);
+                        continue;
+                    }
+
                     // Check if local version is newer
                     const local = localDrafts.find(l => l.id === d.id);
                     if (local) {
@@ -303,26 +310,33 @@ export async function saveDraft(draft: Omit<EmailDraft, 'id' | 'createdAt' | 'up
  * Throws error if cloud delete fails to ensure UI is aware
  */
 export async function deleteDraft(id: string): Promise<void> {
-    // Delete locally FIRST (optimistic)
-    await deleteDraftDB(id);
+    // Mark as pending deletion to prevent sync from re-adding it
+    pendingDeletions.add(id);
 
-    // Then sync to cloud
     try {
-        const res = await fetch('/api/sync/drafts', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
+        // Delete locally FIRST (optimistic)
+        await deleteDraftDB(id);
 
-        if (!res.ok) {
-            const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-            // Throw error to let caller know cloud sync failed
-            throw new Error(`Cloud delete failed: ${error.error || res.statusText}`);
+        // Then sync to cloud
+        try {
+            const res = await fetch('/api/sync/drafts', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+                // Throw error to let caller know cloud sync failed
+                throw new Error(`Cloud delete failed: ${error.error || res.statusText}`);
+            }
+        } catch (e) {
+            // Re-throw to propagate to UI
+            console.error("Cloud delete failed:", e);
+            throw e;
         }
-    } catch (e) {
-        // Re-throw to propagate to UI
-        console.error("Cloud delete failed:", e);
-        throw e;
+    } finally {
+        pendingDeletions.delete(id);
     }
 }
 
