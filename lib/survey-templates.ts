@@ -38,25 +38,26 @@ export function processSurveyTemplate(
  * Modern horizontal layout with compact buttons
  */
 export const DEFAULT_SURVEY_TEMPLATE = `
-<div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%); padding: 32px 24px; text-align: center; border-radius: 16px; margin: 24px auto; border: 2px solid #38bdf8; max-width: 600px; box-shadow: 0 8px 32px rgba(56, 189, 248, 0.15);">
-  <p style="font-size: 20px; font-weight: 800; color: #0c4a6e; margin: 0 0 24px 0; letter-spacing: -0.3px;">What do you think?</p>
+<div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%); padding: 32px 24px; text-align: left; border-radius: 16px; margin: 24px auto; border: 2px solid #38bdf8; max-width: 600px; box-shadow: 0 8px 32px rgba(56, 189, 248, 0.15);">
+  <p style="font-size: 18px; font-weight: 800; color: #0c4a6e; margin: 0 0 20px 0;">What do you think?</p>
   
-  <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-    <!-- Yes Button -->
-    <a href="{{TRACKING_URL_YES}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); min-width: 150px; transition: transform 0.2s;">
+  <p style="margin: 12px 0;">
+    <a href="{{TRACKING_URL_YES}}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 15px; font-weight: 600;">
       ✓ Yes, I am interested
     </a>
-    
-    <!-- Maybe Button -->
-    <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3); min-width: 150px; transition: transform 0.2s;">
+  </p>
+  
+  <p style="margin: 12px 0;">
+    <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 15px; font-weight: 600;">
       ? Let me think about it
     </a>
-    
-    <!-- No Button -->
-    <a href="{{TRACKING_URL_NO}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3); min-width: 150px; transition: transform 0.2s;">
-      ✕ Not interested
+  </p>
+  
+  <p style="margin: 12px 0;">
+    <a href="{{TRACKING_URL_NO}}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 15px; font-weight: 600;">
+      × Not interested
     </a>
-  </div>
+  </p>
 </div>
 `
 

@@ -74,12 +74,12 @@ export function SurveyInsertDialog({ onInsert }: SurveyInsertDialogProps) {
 
                             {/* Preview */}
                             <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 border">
-                                <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%)', padding: '24px 16px', textAlign: 'center', borderRadius: '12px', border: '2px solid #38bdf8' }}>
-                                    <p style={{ fontSize: '16px', fontWeight: 800, color: '#0c4a6e', marginBottom: '16px' }}>What do you think?</p>
-                                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                        <span style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '10px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, minWidth: '120px' }}>✓ Yes, I am interested</span>
-                                        <span style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', padding: '10px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, minWidth: '120px' }}>? Let me think about it</span>
-                                        <span style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '10px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, minWidth: '120px' }}>✕ Not interested</span>
+                                <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%)', padding: '24px 16px', textAlign: 'left', borderRadius: '12px', border: '2px solid #38bdf8' }}>
+                                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#0c4a6e', marginBottom: '16px' }}>What do you think?</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <a href="#" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</a>
+                                        <a href="#" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</a>
+                                        <a href="#" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px', fontWeight: 600 }}>× Not interested</a>
                                     </div>
                                 </div>
                             </div>
