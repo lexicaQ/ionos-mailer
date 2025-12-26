@@ -77,6 +77,14 @@ export function LiveCampaignTracker() {
         )
     );
 
+    // Debug logging
+    useEffect(() => {
+        if (campaigns.length > 0) {
+            const directSends = campaigns.filter(c => c.isDirect).length;
+            console.log(`[LiveTracker] State: ${campaigns.length} total, ${filteredCampaigns.length} shown (${directSends} direct sends filtered out)`);
+        }
+    }, [campaigns, filteredCampaigns.length]);
+
     // Data Migration (One-time check)
     useEffect(() => {
         const migrateData = async () => {
@@ -142,6 +150,11 @@ export function LiveCampaignTracker() {
                 const serverIds = new Set(data.map((c: any) => c.id));
                 const now = Date.now();
 
+                // Log what we received
+                const directCount = data.filter((c: any) => c.isDirect).length;
+                const campaignCount = data.filter((c: any) => !c.isDirect).length;
+                console.log(`[LiveTracker] Server returned ${data.length} total: ${campaignCount} campaigns, ${directCount} direct sends`);
+
                 // Safe Merge: Preserve local campaigns that are:
                 // 1. Not in server response
                 // 2. Created recently (< 15 seconds ago) - likely optimistic updates
@@ -160,7 +173,6 @@ export function LiveCampaignTracker() {
 
                 return data;
             });
-            console.log(`[LiveTracker] Loaded ${data.length} campaigns from server`);
 
         } catch (error) {
             console.error("Failed to fetch campaigns:", error);
