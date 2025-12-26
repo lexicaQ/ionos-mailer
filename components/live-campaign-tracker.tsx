@@ -68,12 +68,14 @@ export function LiveCampaignTracker() {
     const [searchTerm, setSearchTerm] = useState("")
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
 
-    // TEMPORARILY DISABLED isDirect filter for debugging
-    // All 8 campaigns were being filtered out - need to check why isDirect is true for all
-    const filteredCampaigns = campaigns.filter(c =>
-        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // FIXED: Handle null names and empty jobs arrays properly
+    const filteredCampaigns = campaigns.filter(c => {
+        const nameMatch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const recipientMatch = c.jobs && c.jobs.length > 0
+            ? c.jobs.some(j => j.recipient?.toLowerCase().includes(searchTerm.toLowerCase()))
+            : false;
+        return nameMatch || recipientMatch || searchTerm === ''; // Show all if no search term
+    });
 
     // Debug logging
     useEffect(() => {
