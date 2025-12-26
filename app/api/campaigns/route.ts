@@ -125,6 +125,7 @@ export async function POST(req: Request) {
             id: campaign.id,
             name: json.name || "Untitled Campaign", // Return original unencrypted name
             createdAt: campaign.createdAt,
+            isDirect: false, // Mark as campaign (not direct send)
             stats: {
                 total: jobsData.length,
                 pending: jobsData.length,
