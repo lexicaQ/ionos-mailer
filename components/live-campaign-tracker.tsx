@@ -214,13 +214,13 @@ export function LiveCampaignTracker() {
                             : c
                     )
                 );
-                return; // Don't fetch from server if we have cache
+                // return; // Don't return - allow background fetch to update opened status!
             } catch (e) {
                 console.error('Failed to parse cached jobs:', e);
             }
         }
 
-        // If no cache, fetch from server
+        // Always fetch from server (background update)
         try {
             setLoadingCampaignId(campaignId);
 
@@ -550,21 +550,7 @@ export function LiveCampaignTracker() {
                     <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
                         {loading && filteredCampaigns.length === 0 ? (
                             <div className="flex h-full items-center justify-center relative min-h-[300px]">
-                                {/* Minimalist monochrome loading state */}
-                                <div className="relative z-10 flex flex-col items-center gap-6 opacity-60">
-                                    <div className="relative">
-                                        <Activity className="h-10 w-10 text-neutral-900 dark:text-neutral-100 animate-pulse" />
-                                        <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-800 rounded-full blur-xl opacity-50 animate-pulse" />
-                                    </div>
-                                    <div className="flex flex-col items-center gap-2">
-                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 tracking-tight">Synchronizing campaigns...</p>
-                                        <div className="flex gap-1.5">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 animate-[bounce_1s_infinite_0ms]"></span>
-                                            <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 animate-[bounce_1s_infinite_200ms]"></span>
-                                            <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 animate-[bounce_1s_infinite_400ms]"></span>
-                                        </div>
-                                    </div>
-                                </div>
+                                <RefreshCw className="h-8 w-8 text-neutral-300 dark:text-neutral-700 animate-spin" />
                             </div>
                         ) : filteredCampaigns.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
