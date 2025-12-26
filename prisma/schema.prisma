@@ -262,8 +262,8 @@ model EmailJob {
   sentViaCron  Boolean   @default(false) // True if sent via cron job (not direct send)
   
   // Survey Response Tracking
-  surveyResponse   String?   // "yes" | "maybe" | "no"
-  respondedAt      DateTime?
+  surveyChoice    String?   // "yes", "maybe", "no", or custom choice
+  surveyClickedAt DateTime? // When survey button was clicked
   // clicks       Click[] // Removed
   
   createdAt    DateTime  @default(now())
@@ -272,7 +272,6 @@ model EmailJob {
   @@index([trackingId])
   @@index([nextRetryAt])
   @@index([isBounce]) // For fast bounce queries
-  @@index([surveyResponse]) // For survey stats queries
 }
 
 

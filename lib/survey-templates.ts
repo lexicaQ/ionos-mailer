@@ -1,112 +1,200 @@
 /**
- * Survey template generator for email campaigns
- * Creates HTML email templates with interactive survey buttons
+ * Survey Templates for Email Campaigns
+ * Provides interactive survey buttons that can be embedded in emails
  */
 
-export interface SurveyTemplateParams {
-    content: string
-    trackingBaseUrl: string
-    jobId: string
+export interface SurveyTemplate {
+    id: string
+    name: string
+    description: string
+    html: string  // Template with placeholders: {{TRACKING_URL_YES}}, {{TRACKING_URL_MAYBE}}, {{TRACKING_URL_NO}}
 }
 
 /**
- * Generates a complete HTML email with survey buttons
- * Uses table-based layout for maximum email client compatibility
+ * Get survey tracking URL for a specific choice
  */
-export function generateSurveyEmailHTML(params: SurveyTemplateParams): string {
-    const { content, trackingBaseUrl, jobId } = params
+export function getSurveyTrackingUrl(trackingId: string, choice: string, baseUrl: string): string {
+    return `${baseUrl}/api/track/survey/${trackingId}/${encodeURIComponent(choice)}`
+}
+
+/**
+ * Process survey template - replaces placeholders with actual tracking URLs
+ */
+export function processSurveyTemplate(
+    template: string,
+    trackingId: string,
+    baseUrl: string
+): string {
+    return template
+        .replace(/\{\{TRACKING_URL_YES\}\}/g, getSurveyTrackingUrl(trackingId, 'yes', baseUrl))
+        .replace(/\{\{TRACKING_URL_MAYBE\}\}/g, getSurveyTrackingUrl(trackingId, 'maybe', baseUrl))
+        .replace(/\{\{TRACKING_URL_NO\}\}/g, getSurveyTrackingUrl(trackingId, 'no', baseUrl))
+        .replace(/\{\{TRACKING_ID\}\}/g, trackingId)
+        .replace(/\{\{BASE_URL\}\}/g, baseUrl)
+}
+
+/**
+ * Default 3-Button Survey Template (English)
+ * Modern, responsive design with gradient buttons
+ */
+export const DEFAULT_SURVEY_TEMPLATE = `
+<div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 32px; text-align: center; border-radius: 16px; margin: 24px 0; border: 1px solid #e2e8f0;">
+  <p style="font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 24px 0;">Are you interested?</p>
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 0 auto;">
+    <tr>
+      <td style="padding: 0 8px;">
+        <a href="{{TRACKING_URL_YES}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);">Yes, I'm in!</a>
+      </td>
+      <td style="padding: 0 8px;">
+        <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">Let me think</a>
+      </td>
+      <td style="padding: 0 8px;">
+        <a href="{{TRACKING_URL_NO}}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">Not interested</a>
+      </td>
+    </tr>
+  </table>
+</div>
+`
+
+/**
+ * All available survey templates
+ */
+export const SURVEY_TEMPLATES: SurveyTemplate[] = [
+    {
+        id: 'default',
+        name: 'Interest Survey',
+        description: '3 buttons: Yes, Maybe, No with gradient styling',
+        html: DEFAULT_SURVEY_TEMPLATE
+    }
+]
+
+/**
+ * Generate the HTML confirmation page shown after clicking a survey button
+ */
+export function getConfirmationPageHtml(choice: string): string {
+    const choiceConfig: Record<string, { icon: string; title: string; color: string; bgGradient: string }> = {
+        yes: {
+            icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+            title: 'Awesome!',
+            color: '#22c55e',
+            bgGradient: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+        },
+        maybe: {
+            icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+            title: 'No problem!',
+            color: '#f97316',
+            bgGradient: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)'
+        },
+        no: {
+            icon: `<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+            title: 'Understood!',
+            color: '#ef4444',
+            bgGradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+        }
+    }
+
+    const config = choiceConfig[choice] || choiceConfig.yes
 
     return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thank You</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: ${config.bgGradient};
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 60px 80px;
+      border-radius: 24px;
+      text-align: center;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25);
+      animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      max-width: 500px;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.5) translateY(50px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .icon {
+      color: ${config.color};
+      margin-bottom: 24px;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-15px); }
+      60% { transform: translateY(-7px); }
+    }
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+    p {
+      font-size: 18px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+    .badge {
+      display: inline-block;
+      background: ${config.bgGradient};
+      color: white;
+      padding: 8px 20px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 24px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .sparkles {
+      position: fixed;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+    }
+    .sparkle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      animation: sparkle 2s linear infinite;
+      opacity: 0;
+    }
+    @keyframes sparkle {
+      0% { transform: translateY(100vh) scale(0); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+    }
+  </style>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
-    <!-- Main Content Container -->
-    <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden;" cellpadding="0" cellspacing="0">
-        <tr>
-            <td style="padding: 30px;">
-                <!-- User Content -->
-                <div style="color: #333333; line-height: 1.6; margin-bottom: 30px;">
-                    ${content}
-                </div>
-
-                <!-- Survey Section -->
-                <div style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin-top: 30px;">
-                    <h3 style="margin: 0 0 20px 0; color: #1f2937; font-size: 18px; font-weight: 600;">Ihre Meinung ist uns wichtig!</h3>
-                    
-                    <!-- Survey Buttons -->
-                    <table role="presentation" style="width: 100%;" cellpadding="0" cellspacing="0">
-                        <tr>
-                            <!-- YES Button -->
-                            <td align="center" style="padding: 8px;">
-                                <a href="${trackingBaseUrl}/api/survey/respond/${jobId}?choice=yes"
-                                   style="display: inline-block; padding: 14px 24px; background-color: #22c55e;
-                                          color: #ffffff; text-decoration: none; border-radius: 6px;
-                                          font-weight: 600; font-size: 15px; min-width: 140px; text-align: center;">
-                                    ✓ Ja, interessiert!
-                                </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <!-- MAYBE Button -->
-                            <td align="center" style="padding: 8px;">
-                                <a href="${trackingBaseUrl}/api/survey/respond/${jobId}?choice=maybe"
-                                   style="display: inline-block; padding: 14px 24px; background-color: #f59e0b;
-                                          color: #ffffff; text-decoration: none; border-radius: 6px;
-                                          font-weight: 600; font-size: 15px; min-width: 140px; text-align: center;">
-                                    🤔 Überlege noch
-                                </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <!-- NO Button -->
-                            <td align="center" style="padding: 8px;">
-                                <a href="${trackingBaseUrl}/api/survey/respond/${jobId}?choice=no"
-                                   style="display: inline-block; padding: 14px 24px; background-color: #ef4444;
-                                          color: #ffffff; text-decoration: none; border-radius: 6px;
-                                          font-weight: 600; font-size: 15px; min-width: 140px; text-align: center;">
-                                    ✗ Kein Interesse
-                                </a>
-                            </td>
-                        </tr>
-                    </table>
-                    
-                    <p style="margin: 15px 0 0 0; font-size: 12px; color: #6b7280; text-align: center;">
-                        Ihre Antwort hilft uns, unsere Angebote zu verbessern.
-                    </p>
-                </div>
-            </td>
-        </tr>
-    </table>
+<body>
+  <div class="sparkles">
+    ${Array.from({ length: 20 }, (_, i) =>
+        `<div class="sparkle" style="left: ${Math.random() * 100}%; animation-delay: ${Math.random() * 2}s; animation-duration: ${2 + Math.random() * 2}s;"></div>`
+    ).join('')}
+  </div>
+  <div class="card">
+    <div class="icon">${config.icon}</div>
+    <h1>${config.title}</h1>
+    <p>Your response has been recorded.<br/>Thank you for your feedback!</p>
+    <div class="badge">Response saved</div>
+  </div>
 </body>
 </html>`
-}
-
-/**
- * Survey template placeholder that gets replaced during email sending
- */
-export const SURVEY_PLACEHOLDER = '[IONOS_SURVEY_TEMPLATE]'
-
-/**
- * Checks if email body contains survey template placeholder
- */
-export function hasSurveyTemplate(body: string): boolean {
-    return body.includes(SURVEY_PLACEHOLDER)
-}
-
-/**
- * Gets the survey template HTML snippet for editor insertion
- */
-export function getSurveyTemplateSnippet(): string {
-    return `<div style="padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px dashed #cbd5e1;">
-    <p style="margin: 0; font-weight: 600; color: #64748b;">
-        📊 Umfrage-Buttons werden beim Versand hier eingefügt
-    </p>
-    <p style="margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;">
-        Ja / Vielleicht / Nein
-    </p>
-    ${SURVEY_PLACEHOLDER}
-</div>`
 }

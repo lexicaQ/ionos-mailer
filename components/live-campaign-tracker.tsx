@@ -13,14 +13,13 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail, Info
+    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail
 } from 'lucide-react'
-import { SurveyResponseVisual } from '@/components/survey-response-visual'
-import { SurveyStats } from '@/components/survey-stats'
 import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
+import { SurveyResultsPopup } from "@/components/survey-results-popup"
 
 interface EmailJob {
     id: string
@@ -40,8 +39,8 @@ interface EmailJob {
     bounceReason?: string | null
     bouncedAt?: string | null
     // Survey tracking
-    surveyResponse?: string | null
-    respondtedAt?: string | null
+    surveyChoice?: string | null
+    surveyClickedAt?: string | null
 }
 
 interface Campaign {
@@ -886,8 +885,26 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
 
                                         {/* Recipient - THIRD */}
                                         <div className="flex-1 min-w-0">
-                                            <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
-                                                {job.recipient}
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="text-[9px] sm:text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate" title={job.recipient}>
+                                                    {job.recipient}
+                                                </div>
+                                                {/* Survey Response Badge */}
+                                                {job.surveyChoice && (
+                                                    <span
+                                                        className={`cursor-pointer px-1.5 py-0.5 rounded text-[7px] sm:text-[9px] font-bold uppercase tracking-wider ${job.surveyChoice === 'yes' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                job.surveyChoice === 'maybe' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                    job.surveyChoice === 'no' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                        'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                                                            }`}
+                                                        title={`Survey response: ${job.surveyChoice}`}
+                                                    >
+                                                        {job.surveyChoice === 'yes' ? 'YES' :
+                                                            job.surveyChoice === 'maybe' ? 'MAYBE' :
+                                                                job.surveyChoice === 'no' ? 'NO' :
+                                                                    job.surveyChoice.toUpperCase().slice(0, 6)}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className={`text-[8px] sm:text-xs truncate max-w-full ${isFailed ? 'text-red-500 font-medium' : 'text-muted-foreground opacity-80'}`} title={isFailed ? (job.error || "Unknown Failure") : job.subject}>
                                                 {isFailed ? (

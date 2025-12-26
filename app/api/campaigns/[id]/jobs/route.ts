@@ -53,7 +53,10 @@ export async function GET(
             nextRetryAt: job.nextRetryAt?.toISOString() || null,
             sentViaCron: job.sentViaCron || false,
             openedAt: job.openedAt?.toISOString() || null,
-            openCount: job.openCount
+            openCount: job.openCount,
+            // Survey tracking
+            surveyChoice: job.surveyChoice || null,
+            surveyClickedAt: job.surveyClickedAt?.toISOString() || null
         }));
 
         // Calculate stats

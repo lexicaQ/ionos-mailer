@@ -83,9 +83,24 @@ ${body}
 </body>
 </html>`
     }
+    // Process survey placeholders before injecting tracking
+    wrappedHtml = processSurveyPlaceholders(wrappedHtml, trackingId, baseUrl)
     return injectTracking(wrappedHtml, trackingId, baseUrl)
   } else {
     // Plain text - convert to HTML
     return textToHtmlWithTracking(body, trackingId, baseUrl)
   }
+}
+
+/**
+ * Process survey template placeholders
+ * Replaces {{TRACKING_URL_YES}}, {{TRACKING_URL_MAYBE}}, {{TRACKING_URL_NO}} with actual URLs
+ */
+export function processSurveyPlaceholders(html: string, trackingId: string, baseUrl: string): string {
+  return html
+    .replace(/\{\{TRACKING_URL_YES\}\}/g, `${baseUrl}/api/track/survey/${trackingId}/yes`)
+    .replace(/\{\{TRACKING_URL_MAYBE\}\}/g, `${baseUrl}/api/track/survey/${trackingId}/maybe`)
+    .replace(/\{\{TRACKING_URL_NO\}\}/g, `${baseUrl}/api/track/survey/${trackingId}/no`)
+    .replace(/\{\{TRACKING_ID\}\}/g, trackingId)
+    .replace(/\{\{BASE_URL\}\}/g, baseUrl)
 }
