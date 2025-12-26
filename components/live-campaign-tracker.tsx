@@ -726,8 +726,18 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
     isLoading: boolean
 }) {
     const calculateProgress = (c: Campaign) => {
+        // If we have loaded jobs, calculate stats directly from them for accuracy
+        // This fixes the issue where stats might be 0 even if jobs are loaded
+        if (c.jobs && c.jobs.length > 0) {
+            const total = c.jobs.length;
+            const completed = c.jobs.filter(j =>
+                j.status === 'SENT' || j.status === 'FAILED' || j.status === 'CANCELLED'
+            ).length;
+            return (completed / total) * 100;
+        }
+
+        // Fallback to cached stats object
         if (c.stats.total === 0) return 0;
-        // Count sent, failed, AND cancelled as "completed"
         const completed = c.stats.sent + c.stats.failed + c.jobs.filter(j => j.status === 'CANCELLED').length;
         return (completed / c.stats.total) * 100;
     };
