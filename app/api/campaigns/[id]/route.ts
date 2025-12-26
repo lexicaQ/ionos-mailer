@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -12,7 +12,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const campaignId = params.id;
+        const { id: campaignId } = await params;
 
         // Verify ownership before deletion
         const campaign = await prisma.campaign.findUnique({
