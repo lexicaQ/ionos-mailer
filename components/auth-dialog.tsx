@@ -294,7 +294,5 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                 </div>
             </ResponsiveModal>
         </div>
-            </ResponsiveModal >
-        </div >
     )
 }

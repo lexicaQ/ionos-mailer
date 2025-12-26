@@ -263,29 +263,34 @@ export function LiveCampaignTracker() {
 
                 if (hasChanges || !hasInitialData) {
 
-                    // SMART MERGE: Preserve optimistic campaigns (< 2 mins old) not yet in server list
-                    // This prevents "Disappearing Campaign" due to server lag
+                    // SMART MERGE V2: Preserve optimistic campaigns (< 5 mins old) not yet in server list
+                    // Increased window to 5 minutes to be more resilient to indexing delays
                     const serverIds = new Set(filtered.map((c: any) => c.id));
                     const now = Date.now();
                     const preservedOptimistic = campaignsRef.current.filter(c =>
                         !serverIds.has(c.id) &&
-                        (now - new Date(c.createdAt).getTime() < 120000) // Keep if < 2 mins old
+                        (now - new Date(c.createdAt).getTime() < 300000) // Keep if < 5 mins old (300k ms)
                     );
 
                     const merged = [...preservedOptimistic, ...filtered];
-                    // Re-sort just in case
-                    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                    // Ensure uniqueness by ID (server wins if duplicate)
+                    const uniqueMap = new Map();
+                    merged.forEach(c => uniqueMap.set(c.id, c));
+                    const uniqueMerged = Array.from(uniqueMap.values());
 
-                    setCampaigns(merged);
+                    // Re-sort to ensure newest is always on top
+                    uniqueMerged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                    setCampaigns(uniqueMerged);
                     // Update cache WITHOUT deleted campaigns
-                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(merged));
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(uniqueMerged));
 
                     // UPDATE TTL TIMESTAMP
                     localStorage.setItem("ionos-mailer-campaigns-last-fetch", Date.now().toString());
 
                     // Update completion status cache
                     const newCompletionCache: Record<string, boolean> = {};
-                    merged.forEach((campaign: Campaign) => {
+                    uniqueMerged.forEach((campaign: Campaign) => {
                         const totalCompleted = campaign.stats.sent + campaign.stats.failed +
                             campaign.jobs.filter(j => j.status === 'CANCELLED').length;
                         const isComplete = campaign.stats.total > 0 && totalCompleted >= campaign.stats.total;
