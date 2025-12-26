@@ -121,21 +121,23 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     // Logged in state - Minimalist (Just Logout Icon) with fade animation
     if (shouldShowLogout) {
         return (
-            <Button
-                variant="outline"
-                size="icon"
-                onClick={handleLogout}
-                title="Disconnect"
-                className="transition-opacity duration-300 hover:opacity-70"
-            >
-                <LogOut className="h-4 w-4" />
-            </Button>
+            <div suppressHydrationWarning>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleLogout}
+                    title="Disconnect"
+                    className="transition-opacity duration-300 hover:opacity-70"
+                >
+                    <LogOut className="h-4 w-4" />
+                </Button>
+            </div>
         )
     }
 
     // Logged out state
     return (
-        <>
+        <div suppressHydrationWarning>
             <Button
                 variant="outline"
                 size="sm"
@@ -291,6 +293,8 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                     </Button>
                 </div>
             </ResponsiveModal>
-        </>
+        </div>
+            </ResponsiveModal >
+        </div >
     )
 }
