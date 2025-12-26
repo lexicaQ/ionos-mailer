@@ -396,8 +396,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         // Reset animation BEFORE closing to prevent visible spinner
                                         setIsClearing(false);
                                         toast.success("History cleared");
-                                        // Do NOT close modal - let user see it's empty
-                                        // setOpen(false); 
+                                        // Close modal after clearing
+                                        setOpen(false);
                                     } catch (e) {
                                         console.error('Clear failed:', e);
                                         clearInProgress.current = false;

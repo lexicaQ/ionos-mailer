@@ -155,17 +155,9 @@ export function DraftsModal({
         e.stopPropagation()
         if (!confirm("Do you really want to delete this draft?")) return
 
-        // Check if this is the last draft BEFORE deleting
-        const isLastDraft = drafts.length === 1;
-
         // OPTIMISTIC: Remove from UI immediately
         setDrafts(prev => prev.filter(d => d.id !== id));
         toast.success("Draft deleted");
-
-        // If last draft was deleted, close the modal
-        if (isLastDraft) {
-            setOpen(false);
-        }
 
         // Background: Actually delete from IndexedDB
         try {
@@ -282,13 +274,9 @@ export function DraftsModal({
 
                     <div className="flex-1 overflow-hidden flex flex-col bg-neutral-50/30 dark:bg-[#0f0f0f]/30">
                         <ScrollArea className="flex-1 h-full min-h-[100px]">
-                            {(filteredDrafts.length === 0 && !isLoading) ? (
-                                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                                    <div className="h-16 w-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-4">
-                                        <FolderOpen className="h-8 w-8 opacity-40" />
-                                    </div>
-                                    <p className="text-base font-medium text-foreground">No drafts found</p>
-                                    <p className="text-sm opacity-60 mt-1">Save a draft to see it here</p>
+                            {filteredDrafts.length === 0 ? (
+                                <div className="flex items-center justify-center py-20">
+                                    {/* Empty state - just show nothing, spinner is in header */}
                                 </div>
                             ) : (
                                 <div className="p-6 pb-12 grid grid-cols-1 gap-4">
