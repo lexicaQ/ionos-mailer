@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { signIn, signOut, useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +18,7 @@ interface AuthDialogProps {
 
 export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const { data: session, status } = useSession()
+    const router = useRouter()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
@@ -43,14 +45,19 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     }, [status, session])
 
     // BACKEND WARMUP: Wake up serverless functions for Passkeys when modal opens
+    // Also called on button hover for even faster response
+    const warmupEndpoints = useCallback(() => {
+        // Non-blocking pings to wake up the JIT compiler/serverless containers
+        fetch("/api/passkeys/auth-options").catch(() => { });
+        fetch("/api/passkeys/auth-verify", { method: 'HEAD' }).catch(() => { });
+    }, []);
+
     useEffect(() => {
         if (open) {
             console.log("[Auth] Warming up passkey endpoints...");
-            // Non-blocking pings to wake up the JIT compiler/serverless containers
-            fetch("/api/passkeys/auth-options").catch(() => { });
-            fetch("/api/passkeys/auth-verify", { method: 'HEAD' }).catch(() => { });
+            warmupEndpoints();
         }
-    }, [open]);
+    }, [open, warmupEndpoints]);
 
     // Form state
     const [email, setEmail] = useState("")
@@ -75,8 +82,8 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
             }
         };
 
-        // Debounce: Wait 500ms after typing stops
-        const timer = setTimeout(fetchOptions, 500);
+        // Debounce: Wait 300ms after typing stops (reduced from 500ms)
+        const timer = setTimeout(fetchOptions, 300);
         return () => clearTimeout(timer);
     }, [open, email]);
 
@@ -114,8 +121,8 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                 setLocalHint(true)
                 toast.success("Connected! SMTP settings automatically configured.")
                 setOpen(false)
-                // Force reload to update session immediately and clear stale checks
-                window.location.reload()
+                // Fast refresh using Next.js router (no full page reload)
+                router.refresh()
             }
         } catch (error) {
             toast.error("Connection failed")
@@ -180,6 +187,7 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setOpen(true)}
+                onMouseEnter={warmupEndpoints}
                 className="gap-2 bg-white dark:bg-neutral-950"
             >
                 <Cloud className="h-4 w-4" />
@@ -311,13 +319,12 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                                     toast.error("Passkey login failed");
                                     console.error(result.error);
                                 } else {
-                                    // Only set hint on successful login
                                     localStorage.setItem(SESSION_HINT_KEY, "true");
                                     setLocalHint(true);
                                     toast.success("Logged in with Passkey!");
                                     setOpen(false);
-                                    // Force reload to update session immediately and clear stale checks
-                                    window.location.reload();
+                                    // Fast refresh using Next.js router (no full page reload)
+                                    router.refresh();
                                 }
                             } catch (e: any) {
                                 // Clear hints on any error
