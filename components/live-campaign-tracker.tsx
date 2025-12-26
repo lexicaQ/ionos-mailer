@@ -723,9 +723,8 @@ export function LiveCampaignTracker() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        // FORCE REFRESH: Clear timestamp so fetch happens
-                                        localStorage.removeItem("ionos-mailer-campaigns-last-fetch");
-                                        fetchCampaigns(false);
+                                        // FORCE REFRESH: Use true to bypass TTL and show animation
+                                        fetchCampaigns(true);
                                     }}
                                     disabled={loading}
                                     className="gap-2 h-8 text-xs"

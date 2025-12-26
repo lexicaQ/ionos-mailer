@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-    Save, FolderOpen, Trash2, FileText, Clock, Users, Paperclip, Mail, ImageIcon, AlertCircle, Search, Loader2, Image as ImageIconLucide, AlertTriangle, RefreshCw
+    Save, FolderOpen, Trash2, FileText, Clock, Users, Paperclip, Mail, ImageIcon, AlertCircle, Search, Loader2, Image as ImageIconLucide, AlertTriangle, RefreshCw, X
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { EmailDraft, loadDrafts, saveDraft, deleteDraft } from '@/lib/drafts'
@@ -222,17 +222,27 @@ export function DraftsModal({
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl transition-none">
                     <DialogHeader className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-white/50 dark:bg-[#181818]/50 backdrop-blur-sm space-y-4 shrink-0 z-10">
-                        <div className="flex items-center gap-3">
-                            <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => safeLoadDrafts(false)} // Manual refresh triggers animation
+                                    className="h-6 w-6 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                    title="Refresh drafts"
+                                    disabled={isBackgroundSyncing || isLoading}
+                                >
+                                    <RefreshCw className={cn("h-3.5 w-3.5 text-neutral-500", (isBackgroundSyncing || isLoading) && "animate-spin")} />
+                                </Button>
+                            </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => safeLoadDrafts(false)} // Manual refresh triggers animation
-                                className="h-6 w-6 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                                title="Refresh drafts"
-                                disabled={isBackgroundSyncing || isLoading}
+                                onClick={() => setOpen(false)}
+                                className="h-8 w-8 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
                             >
-                                <RefreshCw className={cn("h-3.5 w-3.5 text-neutral-500", (isBackgroundSyncing || isLoading) && "animate-spin")} />
+                                <X className="h-4 w-4" />
                             </Button>
                         </div>
                         {/* Search and Filters inside Header */}
@@ -250,12 +260,12 @@ export function DraftsModal({
                     </DialogHeader>
 
                     <div className="flex-1 overflow-hidden flex flex-col bg-neutral-50/30 dark:bg-[#0f0f0f]/30">
-                        <ScrollArea className="flex-1 h-full">
+                        <ScrollArea className="flex-1 h-full min-h-[100px]">
                             {isLoading && drafts.length === 0 ? (
                                 <div className="flex items-center justify-center py-20">
                                     <SecurityLoader />
                                 </div>
-                            ) : filteredDrafts.length === 0 ? (
+                            ) : (filteredDrafts.length === 0 && !isLoading) ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                                     <div className="h-16 w-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-4">
                                         <FolderOpen className="h-8 w-8 opacity-40" />

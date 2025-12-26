@@ -16,19 +16,16 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ customTrigger }: AuthDialogProps) {
-    const { data: session, status } = useSession()
-    const [open, setOpen] = useState(false)
-    const [loading, setLoading] = useState(false)
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
 
-    // LOCAL HINT: For instant UI feedback (reads localStorage on mount)
-    // This eliminates the 10-second wait for session to load
-    const [localHint, setLocalHint] = useState<boolean | null>(() => {
-        if (typeof window !== 'undefined') {
-            const hint = localStorage.getItem(SESSION_HINT_KEY)
-            return hint === "true"
-        }
-        return null
-    })
+    // LOCAL HINT: For instant UI feedback
+    const [localHint, setLocalHint] = useState<boolean | null>(null)
+
+    useEffect(() => {
+        const hint = localStorage.getItem(SESSION_HINT_KEY)
+        setLocalHint(hint === "true")
+    }, [])
 
     // Sync localStorage when session changes (session is source of truth)
     useEffect(() => {
@@ -129,9 +126,9 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const shouldShowLogout = session?.user || localHint === true;
 
     // Logged in state - Minimalist (Just Logout Icon) with fade animation
-    if (shouldShowLogout) {
+    if (mounted && shouldShowLogout) {
         return (
-            <div suppressHydrationWarning>
+            <div>
                 <Button
                     variant="outline"
                     size="icon"
@@ -144,6 +141,9 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
             </div>
         )
     }
+
+    // Still loading hydration? Render null to avoid flicker
+    if (!mounted) return <div className="w-[36px] h-[36px]" /> // Maintain size of the button
 
     // Logged out state
     return (
