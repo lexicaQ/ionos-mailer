@@ -75,11 +75,11 @@ export function SurveyInsertDialog({ onInsert }: SurveyInsertDialogProps) {
                             {/* Preview */}
                             <div className="bg-white dark:bg-white rounded-lg p-4 border overflow-hidden">
                                 <div style={{ fontFamily: 'inherit' }}>
-                                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#000000', marginBottom: '12px' }}>What do you think?</p>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <div style={{ color: '#000000', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</div>
-                                        <div style={{ color: '#000000', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</div>
-                                        <div style={{ color: '#000000', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>× Not interested</div>
+                                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#000000', marginBottom: '8px' }}>What do you think?</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                                        <div style={{ color: '#000000', textDecoration: 'none', border: 'none', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</div>
+                                        <div style={{ color: '#000000', textDecoration: 'none', border: 'none', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</div>
+                                        <div style={{ color: '#000000', textDecoration: 'none', border: 'none', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>× Not interested</div>
                                     </div>
                                 </div>
                             </div>

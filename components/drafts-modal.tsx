@@ -367,7 +367,7 @@ export function DraftsModal({
 
             {/* Save Dialog - Black & White Design */}
             <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-                <DialogContent className="sm:max-w-[425px] bg-white dark:bg-neutral-950 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl">
+                <DialogContent className="sm:max-w-[600px] bg-white dark:bg-neutral-950 backdrop-blur-xl border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold">{selectedDraftId ? "Update Draft" : "Save Draft"}</DialogTitle>
                         <div className="text-sm text-muted-foreground">Name your draft to easily find it later.</div>
@@ -382,6 +382,7 @@ export function DraftsModal({
 
                         {/* Explicit info about content */}
                         <div className="grid grid-cols-2 gap-3">
+                            {/* ... (Recipients/Attachments) same as before ... */}
                             <div className="p-3 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
                                 <span className="text-xs text-muted-foreground block mb-1">Recipients</span>
                                 <div className="flex items-center gap-1.5 font-medium text-sm">
@@ -429,7 +430,7 @@ export function DraftsModal({
                             {drafts.length > 0 && (
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-muted-foreground ml-1">Or populate from / overwrite existing:</label>
-                                    <ScrollArea className="h-[140px] rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-2">
+                                    <ScrollArea className="h-[240px] rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-2">
                                         <div className="space-y-1">
                                             {drafts.map(draft => (
                                                 <button
