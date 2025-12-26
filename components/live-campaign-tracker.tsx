@@ -800,17 +800,14 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                             )}
                         </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-1 whitespace-nowrap overflow-hidden">
-                            {!isLoaded && !isLoading ? (
-                                // Show placeholder for unloaded campaigns
-                                <span className="text-neutral-400 dark:text-neutral-600 italic">Click to expand and load details...</span>
-                            ) : isLoading ? (
+                            {isLoading ? (
                                 // Show loading animation
                                 <div className="flex items-center gap-2">
                                     <RefreshCw className="h-3 w-3 animate-spin" />
-                                    <span className="animate-pulse">Loading campaign data...</span>
+                                    <span className="animate-pulse">Loading details...</span>
                                 </div>
                             ) : (
-                                // Show actual stats
+                                // Show actual stats (always available from overview API or cache)
                                 <>
                                     <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Done</span>
 
