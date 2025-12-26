@@ -3,12 +3,15 @@ import { NextRequest } from "next/server"
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { campaignId: string } }
+    { params }: { params: Promise<{ campaignId: string }> }
 ) {
     try {
+        // Await params in Next.js 15+
+        const { campaignId } = await params
+
         // Get all jobs for this campaign
         const jobs = await prisma.emailJob.findMany({
-            where: { campaignId: params.campaignId },
+            where: { campaignId },
             select: {
                 surveyResponse: true
             }

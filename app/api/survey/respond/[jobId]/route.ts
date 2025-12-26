@@ -3,10 +3,13 @@ import { NextRequest } from "next/server"
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { jobId: string } }
+    { params }: { params: Promise<{ jobId: string }> }
 ) {
     const { searchParams } = new URL(req.url)
     const choice = searchParams.get('choice')
+
+    // Await params in Next.js 15+
+    const { jobId } = await params
 
     // Validate choice
     if (!choice || !['yes', 'maybe', 'no'].includes(choice)) {
@@ -19,7 +22,7 @@ export async function GET(
     try {
         // Update job with survey response
         await prisma.emailJob.update({
-            where: { id: params.jobId },
+            where: { id: jobId },
             data: {
                 surveyResponse: choice,
                 respondedAt: new Date()
