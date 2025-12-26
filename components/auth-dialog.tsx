@@ -61,8 +61,23 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
             } else {
                 // Save hint IMMEDIATELY for instant UI on next load
                 localStorage.setItem(SESSION_HINT_KEY, "true")
+
+                // UX IMPROVEMENT: Auto-fill SMTP settings from these credentials
+                // The SettingsDialog will pick this up when the session changes
+                const smtpConfig = {
+                    host: "smtp.ionos.de",
+                    port: 587,
+                    user: email.toLowerCase().trim(),
+                    pass: password, // Save the password locally so it can be used for SMTP
+                    secure: false,
+                    delay: 1000,
+                    fromName: "",
+                    savePassword: true
+                };
+                localStorage.setItem("smtp-config-full", JSON.stringify(smtpConfig));
+
                 setLocalHint(true)
-                toast.success("Connected! Your data is now synced across devices.")
+                toast.success("Connected! SMTP settings automatically configured.")
                 setOpen(false)
                 setEmail("")
                 setPassword("")

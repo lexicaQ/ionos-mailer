@@ -325,14 +325,32 @@ export function LiveCampaignTracker() {
 
     // Event listeners for instant updates (NO automatic polling)
     useEffect(() => {
-        // Debounce handler for creation events (prevent multiple rapid calls)
-        let debounceTimer: NodeJS.Timeout | null = null;
-        const handleCreation = () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                fetchCampaigns(true);
-            }, 50); // Almost instant update
+        // Handle creation events with optimistic update
+        const handleCreation = (e: Event) => {
+            console.log('[LiveTracker] Campaign created event received');
+
+            // Check for optimistic payload
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail) {
+                console.log('[LiveTracker] Optimistic update with:', customEvent.detail);
+                const newCampaign = customEvent.detail;
+
+                setCampaigns(prev => {
+                    // Avoid duplicates
+                    if (prev.find(c => c.id === newCampaign.id)) return prev;
+
+                    const updated = [newCampaign, ...prev];
+
+                    // Update cache immediately
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(updated));
+                    return updated;
+                });
+            }
+
+            // Still fetch from server to ensure consistency (background)
+            fetchCampaigns(true);
         };
+
         window.addEventListener('campaign-created', handleCreation);
 
         // Instant sync on campaign updates

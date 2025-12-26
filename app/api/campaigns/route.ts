@@ -120,8 +120,25 @@ export async function POST(req: Request) {
         // 3. AUTO-TRIGGER REMOVED: Moved to client-side for "Instant" UI response.
         // The client will trigger the cron job in the background after receiving the success response.
 
+        // Construct optimistic campaign object for immediate UI display
+        const optimisticCampaign = {
+            id: campaign.id,
+            name: json.name || "Untitled Campaign", // Return original unencrypted name
+            createdAt: campaign.createdAt,
+            stats: {
+                total: jobsData.length,
+                pending: jobsData.length,
+                sent: 0,
+                failed: 0,
+                opened: 0
+            },
+            // Don't need to return all encrypted jobs, UI can infer or fetch later if needed
+            jobs: []
+        };
+
         return NextResponse.json({
             success: true,
+            campaign: optimisticCampaign, // Pass full object to client
             campaignId: campaign.id,
             jobCount: jobsData.length,
             message: `Campaign started. Emails will be sent over ${durationMinutes} minutes.`

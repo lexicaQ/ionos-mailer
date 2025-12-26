@@ -357,9 +357,13 @@ export function EmailForm() {
                     headers: { 'x-manual-trigger': 'true' }
                 }).catch(e => console.error("Background trigger failed (harmless):", e));
 
-                // Signal Live Tracker to update INSTANTLY
+                // Signal Live Tracker to update INSTANTLY with data
                 if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('campaign-created'));
+                    // Dispatch custom event with the campaign data!
+                    const event = new CustomEvent('campaign-created', {
+                        detail: resultData.campaign
+                    });
+                    window.dispatchEvent(event);
                 }
             } else {
                 // Direct Send Mode: Server creates Campaign with jobs
@@ -606,8 +610,16 @@ export function EmailForm() {
                 email: r.email,
                 id: r.id || crypto.randomUUID()
             }));
+
+            // CRITICAL: Force immediate update in both form and UI state
             form.setValue('recipients', recipientsWithIds, { shouldValidate: true });
             setLoadedRecipients(recipientsWithIds);
+
+            // Force a re-render by updating EditorKey again after recipients are set
+            // This ensures RecipientInput picks up the changes immediately
+            setTimeout(() => {
+                setLoadedRecipients([...recipientsWithIds]); //  Force re-render
+            }, 0);
 
             setCurrentDraftId(draft.id);
 
