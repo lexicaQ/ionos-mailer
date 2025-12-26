@@ -426,14 +426,11 @@ export function LiveCampaignTracker() {
 
     useEffect(() => {
         // Fetch campaigns only when modal opens
-        // STALE-WHILE-REVALIDATE: 
-        // 1. Show cache immediately
-        // 2. Refresh in background if older than 10s
+        // CACHE-FIRST: Always show cached data instantly, then sync from server
         if (open) {
             const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
-            const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
 
-            // ALWAYS load from cache first on open - instant display
+            // 1. ALWAYS load from cache first - instant display
             if (cachedData) {
                 try {
                     const parsed = JSON.parse(cachedData);
@@ -446,19 +443,8 @@ export function LiveCampaignTracker() {
                 }
             }
 
-            let needsFetch = true;
-            if (lastFetch) {
-                const age = Date.now() - parseInt(lastFetch, 10);
-                if (age < 10000) { // < 10 seconds is considered "fresh enough" to NOT trigger auto-sync
-                    needsFetch = false;
-                    console.log(`[LiveTracker] Cache is very fresh (${Math.floor(age / 1000)}s). Skipping background sync.`);
-                }
-            }
-
-            if (needsFetch) {
-                // Background sync - doesn't block UI
-                fetchCampaigns(true);
-            }
+            // 2. ALWAYS sync from server in background on open
+            fetchCampaigns(true);
         }
     }, [open, fetchCampaigns]);
 
@@ -716,10 +702,7 @@ export function LiveCampaignTracker() {
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground max-w-md">
-                                        Automatic background sync on open (10s TTL)
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground/70 max-w-md">
-                                        Click refresh button to check for updates
+                                        Syncs on open • Click refresh for latest
                                     </p>
                                 </div>
                             </div>
