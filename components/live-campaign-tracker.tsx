@@ -138,7 +138,28 @@ export function LiveCampaignTracker() {
                 }
             });
 
-            setCampaigns(data);
+            setCampaigns(prev => {
+                const serverIds = new Set(data.map((c: any) => c.id));
+                const now = Date.now();
+
+                // Safe Merge: Preserve local campaigns that are:
+                // 1. Not in server response
+                // 2. Created recently (< 15 seconds ago) - likely optimistic updates
+                const optimisticCampaigns = prev.filter(c =>
+                    !serverIds.has(c.id) &&
+                    (now - new Date(c.createdAt).getTime() < 15000)
+                );
+
+                if (optimisticCampaigns.length > 0) {
+                    console.log(`[LiveTracker] Preserving ${optimisticCampaigns.length} optimistic campaigns`);
+                    // Merge and re-sort
+                    const merged = [...data, ...optimisticCampaigns];
+                    merged.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                    return merged;
+                }
+
+                return data;
+            });
             console.log(`[LiveTracker] Loaded ${data.length} campaigns from server`);
 
         } catch (error) {
