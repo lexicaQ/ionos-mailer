@@ -113,3 +113,37 @@ export async function checkUsageStatus(
         plan: "FREE"
     };
 }
+
+/**
+ * Persist usage count to UserMonthlyUsage table for backend visibility.
+ */
+export async function incrementUserUsage(userId: string, count: number) {
+    if (count <= 0) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // 1-12
+
+    try {
+        await prisma.userMonthlyUsage.upsert({
+            where: {
+                userId_year_month: {
+                    userId,
+                    year,
+                    month
+                }
+            },
+            update: {
+                emailsSent: { increment: count }
+            },
+            create: {
+                userId,
+                year,
+                month,
+                emailsSent: count
+            }
+        });
+    } catch (e) {
+        console.error("Failed to update UserMonthlyUsage:", e);
+    }
+}
