@@ -407,8 +407,13 @@ export function EmailForm() {
 
                 // Signal Live Tracker to update  
                 if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('campaign-created'));
-                    window.dispatchEvent(new Event('email-sent')); // Instant sync
+                    // Dispatch custom event with the campaign data to trigger Optimistic Update in Live Tracker
+                    const event = new CustomEvent('campaign-created', {
+                        detail: resultData.campaign // Contains the optimistic object we just got from API
+                    });
+                    window.dispatchEvent(event);
+
+                    window.dispatchEvent(new Event('email-sent')); // Instant sync trigger
                 }
 
                 toast.success("Delivery queued - emails will be sent shortly. Check History for status.");

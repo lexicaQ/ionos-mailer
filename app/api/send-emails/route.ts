@@ -167,6 +167,7 @@ export async function POST(req: Request) {
         incrementUserUsage(effectiveUserId, recipients.length).catch(e => console.error("Usage update failed:", e));
 
         // 3. Return Success immediately
+        // 3. Return Success immediately with Optimistic Campaign Data
         const mockResults: SendResult[] = recipients.map((r: any) => ({
             email: r.email,
             success: true,
@@ -174,7 +175,23 @@ export async function POST(req: Request) {
             status: 'waiting' // Schema compatible waiting state
         }));
 
-        return NextResponse.json({ results: mockResults, campaignId: campaign.id });
+        // Construct optimistic object for Live Tracker
+        const optimisticCampaign = {
+            id: campaign.id,
+            name: "Direct Send", // Friendly name for UI
+            createdAt: campaign.createdAt,
+            isDirect: true,
+            stats: {
+                total: recipients.length,
+                pending: recipients.length,
+                sent: 0,
+                failed: 0,
+                opened: 0
+            },
+            jobs: []
+        };
+
+        return NextResponse.json({ results: mockResults, campaignId: campaign.id, campaign: optimisticCampaign });
     } catch (error: any) {
         console.error('API Error:', error);
         return NextResponse.json(
