@@ -222,7 +222,16 @@ export function EmailForm() {
             };
 
             const smartStart = roundToNext5Minutes(new Date());
-            setStartTime(smartStart.toISOString().slice(0, 16));
+
+            // Format as local datetime-local string (YYYY-MM-DDTHH:mm) in USER'S timezone
+            const year = smartStart.getFullYear();
+            const month = String(smartStart.getMonth() + 1).padStart(2, '0');
+            const day = String(smartStart.getDate()).padStart(2, '0');
+            const hours = String(smartStart.getHours()).padStart(2, '0');
+            const mins = String(smartStart.getMinutes()).padStart(2, '0');
+            const localDateTimeString = `${year}-${month}-${day}T${hours}:${mins}`;
+
+            setStartTime(localDateTimeString);
         }
     }, [useBackground, startImmediately])
 
