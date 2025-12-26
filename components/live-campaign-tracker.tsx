@@ -422,6 +422,21 @@ export function LiveCampaignTracker() {
         // Optimistically remove from UI
         setCampaigns(prev => prev.filter(c => c.id !== id));
 
+        // Immediately remove from cache to prevent flash on next open
+        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                const filtered = parsed.filter((c: any) => c.id !== id);
+                localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
+            } catch (e) {
+                console.error("Failed to update cache:", e);
+            }
+        }
+
+        // Also remove individual job cache
+        localStorage.removeItem(`campaign-jobs-${id}`);
+
         try {
             const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
 
