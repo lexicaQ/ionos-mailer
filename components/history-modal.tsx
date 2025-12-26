@@ -134,6 +134,13 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
         // This reduces API calls by ~90%
     }, [open, onRefresh]);
 
+    // Fail-safe: Stop clearing animation if batches become empty
+    useEffect(() => {
+        if (batches.length === 0 && isClearing) {
+            setIsClearing(false)
+        }
+    }, [batches, isClearing])
+
     const stats = useMemo(() => {
         const totalEmails = batches.reduce((sum, b) => sum + b.total, 0)
         const totalSuccess = batches.reduce((sum, b) => sum + b.success, 0)
@@ -384,10 +391,8 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         clearInProgress.current = false;
                                         setIsClearing(false);
                                     } finally {
-                                        // Clear the flag after a delay to allow fresh data on next open
-                                        setTimeout(() => {
-                                            clearInProgress.current = false;
-                                        }, 500);
+                                        setIsClearing(false);
+                                        clearInProgress.current = false;
                                     }
                                 }}
                                 className="gap-2 h-8 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"

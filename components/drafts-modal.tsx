@@ -54,7 +54,7 @@ export function DraftsModal({
             if (!isBackground) setIsLoading(false) // Show data immediately
 
             // 2. Background Sync (Cloud)
-            setIsBackgroundSyncing(true)
+            if (!isBackground) setIsBackgroundSyncing(true) // Only show spinner if not silent
             // Dynamically import to safely call new function without breaking if file not fully reloaded (though in agent mode it is)
             const { syncDrafts } = await import('@/lib/drafts');
             // Force strict sync? No, standard sync is fine.
@@ -224,9 +224,16 @@ export function DraftsModal({
                     <DialogHeader className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-white/50 dark:bg-[#181818]/50 backdrop-blur-sm space-y-4 shrink-0 z-10">
                         <div className="flex items-center gap-3">
                             <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
-                            {isBackgroundSyncing && (
-                                <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
-                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => safeLoadDrafts(false)} // Manual refresh triggers animation
+                                className="h-6 w-6 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                title="Refresh drafts"
+                                disabled={isBackgroundSyncing || isLoading}
+                            >
+                                <RefreshCw className={cn("h-3.5 w-3.5 text-neutral-500", (isBackgroundSyncing || isLoading) && "animate-spin")} />
+                            </Button>
                         </div>
                         {/* Search and Filters inside Header */}
                         <div className="flex gap-2 pt-1">
