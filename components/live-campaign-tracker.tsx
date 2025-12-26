@@ -151,8 +151,12 @@ export function LiveCampaignTracker() {
             return;
         }
 
-        // TTL CACHING LOGIC (5 Minutes) - SKIP if force=true
-        if (!force) {
+        // Check if we have any cached data
+        const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
+        const hasCache = cachedData && cachedData !== "[]";
+
+        // TTL CACHING LOGIC (5 Minutes) - SKIP if force=true OR no cache exists
+        if (!force && hasCache) {
             const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
             if (lastFetch) {
                 const age = Date.now() - parseInt(lastFetch, 10);
@@ -162,17 +166,17 @@ export function LiveCampaignTracker() {
 
                     // Still load cache just in case state is empty (e.g. hard refresh)
                     if (campaignsRef.current.length === 0) {
-                        const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-                        if (cached) {
-                            try {
-                                setCampaigns(JSON.parse(cached));
-                            } catch (e) { }
-                        }
+                        try {
+                            setCampaigns(JSON.parse(cachedData!));
+                        } catch (e) { }
                     }
                     return;
                 }
             }
         }
+
+        // No cache or force = ALWAYS fetch from server
+        console.log('[LiveTracker] Fetching from server...');
 
         isFetching.current = true;
 
