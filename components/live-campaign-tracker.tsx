@@ -111,14 +111,12 @@ export function LiveCampaignTracker() {
         return {};
     })
 
-    // Retrieve campaigns - SHOW ALL (Direct and Named)
+    // Retrieve campaigns - Hide Direct sends from this list (one-off emails)
     const filteredCampaigns = campaigns.filter(c =>
-    // Remove !c.isDirect filter to show everything the user sends
-    // !c.isDirect && (
-    (
-        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+        !c.isDirect && (
+            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
     );
 
     // Cache Validation & Migration
@@ -145,10 +143,10 @@ export function LiveCampaignTracker() {
         validateCache();
     }, [session]);
 
-    // SEED campaignsRef immediately from initial state
+    // Keep campaignsRef synced with state for Smart Merge
     useEffect(() => {
         campaignsRef.current = campaigns;
-    }, []);
+    }, [campaigns]);
 
     // Data Migration (One-time check)
     useEffect(() => {
@@ -428,25 +426,32 @@ export function LiveCampaignTracker() {
 
     useEffect(() => {
         // Fetch campaigns only when modal opens
-        // SMART SYNC: Check TTL (5 mins) before fetching to prevent the "1-second disappearance flicker"
+        // STALE-WHILE-REVALIDATE: 
+        // 1. Show cache immediately
+        // 2. Refresh in background if older than 10s
         if (open) {
             const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
             const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
 
+            // Load cache instantly if state is empty
+            if (cachedData && campaigns.length === 0) {
+                try {
+                    setCampaigns(JSON.parse(cachedData));
+                    console.log("[LiveTracker] Loaded initial data from cache");
+                } catch (e) { }
+            }
+
             let needsFetch = true;
-            if (cachedData && lastFetch) {
+            if (lastFetch) {
                 const age = Date.now() - parseInt(lastFetch, 10);
-                if (age < 300000) { // < 5 mins
+                if (age < 10000) { // < 10 seconds is considered "fresh enough" to NOT trigger auto-sync
                     needsFetch = false;
-                    console.log(`[LiveTracker] Tracker opened: Cache is fresh (${Math.floor(age / 1000)}s old). Using local data.`);
-                    // Ensure state matches cache even if fetch is skipped
-                    try {
-                        setCampaigns(JSON.parse(cachedData));
-                    } catch (e) { }
+                    console.log(`[LiveTracker] Cache is very fresh (${Math.floor(age / 1000)}s). Skipping background sync.`);
                 }
             }
 
             if (needsFetch) {
+                // Background sync - doesn't block UI
                 fetchCampaigns(true);
             }
         }
@@ -699,11 +704,14 @@ export function LiveCampaignTracker() {
                                     <div className="flex items-center gap-3">
                                         <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                         {loading && (
-                                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+                                            <div className="flex items-center gap-2">
+                                                <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+                                                <span className="text-[10px] text-neutral-400 font-medium animate-pulse">Syncing...</span>
+                                            </div>
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground max-w-md">
-                                        Manual refresh only
+                                        Automatic background sync on open (10s TTL)
                                     </p>
                                     <p className="text-[10px] text-muted-foreground/70 max-w-md">
                                         Click refresh button to check for updates
@@ -946,6 +954,27 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                     <span className={openedCount > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
                                                     {openedCount} Open
                                                 </span>
+
+                                                {/* Survey Summary - nature of survey response breakdown */}
+                                                {hasJobs && campaign.jobs.some(j => j.surveyChoice) && (
+                                                    <div className="flex items-center gap-1.5 ml-2 p-1 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700" title="Survey Response Nature">
+                                                        <Info className="h-3 w-3 text-neutral-500" />
+                                                        <div className="flex gap-1">
+                                                            {(() => {
+                                                                const yes = campaign.jobs.filter(j => j.surveyChoice === 'yes').length;
+                                                                const no = campaign.jobs.filter(j => j.surveyChoice === 'no').length;
+                                                                const maybe = campaign.jobs.filter(j => j.surveyChoice === 'maybe').length;
+                                                                return (
+                                                                    <>
+                                                                        {yes > 0 && <span className="text-[8px] text-green-600 font-bold">Y:{yes}</span>}
+                                                                        {maybe > 0 && <span className="text-[8px] text-orange-600 font-bold">M:{maybe}</span>}
+                                                                        {no > 0 && <span className="text-[8px] text-red-600 font-bold">N:{no}</span>}
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </>
                                         );
                                     })()}
