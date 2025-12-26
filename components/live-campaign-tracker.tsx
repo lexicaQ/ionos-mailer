@@ -80,8 +80,20 @@ export function LiveCampaignTracker() {
     const deletedCampaigns = useRef<Set<string>>(new Set())
     const [isFirstSync, setIsFirstSync] = useState(true) // Track first sync only
 
-    // Lazy loading state
-    const [loadedCampaignIds, setLoadedCampaignIds] = useState<Set<string>>(new Set())
+    // Lazy loading state - persist to localStorage
+    const [loadedCampaignIds, setLoadedCampaignIds] = useState<Set<string>>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-loaded-campaigns");
+            if (cached) {
+                try {
+                    return new Set(JSON.parse(cached));
+                } catch (e) {
+                    return new Set();
+                }
+            }
+        }
+        return new Set();
+    })
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
 
     // Campaign completion status cache (tracks which campaigns are 100% complete)
@@ -272,8 +284,12 @@ export function LiveCampaignTracker() {
                 // Cache jobs for this campaign
                 localStorage.setItem(`campaign-jobs-${campaignId}`, JSON.stringify({ jobs, stats }));
 
-                // Mark as loaded
-                setLoadedCampaignIds(prev => new Set(prev).add(campaignId));
+                // Mark as loaded and persist to localStorage
+                setLoadedCampaignIds(prev => {
+                    const newSet = new Set(prev).add(campaignId);
+                    localStorage.setItem("ionos-mailer-loaded-campaigns", JSON.stringify(Array.from(newSet)));
+                    return newSet;
+                });
             }
         } catch (error) {
             console.error(`Failed to fetch jobs for campaign ${campaignId}:`, error);
