@@ -79,8 +79,8 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                 setLocalHint(true)
                 toast.success("Connected! SMTP settings automatically configured.")
                 setOpen(false)
-                setEmail("")
-                setPassword("")
+                // Force reload to update session immediately and clear stale checks
+                window.location.reload()
             }
         } catch (error) {
             toast.error("Connection failed")
@@ -259,6 +259,8 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                                     setLocalHint(true);
                                     toast.success("Logged in with Passkey!");
                                     setOpen(false);
+                                    // Force reload to update session immediately and clear stale checks
+                                    window.location.reload();
                                 }
                             } catch (e: any) {
                                 // Clear hints on any error

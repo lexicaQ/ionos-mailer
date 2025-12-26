@@ -118,7 +118,31 @@ export function LiveCampaignTracker() {
         )
     );
 
-    // Data Migration (One-time check for orphaned data)
+    // Cache Validation & Migration
+    const { data: session } = useSession();
+    useEffect(() => {
+        const validateCache = () => {
+            const currentUserId = session?.user?.id;
+            if (!currentUserId) return; // Wait for session
+
+            const cachedUserId = localStorage.getItem("ionos-mailer-cache-owner");
+
+            // If cache belongs to a different user, WIPE IT instantly to prevent "disappearing" glitch
+            if (cachedUserId && cachedUserId !== currentUserId) {
+                console.log("[LiveTracker] Cache owner mismatch. Wiping old data.");
+                localStorage.removeItem("ionos-mailer-campaigns-cache");
+                localStorage.removeItem("ionos-mailer-campaign-completion");
+                setCampaigns([]);
+            }
+
+            // Update owner
+            localStorage.setItem("ionos-mailer-cache-owner", currentUserId);
+        };
+
+        validateCache();
+    }, [session]);
+
+    // Data Migration (One-time check)
     useEffect(() => {
         const migrateData = async () => {
             const oldId = localStorage.getItem("ionos-mailer-user-id");
