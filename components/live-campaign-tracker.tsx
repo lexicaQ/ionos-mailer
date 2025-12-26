@@ -68,10 +68,13 @@ export function LiveCampaignTracker() {
     const [searchTerm, setSearchTerm] = useState("")
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
 
-    // Filter campaigns by search term
+    // Filter campaigns by search term - EXCLUDE direct sends (isDirect=true)
+    // Direct sends are one-off emails, not campaigns
     const filteredCampaigns = campaigns.filter(c =>
-        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
+        !c.isDirect && (
+            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
     );
 
     // Data Migration (One-time check)
@@ -705,8 +708,11 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                     <RefreshCw className="h-3 w-3 animate-spin" />
                                     <span className="animate-pulse">Loading details...</span>
                                 </div>
+                            ) : !isLoaded ? (
+                                // Campaign not expanded yet - show prompt to expand
+                                <span className="text-neutral-500 dark:text-neutral-400">Click to expand and see details</span>
                             ) : (
-                                // Show actual stats (always available from overview API or cache)
+                                // Show actual stats (available after expansion)
                                 <>
                                     <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Done</span>
 
