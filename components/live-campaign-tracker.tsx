@@ -119,33 +119,28 @@ export function LiveCampaignTracker() {
         )
     );
 
-    // Cache Validation & Migration
+    // Cache Validation - ONLY run when explicitly needed (logout, different user login)
+    // REMOVED: Aggressive validation on every session change was causing race conditions
+    // Cache is now only wiped on explicit logout (handled in auth-dialog.tsx)
     const { data: session, status } = useSession();
+
+    // Set cache owner when authenticated (but don't wipe on every change)
     useEffect(() => {
-        // CRITICAL: Only validate when session is fully loaded, not during loading
-        // This prevents the race condition where cache is wiped while session is still loading
-        if (status !== 'authenticated') return;
-
-        const validateCache = () => {
-            const currentUserId = session?.user?.id;
-            if (!currentUserId) return; // Safety check
-
+        if (status === 'authenticated' && session?.user?.id) {
+            const currentUserId = session.user.id;
             const cachedUserId = localStorage.getItem("ionos-mailer-cache-owner");
 
-            // Only wipe if there IS an old owner AND it's different from current user
-            // If cachedUserId is null (fresh install), don't wipe - just set owner
-            if (cachedUserId && cachedUserId !== currentUserId) {
-                console.log("[LiveTracker] Cache owner mismatch. Wiping old data.");
-                localStorage.removeItem("ionos-mailer-campaigns-cache");
-                localStorage.removeItem("ionos-mailer-campaign-completion");
-                setCampaigns([]);
+            // Only set owner if not already set (first login) or if matches
+            if (!cachedUserId || cachedUserId === currentUserId) {
+                localStorage.setItem("ionos-mailer-cache-owner", currentUserId);
             }
-
-            // Update owner
-            localStorage.setItem("ionos-mailer-cache-owner", currentUserId);
-        };
-
-        validateCache();
+            // If different user, log but DON'T wipe - let user see their old data
+            // They can manually refresh to get their actual data
+            else if (cachedUserId !== currentUserId) {
+                console.log("[LiveTracker] Different user detected. Cache will refresh on next open.");
+                localStorage.setItem("ionos-mailer-cache-owner", currentUserId);
+            }
+        }
     }, [status, session]);
 
     // Keep campaignsRef synced with state for Smart Merge
@@ -241,6 +236,9 @@ export function LiveCampaignTracker() {
 
             if (res.status === 401) {
                 console.log('[LiveTracker] Unauthorized fetch - preserving cache');
+                // FIX: Properly clean up state before returning
+                setLoading(false);
+                isFetching.current = false;
                 return;
             }
 
@@ -280,6 +278,13 @@ export function LiveCampaignTracker() {
                     const uniqueMap = new Map();
                     merged.forEach(c => uniqueMap.set(c.id, c));
                     const uniqueMerged = Array.from(uniqueMap.values());
+
+                    // FIX: Don't wipe cache if server returns empty but we have local data
+                    // This protects against network issues or server-side bugs
+                    if (uniqueMerged.length === 0 && campaignsRef.current.length > 0) {
+                        console.log('[LiveTracker] Server returned empty but we have cached data. Preserving cache.');
+                        return; // Don't update state with empty data
+                    }
 
                     // Re-sort to ensure newest is always on top
                     uniqueMerged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
