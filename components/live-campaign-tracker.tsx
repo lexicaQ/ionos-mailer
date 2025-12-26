@@ -145,6 +145,11 @@ export function LiveCampaignTracker() {
         validateCache();
     }, [session]);
 
+    // SEED campaignsRef immediately from initial state
+    useEffect(() => {
+        campaignsRef.current = campaigns;
+    }, []);
+
     // Data Migration (One-time check)
     useEffect(() => {
         const migrateData = async () => {
@@ -417,9 +422,28 @@ export function LiveCampaignTracker() {
     }, [fetchCampaigns]);
 
     useEffect(() => {
-        // Fetch campaigns only when modal opens (NO auto-polling)
+        // Fetch campaigns only when modal opens
+        // SMART SYNC: Check TTL (5 mins) before fetching to prevent the "1-second disappearance flicker"
         if (open) {
-            fetchCampaigns(true);
+            const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
+            const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
+
+            let needsFetch = true;
+            if (cachedData && lastFetch) {
+                const age = Date.now() - parseInt(lastFetch, 10);
+                if (age < 300000) { // < 5 mins
+                    needsFetch = false;
+                    console.log(`[LiveTracker] Tracker opened: Cache is fresh (${Math.floor(age / 1000)}s old). Using local data.`);
+                    // Ensure state matches cache even if fetch is skipped
+                    try {
+                        setCampaigns(JSON.parse(cachedData));
+                    } catch (e) { }
+                }
+            }
+
+            if (needsFetch) {
+                fetchCampaigns(true);
+            }
         }
     }, [open, fetchCampaigns]);
 

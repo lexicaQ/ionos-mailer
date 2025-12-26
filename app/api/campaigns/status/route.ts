@@ -25,12 +25,16 @@ export async function GET(req: NextRequest) {
         const campaigns = await prisma.campaign.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },
-            take: 15, // Reduced from 50 for faster sync logic
+            take: 100, // Increased from 15 to handle more campaigns correctly
             include: mode === 'full' ? {
                 jobs: {
                     orderBy: { createdAt: 'desc' }
                 }
-            } : undefined
+            } : {
+                _count: {
+                    select: { jobs: true }
+                }
+            }
         });
 
         const secretKey = process.env.ENCRYPTION_KEY!;
@@ -57,7 +61,7 @@ export async function GET(req: NextRequest) {
                     createdAt: campaign.createdAt.toISOString(),
                     jobs: [], // Empty array for lazy loading
                     stats: {
-                        total: campaign._count?.jobs || 0,
+                        total: (campaign as any)._count?.jobs || 0,
                         sent: 0, // Will be calculated when jobs load
                         pending: 0,
                         failed: 0,
