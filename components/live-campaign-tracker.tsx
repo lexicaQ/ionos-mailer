@@ -309,63 +309,7 @@ export function LiveCampaignTracker() {
             e.preventDefault();
         }
 
-        if (!confirm("Do you really want to delete the campaign? Sending will be stopped immediately.")) return;
-
-        // INSTANT HIDE: Remove from UI NOW (no confirmation delay)
-        // No longer needed - campaigns deleted from DB
-        setCampaigns(prev => prev.filter(c => c.id !== id));
-
-        // Persist deleted IDs to localStorage
-        // const deletedIds = Array.from(deletedCampaigns.current);
-        // localStorage.setItem("ionos-mailer-deleted-campaigns", JSON.stringify(deletedIds));
-
-        // Also remove from cache immediately
-        // const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
-        // if (cached) {
-        //     try {
-        //         const parsed = JSON.parse(cached);
-        //         const filtered = parsed.filter((c: any) => c.id !== id);
-        //         localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
-        //     } catch (e) { }
-        // }
-
-        // try {
-        //     const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-
-        //     if (!res.ok) {
-        //         // Only revert if we are certain it's a permission/logic error (401, 403, 404)
-        //         // If it's a 500 or 504 (Timeout), we assume the server is processing it in background
-        //         if (res.status === 401 || res.status === 403) {
-        //             console.error("Deletion denied");
-        //             deletedCampaigns.current.delete(id);
-        //             // Update persisted list
-        //             const updatedIds = Array.from(deletedCampaigns.current);
-        //             localStorage.setItem("ionos-mailer-deleted-campaigns", JSON.stringify(updatedIds));
-        //             fetchCampaigns(false); // Reload to restore
-        //             alert("Permission denied. You cannot delete this campaign.");
-        //         } else if (res.status === 404) {
-        //             // Already gone, do nothing (keep hidden)
-        //         } else {
-        //             // 500 or others: Likely timeout due to large data. Keep hidden.
-        //             console.warn("Deletion slow or server error, assuming background processing:", res.status);
-        //             toast.warning("Deletion is taking longer than expected", {
-        //                 description: "It will be processed in the background."
-        //             });
-        //         }
-        //     }
-        // } catch (e) {
-        //     console.error("Deletion network error", e);
-        //     // Network error (timeout?): Keep hidden, assume background or future retry
-        //     toast.warning("Network delay during deletion", {
-        //         description: "The campaign will be removed shortly."
-        //     });
-        // }
-    }
-
-    const handleDeleteCampaign = useCallback(async (id: string) => {
-        if (!confirm("Are you sure you want to delete this campaign? This action cannot be undone.")) {
-            return;
-        }
+        if (!confirm("Do you really want to delete this campaign? This action cannot be undone.")) return;
 
         // Optimistically remove from UI
         setCampaigns(prev => prev.filter(c => c.id !== id));
@@ -398,18 +342,18 @@ export function LiveCampaignTracker() {
                     toast.success("Campaign deleted");
                 } else {
                     console.warn("Deletion error:", res.status);
-                    toast.warning("Deletion may be processing in background");
+                    toast.warning("Deletion issue. Refreshing...");
+                    fetchCampaigns();
                 }
             } else {
-                toast.success("Campaign deleted successfully");
+                toast.success("Campaign deleted");
             }
         } catch (e) {
-            console.error("Deletion error:", e);
-            toast.error("Failed to delete campaign");
-            // Reload to see actual state
+            console.error("Deletion network error", e);
+            toast.error("Network error during deletion");
             fetchCampaigns();
         }
-    }, [fetchCampaigns]);
+    }
 
     const cancelJob = async (campaignId: string, jobId: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
