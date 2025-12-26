@@ -68,13 +68,11 @@ export function LiveCampaignTracker() {
     const [searchTerm, setSearchTerm] = useState("")
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
 
-    // Filter campaigns by search term - EXCLUDE direct sends (isDirect=true)
-    // Direct sends are one-off emails, not campaigns
+    // TEMPORARILY DISABLED isDirect filter for debugging
+    // All 8 campaigns were being filtered out - need to check why isDirect is true for all
     const filteredCampaigns = campaigns.filter(c =>
-        !c.isDirect && (
-            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
-        )
+        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     // Debug logging

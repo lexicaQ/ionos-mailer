@@ -54,10 +54,12 @@ export async function GET(req: NextRequest) {
 
             // In overview mode, don't include jobs to reduce response size
             if (mode === 'overview') {
+                const isDirect = decryptedName === 'DIRECT' || decryptedName === 'Direct Send';
+                console.log(`[CampaignStatus] Campaign ${campaign.id}: name='${decryptedName}', isDirect=${isDirect}`);
                 return {
                     id: campaign.id,
                     name: decryptedName,
-                    isDirect: decryptedName === 'DIRECT' || decryptedName === 'Direct Send',
+                    isDirect,
                     createdAt: campaign.createdAt.toISOString(),
                     jobs: [], // Empty array for lazy loading
                     stats: {
