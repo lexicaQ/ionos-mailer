@@ -217,6 +217,9 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
 
                                 if (!verifyRes.ok) {
                                     const error = await verifyRes.json();
+                                    // Clear any stale hints
+                                    localStorage.removeItem(SESSION_HINT_KEY);
+                                    setLocalHint(false);
                                     throw new Error(error.error || "Verification failed");
                                 }
 
@@ -229,15 +232,23 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                                 });
 
                                 if (result?.error) {
+                                    // Clear hints on error
+                                    localStorage.removeItem(SESSION_HINT_KEY);
+                                    setLocalHint(false);
                                     toast.error("Passkey login failed");
                                     console.error(result.error);
                                 } else {
+                                    // Only set hint on successful login
                                     localStorage.setItem(SESSION_HINT_KEY, "true");
                                     setLocalHint(true);
                                     toast.success("Logged in with Passkey!");
                                     setOpen(false);
                                 }
                             } catch (e: any) {
+                                // Clear hints on any error
+                                localStorage.removeItem(SESSION_HINT_KEY);
+                                setLocalHint(false);
+
                                 if (e.message?.includes("cancelled") || e.message?.includes("canceled")) {
                                     // User cancelled - ignore
                                 } else {

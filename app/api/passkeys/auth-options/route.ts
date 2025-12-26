@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     const options = await generateAuthenticationOptions({
         rpID,
-        userVerification: "preferred", // Changed from "required" for faster login
+        userVerification: "required", // Require biometric verification (FaceID/PIN)
         allowCredentials
     })
 
