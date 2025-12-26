@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import {
     Bold, Italic, Underline as UnderlineIcon, Strikethrough,
     Link as LinkIcon, Image as ImageIcon, List, ListOrdered,
-    Heading1, Heading2, Heading3, Undo, Redo, Unlink, Upload, Type, Paperclip, X, FileText
+    Heading1, Heading2, Heading3, Undo, Redo, Unlink, Upload, Type, Paperclip, X, FileText, MessageSquarePlus
 } from 'lucide-react'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import {
@@ -61,6 +61,7 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
     const [imageUrl, setImageUrl] = useState('')
     const [linkDialogOpen, setLinkDialogOpen] = useState(false)
     const [imageDialogOpen, setImageDialogOpen] = useState(false)
+    const [surveyDialogOpen, setSurveyDialogOpen] = useState(false)
     const [attachments, setAttachments] = useState<UIAttachment[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
     const attachmentInputRef = useRef<HTMLInputElement>(null)
@@ -539,6 +540,62 @@ export function RichTextEditor({ value, onChange, onAttachmentsChange, initialAt
                     ref={attachmentInputRef}
                     onChange={handleAttachmentUpload}
                 />
+
+                <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-700 mx-1" />
+
+                {/* Survey Template Button */}
+                <Dialog open={surveyDialogOpen} onOpenChange={setSurveyDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-2 text-neutral-600 dark:text-neutral-400"
+                            title="Insert Survey"
+                        >
+                            <MessageSquarePlus className="h-4 w-4" />
+                            <span className="hidden sm:inline text-xs">Survey</span>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Insert Survey Template</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Add an interactive survey with 3 response options:
+                            </p>
+                            <div className="space-y-2 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span className="text-sm font-medium">✓ Ja, interessiert!</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                    <span className="text-sm font-medium">🤔 Überlege noch</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <span className="text-sm font-medium">✗ Kein Interesse</span>
+                                </div>
+                            </div>
+                            <p className="text-xs text-neutral-500">
+                                The survey buttons will be added when the email is sent.
+                                Recipients can click to provide feedback.
+                            </p>
+                            <Button
+                                onClick={() => {
+                                    const { getSurveyTemplateSnippet } = require('@/lib/survey-templates')
+                                    editor?.commands.insertContent(getSurveyTemplateSnippet())
+                                    setSurveyDialogOpen(false)
+                                }}
+                                className="w-full"
+                            >
+                                Insert Survey Template
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
 
                 <div className="flex-1" />
 

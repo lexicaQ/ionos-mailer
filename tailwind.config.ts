@@ -55,6 +55,15 @@ const config: Config = {
                 lg: 'var(--radius)',
                 md: 'calc(var(--radius) - 2px)',
                 sm: 'calc(var(--radius) - 4px)'
+            },
+            keyframes: {
+                shimmer: {
+                    '0%, 100%': { backgroundPosition: '0% 50%' },
+                    '50%': { backgroundPosition: '100% 50%' }
+                }
+            },
+            animation: {
+                shimmer: 'shimmer 3s ease-in-out infinite'
             }
         }
     },

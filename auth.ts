@@ -19,95 +19,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: "webauthn",
             name: "WebAuthn",
             credentials: {
-                credential: { label: "Credential", type: "text" }
+                authToken: { label: "Auth Token", type: "text" }
             },
             async authorize(credentials) {
-                const credentialData = JSON.parse(credentials.credential as string)
-                const { credential, challengeId } = credentialData
-                const { verifyAuthenticationResponse } = await import("@simplewebauthn/server")
+                // OPTIMIZED: Use pre-verified auth token instead of re-verifying passkey
+                // This eliminates 4 DB queries and expensive cryptographic verification
+                const { verifyAuthToken } = await import("@/lib/auth-token")
+                const tokenData = await verifyAuthToken(credentials.authToken as string)
 
-                // Validate challengeId is provided
-                if (!challengeId) {
-                    throw new Error("Challenge ID required")
+                if (!tokenData) {
+                    throw new Error("Invalid or expired auth token")
                 }
 
-                // Decode credentialID to find the passkey
-                const credentialID = credential.id
-
-                // Find passkey and user
-                const passkey = await prisma.passkey.findFirst({
-                    where: { credentialId: credentialID },
-                    include: { user: true }
+                // Simple DB query to get user info (verification already done!)
+                const user = await prisma.user.findUnique({
+                    where: { id: tokenData.userId }
                 })
 
-                if (!passkey || !passkey.user) {
-                    throw new Error("Passkey not found")
+                if (!user) {
+                    throw new Error("User not found")
                 }
 
-                // Find the challenge by ID (not "most recent" - prevents race conditions)
-                const challenge = await prisma.authChallenge.findUnique({
-                    where: { id: challengeId }
-                })
-
-                if (!challenge) {
-                    throw new Error("Challenge not found")
+                return {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    image: user.image,
                 }
-
-                if (challenge.expiresAt < new Date()) {
-                    await prisma.authChallenge.delete({ where: { id: challengeId } }).catch(() => { })
-                    throw new Error("Authentication timed out")
-                }
-
-                // Import config helper inside async function to avoid circular deps if any (though likely fine)
-                const { getWebAuthnConfig } = await import("@/lib/webauthn-config")
-                const { rpID, origin } = getWebAuthnConfig()
-
-                let verification;
-                try {
-                    verification = await verifyAuthenticationResponse({
-                        response: credential,
-                        expectedChallenge: challenge.challenge,
-                        expectedOrigin: origin,
-                        expectedRPID: rpID,
-                        authenticator: {
-                            credentialID: Buffer.from(passkey.credentialId, 'base64url'),
-                            credentialPublicKey: passkey.publicKey as any,
-                            counter: Number(passkey.counter),
-                            transports: passkey.transports as any[] // optional
-                        },
-                        requireUserVerification: true,
-                    })
-                } catch (error) {
-                    console.error("WebAuthn verification failed:", error)
-                    return null
-                }
-
-                if (verification.verified) {
-                    const { authenticationInfo } = verification
-
-                    // PARALLEL: Update counter and delete challenge simultaneously
-                    // These are independent operations, no need to wait sequentially
-                    await Promise.all([
-                        prisma.passkey.update({
-                            where: { id: passkey.id },
-                            data: {
-                                counter: authenticationInfo.newCounter,
-                                lastUsedAt: new Date()
-                            }
-                        }),
-                        // Challenge delete is best-effort (non-critical)
-                        prisma.authChallenge.delete({ where: { id: challenge.id } }).catch(() => { })
-                    ])
-
-                    return {
-                        id: passkey.user.id,
-                        email: passkey.user.email,
-                        name: passkey.user.name,
-                        image: passkey.user.image,
-                    }
-                }
-
-                return null
             }
         }),
         Credentials({

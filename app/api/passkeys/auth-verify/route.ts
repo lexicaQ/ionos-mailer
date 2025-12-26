@@ -70,9 +70,14 @@ export async function POST(req: Request) {
         // Delete used challenge (one-time use)
         await prisma.authChallenge.delete({ where: { id: storedChallenge.id } })
 
-        // Return user info for session creation
+        // Create a short-lived auth token for NextAuth (avoids re-verification)
+        const { createAuthToken } = await import('@/lib/auth-token')
+        const authToken = await createAuthToken(passkey.user.id, challengeId)
+
+        // Return user info AND auth token for NextAuth flow
         return Response.json({
             verified: true,
+            authToken, // NEW: Token for fast NextAuth login
             user: {
                 id: passkey.user.id,
                 email: passkey.user.email,

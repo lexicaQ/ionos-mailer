@@ -205,12 +205,26 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                             setLoading(true);
                             try {
                                 const { getPasskeyCredential } = await import("@/lib/passkeys");
-                                // getPasskeyCredential now returns { credential, challengeId }
-                                const passkeyData = await getPasskeyCredential(email || undefined);
+                                // Get passkey credential from WebAuthn
+                                const { credential, challengeId } = await getPasskeyCredential(email || undefined);
 
+                                // Verify with backend first to get auth token
+                                const verifyRes = await fetch("/api/passkeys/auth-verify", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ ...credential, challengeId })
+                                });
+
+                                if (!verifyRes.ok) {
+                                    const error = await verifyRes.json();
+                                    throw new Error(error.error || "Verification failed");
+                                }
+
+                                const { authToken } = await verifyRes.json();
+
+                                // Use auth token for fast NextAuth login (no re-verification!)
                                 const result = await signIn("webauthn", {
-                                    // Pass both credential and challengeId for proper challenge binding
-                                    credential: JSON.stringify(passkeyData),
+                                    authToken,
                                     redirect: false
                                 });
 
@@ -218,12 +232,14 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                                     toast.error("Passkey login failed");
                                     console.error(result.error);
                                 } else {
+                                    localStorage.setItem(SESSION_HINT_KEY, "true");
+                                    setLocalHint(true);
                                     toast.success("Logged in with Passkey!");
                                     setOpen(false);
                                 }
                             } catch (e: any) {
-                                if (e.message?.includes("cancelled")) {
-                                    // ignore
+                                if (e.message?.includes("cancelled") || e.message?.includes("canceled")) {
+                                    // User cancelled - ignore
                                 } else {
                                     toast.error(e.message || "Passkey error");
                                 }

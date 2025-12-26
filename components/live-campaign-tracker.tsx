@@ -13,8 +13,10 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail
+    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail, Info
 } from 'lucide-react'
+import { SurveyResponseVisual } from '@/components/survey-response-visual'
+import { SurveyStats } from '@/components/survey-stats'
 import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
 import { motion, AnimatePresence } from "framer-motion"
@@ -37,6 +39,9 @@ interface EmailJob {
     bounceCode?: string | null
     bounceReason?: string | null
     bouncedAt?: string | null
+    // Survey tracking
+    surveyResponse?: string | null
+    respondtedAt?: string | null
 }
 
 interface Campaign {
@@ -72,9 +77,6 @@ export function LiveCampaignTracker() {
         return [];
     })
     const [loading, setLoading] = useState(false)
-    // Removed showSyncAnimation - using subtle text indicator instead
-    const [isSyncing, setIsSyncing] = useState(false) // Visual indicator for background sync
-    const [isAutoProcessing, setIsAutoProcessing] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const deletedCampaigns = useRef<Set<string>>(new Set())
     const [isFirstSync, setIsFirstSync] = useState(true) // Track first sync only
@@ -82,6 +84,21 @@ export function LiveCampaignTracker() {
     // Lazy loading state
     const [loadedCampaignIds, setLoadedCampaignIds] = useState<Set<string>>(new Set())
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
+
+    // Campaign completion status cache (tracks which campaigns are 100% complete)
+    const [completionCache, setCompletionCache] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-campaign-completion");
+            if (cached) {
+                try {
+                    return JSON.parse(cached);
+                } catch (e) {
+                    return {};
+                }
+            }
+        }
+        return {};
+    })
 
     // Retrieve campaigns
     const filteredCampaigns = campaigns.filter(c =>
@@ -203,20 +220,23 @@ export function LiveCampaignTracker() {
                 const hasChanges = currentDataString !== newDataString;
 
                 if (hasChanges || !hasInitialData) {
-                    // Show sync indicator only if:
-                    // 1. Real changes detected OR
-                    // 2. First time loading (no initial data)
-                    if (hasChanges && hasInitialData) {
-                        setIsSyncing(true);
-                        setTimeout(() => setIsSyncing(false), 7000); // Match 7s polling interval
-                    }
-
                     setCampaigns(filtered);
                     // Update cache WITHOUT deleted campaigns
                     localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
 
                     // UPDATE TTL TIMESTAMP
                     localStorage.setItem("ionos-mailer-campaigns-last-fetch", Date.now().toString());
+
+                    // Update completion status cache
+                    const newCompletionCache: Record<string, boolean> = {};
+                    filtered.forEach((campaign: Campaign) => {
+                        const totalCompleted = campaign.stats.sent + campaign.stats.failed +
+                            campaign.jobs.filter(j => j.status === 'CANCELLED').length;
+                        const isComplete = campaign.stats.total > 0 && totalCompleted >= campaign.stats.total;
+                        newCompletionCache[campaign.id] = isComplete;
+                    });
+                    setCompletionCache(newCompletionCache);
+                    localStorage.setItem("ionos-mailer-campaign-completion", JSON.stringify(newCompletionCache));
                 }
             }
         } catch (error) {
@@ -498,10 +518,7 @@ export function LiveCampaignTracker() {
                                     <div className="flex items-center gap-3">
                                         <h2 className="text-xl font-bold tracking-tight">Live Campaign Tracking</h2>
                                         {loading && (
-                                            <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                                <span>Synchronizing...</span>
-                                            </div>
+                                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-neutral-400" />
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground max-w-md">
@@ -630,15 +647,17 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
 
     const [isOpen, setIsOpen] = useState(false);
 
-    // Reset collapse state based on progress whenever it changes
+    // Smart auto-expand logic: Only expand incomplete campaigns on mount
     useEffect(() => {
-        // Auto-collapse if 100% finished,UNLESS searching
         if (searchTerm) {
+            // When searching, always expand
             setIsOpen(true);
         } else {
-            setIsOpen(calculateProgress(campaign) < 100);
+            // On initial render, only expand if campaign is NOT complete
+            const progress = calculateProgress(campaign);
+            setIsOpen(progress < 100);
         }
-    }, [campaign.stats.sent, campaign.stats.failed, campaign.stats.total, searchTerm]);
+    }, [searchTerm]); // Removed dependencies - only run on searchTerm change or mount
 
     const progress = calculateProgress(campaign);
 
@@ -696,23 +715,37 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                             )}
                         </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-2 mt-1 whitespace-nowrap overflow-hidden">
-                            <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Done</span>
-
-                            <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
-                            <span>{campaign.stats.sent} Sent</span>
-
-                            {campaign.stats.pending > 0 && (
+                            {!isLoaded && !isLoading ? (
+                                // Show placeholder for unloaded campaigns
+                                <span className="text-neutral-400 dark:text-neutral-600 italic">Click to expand and load details...</span>
+                            ) : isLoading ? (
+                                // Show loading animation
+                                <div className="flex items-center gap-2">
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                    <span className="animate-pulse">Loading campaign data...</span>
+                                </div>
+                            ) : (
+                                // Show actual stats
                                 <>
+                                    <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Done</span>
+
                                     <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
-                                    <span>{campaign.stats.pending} Wait</span>
+                                    <span>{campaign.stats.sent} Sent</span>
+
+                                    {campaign.stats.pending > 0 && (
+                                        <>
+                                            <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
+                                            <span>{campaign.stats.pending} Wait</span>
+                                        </>
+                                    )}
+
+                                    <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
+                                    <span className="flex items-center gap-1 text-green-600 font-medium">
+                                        <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
+                                        {campaign.stats.opened} Open
+                                    </span>
                                 </>
                             )}
-
-                            <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
-                            <span className="flex items-center gap-1 text-green-600 font-medium">
-                                <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
-                                {campaign.stats.opened} Open
-                            </span>
                         </div>
                     </div>
                 </div>
@@ -739,10 +772,21 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
             {/* Email List - Minimalist Table */}
             {isOpen && (
                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800 border-t border-neutral-100 dark:border-neutral-800">
-                    {/* Show loading spinner if jobs are being fetched */}
+                    {/* Show loading animation if jobs are being fetched */}
                     {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <RefreshCw className="h-6 w-6 animate-spin text-neutral-400" />
+                        <div className="flex flex-col items-center justify-center py-12 gap-4">
+                            {/* Animated gradient background */}
+                            <div className="relative w-full h-32 overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-blue-950/30 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]" />
+                                <div className="relative z-10 flex flex-col items-center justify-center h-full gap-3">
+                                    <Activity className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-bounce" />
+                                    <div className="flex gap-1">
+                                        <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                        <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.2s]"></span>
+                                        <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.4s]"></span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -752,7 +796,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                 <div className="flex-1 min-w-0">Recipient</div>
                                 <div className="w-[45px] sm:w-[140px] text-right">Time</div>
                             </div>
-                            {filteredJobs.length === 0 && (
+                            {filteredJobs.length === 0 && searchTerm && (
                                 <div className="p-4 text-center text-xs text-muted-foreground">
                                     No emails match "{searchTerm}"
                                 </div>

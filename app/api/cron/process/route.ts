@@ -263,6 +263,19 @@ async function handleCronRequest(req: NextRequest) {
                 }
 
                 const decryptedRecipient = decryptMaybeLegacy(job.recipient, secretKey);
+
+                // SURVEY TEMPLATE INJECTION: Replace placeholder with actual HTML buttons
+                const { hasSurveyTemplate, generateSurveyEmailHTML, SURVEY_PLACEHOLDER } = await import('@/lib/survey-templates');
+                if (hasSurveyTemplate(finalBody)) {
+                    // Remove placeholder and generate full survey email
+                    const contentWithoutPlaceholder = finalBody.replace(SURVEY_PLACEHOLDER, '');
+                    finalBody = generateSurveyEmailHTML({
+                        content: contentWithoutPlaceholder,
+                        trackingBaseUrl: baseUrl,
+                        jobId: job.id
+                    });
+                }
+
                 const htmlWithTracking = processBodyWithTracking(finalBody, job.trackingId, baseUrl);
 
                 try {
