@@ -111,12 +111,10 @@ export function LiveCampaignTracker() {
         return {};
     })
 
-    // Retrieve campaigns - Hide Direct sends from this list (one-off emails)
+    // Filter campaigns by search term only (no longer filtering by isDirect)
     const filteredCampaigns = campaigns.filter(c =>
-        !c.isDirect && (
-            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
-        )
+        c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     // Cache Validation - ONLY run when explicitly needed (logout, different user login)
@@ -250,6 +248,13 @@ export function LiveCampaignTracker() {
                 const hasChanges = currentDataString !== newDataString;
 
                 if (hasChanges || !hasInitialData) {
+                    // FIX: Check for empty server response FIRST before any state updates
+                    // This protects the user's view no matter what the server returns
+                    if (filtered.length === 0 && campaignsRef.current.length > 0) {
+                        console.log('[LiveTracker] Server returned empty but we have local data. Keeping your campaigns visible.');
+                        // Don't update state - just finish loading
+                        return;
+                    }
 
                     // SMART MERGE V2: Preserve optimistic campaigns (< 5 mins old) not yet in server list
                     // Increased window to 5 minutes to be more resilient to indexing delays
@@ -265,13 +270,6 @@ export function LiveCampaignTracker() {
                     const uniqueMap = new Map();
                     merged.forEach(c => uniqueMap.set(c.id, c));
                     const uniqueMerged = Array.from(uniqueMap.values());
-
-                    // FIX: NEVER wipe displayed data with empty server response
-                    // This protects the user's view no matter what the server returns
-                    if (filtered.length === 0 && campaignsRef.current.length > 0) {
-                        console.log('[LiveTracker] Server returned empty but we have local data. Keeping your campaigns visible.');
-                        return;
-                    }
 
                     // Re-sort to ensure newest is always on top
                     uniqueMerged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

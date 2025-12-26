@@ -155,9 +155,17 @@ export function DraftsModal({
         e.stopPropagation()
         if (!confirm("Do you really want to delete this draft?")) return
 
+        // Check if this is the last draft BEFORE deleting
+        const isLastDraft = drafts.length === 1;
+
         // OPTIMISTIC: Remove from UI immediately
         setDrafts(prev => prev.filter(d => d.id !== id));
         toast.success("Draft deleted");
+
+        // If last draft was deleted, close the modal
+        if (isLastDraft) {
+            setOpen(false);
+        }
 
         // Background: Actually delete from IndexedDB
         try {
