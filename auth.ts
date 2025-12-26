@@ -114,18 +114,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
         async session({ session, token }) {
             if (session.user && token.sub) {
-                // SECURITY: Verify user still exists in DB
-                // This ensures global logout if account is deleted
-                const userExists = await prisma.user.findUnique({
-                    where: { id: token.sub },
-                    select: { id: true }
-                });
+                // OPTIMIZATION: Skip DB check if recently verified (within 10 min)
+                // This prevents cold-start DB queries on every session access
+                const now = Date.now();
+                const lastChecked = (token as any).userCheckedAt || 0;
+                const TEN_MINUTES = 10 * 60 * 1000;
 
-                if (!userExists) {
-                    // User deleted - kill session
-                    // By returning an empty object or null-ish user, NextAuth client should handle this as unauthenticated
-                    // or we can just let it fail naturally if client expects user.id
-                    return {} as any;
+                if (now - lastChecked > TEN_MINUTES) {
+                    // Verify user still exists in DB (but only every 10 min)
+                    const userExists = await prisma.user.findUnique({
+                        where: { id: token.sub },
+                        select: { id: true }
+                    });
+
+                    if (!userExists) {
+                        // User deleted - kill session
+                        return {} as any;
+                    }
+                    // Update check timestamp in token (will persist)
+                    (token as any).userCheckedAt = now;
                 }
 
                 session.user.id = token.sub;

@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
                 return {
                     id: campaign.id,
                     name: decryptedName,
-                    isDirect: campaign.host === 'DIRECT' || campaign.name === 'DIRECT',
+                    isDirect: decryptedName === 'DIRECT' || decryptedName === 'Direct Send',
                     createdAt: campaign.createdAt.toISOString(),
                     jobs: [], // Empty array for lazy loading
                     stats: {
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
             return {
                 id: campaign.id,
                 name: decryptedName,
-                isDirect: campaign.host === 'DIRECT' || campaign.name === 'DIRECT',
+                isDirect: decryptedName === 'DIRECT' || decryptedName === 'Direct Send',
                 createdAt: campaign.createdAt.toISOString(),
                 jobs: campaign.jobs.map((job: any) => ({
                     id: job.id,

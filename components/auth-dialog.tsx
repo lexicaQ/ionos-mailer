@@ -66,27 +66,36 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const [passkeyOptions, setPasskeyOptions] = useState<any>(null)
 
     // PRE-FETCH PASSKEY OPTIONS: Zero-Latency Logic
-    // Fetch options as soon as modal opens or email changes (debounced)
+    // Fetch options IMMEDIATELY on modal open, debounce only on email changes
+    const [lastEmail, setLastEmail] = useState(email);
+
     useEffect(() => {
         if (!open) return;
 
         const fetchOptions = async () => {
             try {
-                // Import dynamically to avoid bundle bloating
                 const { fetchAuthOptions } = await import("@/lib/passkeys");
-                // Fetch options for "Usernameless" flow (empty email) OR specific user
                 const options = await fetchAuthOptions(email || undefined);
                 setPasskeyOptions(options);
+                console.log("[Auth] Passkey options ready");
             } catch (e) {
                 console.warn("[Auth] Background pre-fetch failed:", e);
-                // Fail silently - click handler will retry and show error
             }
         };
 
-        // Debounce: Wait 300ms after typing stops (reduced from 500ms)
-        const timer = setTimeout(fetchOptions, 300);
-        return () => clearTimeout(timer);
-    }, [open, email]);
+        // If modal just opened OR email changed, fetch options
+        if (email !== lastEmail) {
+            // Email changed - debounce
+            const timer = setTimeout(() => {
+                setLastEmail(email);
+                fetchOptions();
+            }, 300);
+            return () => clearTimeout(timer);
+        } else {
+            // Modal just opened - fetch immediately
+            fetchOptions();
+        }
+    }, [open, email, lastEmail]);
 
     const handleConnect = async (e: React.FormEvent) => {
         e.preventDefault()
