@@ -141,6 +141,18 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
         }
     }, [batches, isClearing])
 
+    // POLLING: Sync history every 15s while open
+    useEffect(() => {
+        if (!open || !onRefresh) return;
+        const interval = setInterval(() => {
+            if (!isRefreshing && !isClearing) {
+                // Force sync (true) to bypass TTL cache and see fresh data for deletes
+                onRefresh(true);
+            }
+        }, 15000);
+        return () => clearInterval(interval);
+    }, [open, onRefresh, isRefreshing, isClearing]);
+
     const stats = useMemo(() => {
         const totalEmails = batches.reduce((sum, b) => sum + b.total, 0)
         const totalSuccess = batches.reduce((sum, b) => sum + b.success, 0)

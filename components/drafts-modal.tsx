@@ -82,12 +82,12 @@ export function DraftsModal({
         if (open) {
             safeLoadDrafts() // Refresh when modal opens
 
-            // Poll for changes from other devices every 5s
+            // Poll for changes from other devices every 4s (Faster Sync)
             interval = setInterval(() => {
                 if (!isSaving && !isBackgroundSyncing) {
                     safeLoadDrafts(true); // Silent background sync
                 }
-            }, 5000);
+            }, 4000);
         }
         return () => clearInterval(interval);
     }, [open, isSaving, isBackgroundSyncing])
