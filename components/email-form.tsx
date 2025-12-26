@@ -235,6 +235,24 @@ export function EmailForm() {
         }
     }, [useBackground, startImmediately])
 
+    // AUTO-SAVE: Save draft to localStorage whenever form changes
+    useEffect(() => {
+        const subscription = form.watch((value) => {
+            const data = {
+                subject: value.subject,
+                body: value.body,
+                recipients: value.recipients,
+                savedAt: new Date().toISOString()
+            };
+
+            // Only save if there's actual content
+            if (value.subject || value.body || (value.recipients && value.recipients.length > 0)) {
+                localStorage.setItem('ionos-mailer-recovery', JSON.stringify(data));
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, [form.watch]);
+
     // RECOVERY: Check for unsaved content from previous session
     useEffect(() => {
         const recoveryData = localStorage.getItem('ionos-mailer-recovery');
@@ -249,7 +267,7 @@ export function EmailForm() {
                     toast(
                         "Unsaved content found from your previous session",
                         {
-                            duration: 15000,
+                            duration: Infinity, // Keep open until action
                             action: {
                                 label: "Restore",
                                 onClick: () => {
@@ -268,13 +286,15 @@ export function EmailForm() {
                                         setLoadedRecipients(recipientsWithIds);
                                     }
                                     toast.success("Content restored!");
+                                    // Don't remove immediately, let the next auto-save overwrite or user clear manually if they want
+                                }
+                            },
+                            cancel: {
+                                label: "Discard",
+                                onClick: () => {
                                     localStorage.removeItem('ionos-mailer-recovery');
                                 }
                             },
-                            onDismiss: () => {
-                                // User dismissed - clear recovery data
-                                localStorage.removeItem('ionos-mailer-recovery');
-                            }
                         }
                     );
                 } else {
