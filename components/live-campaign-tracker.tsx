@@ -738,7 +738,6 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                 <span className="flex items-center gap-1 text-green-600 font-medium">
                                                     <span className={openedCount > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
                                                     {openedCount} Open
-                                                    ```
                                                 </span>
 
                                                 {/* Survey Summary - nature of survey response breakdown */}
@@ -748,24 +747,10 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                             e.stopPropagation();
                                                             onShowSurvey(campaign);
                                                         }}
-                                                        className="flex items-center gap-1.5 ml-2 p-1 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
-                                                        title="Click to view survey analytics"
+                                                        className="ml-2 transition-opacity hover:opacity-70 focus:outline-none"
+                                                        title="View Survey Analytics"
                                                     >
-                                                        <Info className="h-3 w-3 text-neutral-500" />
-                                                        <div className="flex gap-1">
-                                                            {(() => {
-                                                                const yes = campaign.jobs.filter(j => j.surveyChoice === 'yes').length;
-                                                                const no = campaign.jobs.filter(j => j.surveyChoice === 'no').length;
-                                                                const maybe = campaign.jobs.filter(j => j.surveyChoice === 'maybe').length;
-                                                                return (
-                                                                    <>
-                                                                        {yes > 0 && <span className="text-[8px] text-green-600 font-bold">Y:{yes}</span>}
-                                                                        {maybe > 0 && <span className="text-[8px] text-orange-600 font-bold">M:{maybe}</span>}
-                                                                        {no > 0 && <span className="text-[8px] text-red-600 font-bold">N:{no}</span>}
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </div>
+                                                        <Info className="h-4 w-4 text-neutral-400 hover:text-blue-500" />
                                                     </button>
                                                 )}
                                             </>
