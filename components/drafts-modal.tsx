@@ -220,7 +220,7 @@ export function DraftsModal({
 
             {/* Load Drafts - styled as Full Popup Dialog */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl transition-none">
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl transition-none">
                     <DialogHeader className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-white/50 dark:bg-[#181818]/50 backdrop-blur-sm space-y-4 shrink-0 z-10">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -240,7 +240,7 @@ export function DraftsModal({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setOpen(false)}
-                                className="h-8 w-8 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                className="h-8 w-8 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 z-50"
                             >
                                 <X className="h-4 w-4" />
                             </Button>
@@ -262,8 +262,9 @@ export function DraftsModal({
                     <div className="flex-1 overflow-hidden flex flex-col bg-neutral-50/30 dark:bg-[#0f0f0f]/30">
                         <ScrollArea className="flex-1 h-full min-h-[100px]">
                             {isLoading && drafts.length === 0 ? (
-                                <div className="flex items-center justify-center py-20">
-                                    <SecurityLoader />
+                                <div className="flex items-center justify-center py-20 gap-3">
+                                    <RefreshCw className="h-5 w-5 animate-spin text-neutral-400" />
+                                    <span className="text-sm text-neutral-500">Loading drafts...</span>
                                 </div>
                             ) : (filteredDrafts.length === 0 && !isLoading) ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
