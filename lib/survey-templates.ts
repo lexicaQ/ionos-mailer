@@ -41,19 +41,19 @@ export const DEFAULT_SURVEY_TEMPLATE = `
 <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%); padding: 32px 24px; text-align: left; border-radius: 16px; margin: 24px auto; border: 2px solid #38bdf8; max-width: 600px; box-shadow: 0 8px 32px rgba(56, 189, 248, 0.15);">
   <p style="font-size: 18px; font-weight: 800; color: #0c4a6e; margin: 0 0 20px 0;">What do you think?</p>
   
-  <p style="margin: 12px 0;">
+  <p style="margin: 24px 0;">
     <a href="{{TRACKING_URL_YES}}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 15px; font-weight: 600;">
       ✓ Yes, I am interested
     </a>
   </p>
   
-  <p style="margin: 12px 0;">
+  <p style="margin: 24px 0;">
     <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 15px; font-weight: 600;">
       ? Let me think about it
     </a>
   </p>
   
-  <p style="margin: 12px 0;">
+  <p style="margin: 24px 0;">
     <a href="{{TRACKING_URL_NO}}" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 15px; font-weight: 600;">
       × Not interested
     </a>
