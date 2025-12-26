@@ -257,16 +257,30 @@ export function LiveCampaignTracker() {
                 const hasChanges = currentDataString !== newDataString;
 
                 if (hasChanges || !hasInitialData) {
-                    setCampaigns(filtered);
+
+                    // SMART MERGE: Preserve optimistic campaigns (< 2 mins old) not yet in server list
+                    // This prevents "Disappearing Campaign" due to server lag
+                    const serverIds = new Set(filtered.map((c: any) => c.id));
+                    const now = Date.now();
+                    const preservedOptimistic = campaignsRef.current.filter(c =>
+                        !serverIds.has(c.id) &&
+                        (now - new Date(c.createdAt).getTime() < 120000) // Keep if < 2 mins old
+                    );
+
+                    const merged = [...preservedOptimistic, ...filtered];
+                    // Re-sort just in case
+                    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                    setCampaigns(merged);
                     // Update cache WITHOUT deleted campaigns
-                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(filtered));
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(merged));
 
                     // UPDATE TTL TIMESTAMP
                     localStorage.setItem("ionos-mailer-campaigns-last-fetch", Date.now().toString());
 
                     // Update completion status cache
                     const newCompletionCache: Record<string, boolean> = {};
-                    filtered.forEach((campaign: Campaign) => {
+                    merged.forEach((campaign: Campaign) => {
                         const totalCompleted = campaign.stats.sent + campaign.stats.failed +
                             campaign.jobs.filter(j => j.status === 'CANCELLED').length;
                         const isComplete = campaign.stats.total > 0 && totalCompleted >= campaign.stats.total;

@@ -115,11 +115,11 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     }
 
     // INSTANT UI: Use localStorage hint OR actual session
-    // Priority: session (source of truth) > localStorage hint > default (signed out)
-    const isLoggedIn = session?.user || (status === "loading" && localHint === true)
+    // Priority: session (source of truth) > localStorage hint
+    const shouldShowLogout = session?.user || localHint === true;
 
     // Logged in state - Minimalist (Just Logout Icon) with fade animation
-    if (isLoggedIn) {
+    if (shouldShowLogout) {
         return (
             <Button
                 variant="outline"
