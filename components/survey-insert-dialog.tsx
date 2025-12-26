@@ -73,13 +73,13 @@ export function SurveyInsertDialog({ onInsert }: SurveyInsertDialogProps) {
                             </p>
 
                             {/* Preview */}
-                            <div className="bg-white dark:bg-neutral-800 rounded-lg p-4 border">
-                                <div style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%)', padding: '24px 16px', textAlign: 'left', borderRadius: '12px', border: '2px solid #38bdf8' }}>
-                                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#0c4a6e', marginBottom: '16px' }}>What do you think?</p>
+                            <div className="bg-white dark:bg-white rounded-lg p-4 border overflow-hidden">
+                                <div style={{ fontFamily: 'inherit' }}>
+                                    <p style={{ fontSize: '15px', fontWeight: 800, color: '#000000', marginBottom: '12px' }}>What do you think?</p>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <a href="#" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</a>
-                                        <a href="#" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</a>
-                                        <a href="#" style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '13px', fontWeight: 600 }}>× Not interested</a>
+                                        <div style={{ color: '#000000', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</div>
+                                        <div style={{ color: '#000000', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</div>
+                                        <div style={{ color: '#000000', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>× Not interested</div>
                                     </div>
                                 </div>
                             </div>
