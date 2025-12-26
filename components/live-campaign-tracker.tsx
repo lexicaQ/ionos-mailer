@@ -120,15 +120,20 @@ export function LiveCampaignTracker() {
     );
 
     // Cache Validation & Migration
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     useEffect(() => {
+        // CRITICAL: Only validate when session is fully loaded, not during loading
+        // This prevents the race condition where cache is wiped while session is still loading
+        if (status !== 'authenticated') return;
+
         const validateCache = () => {
             const currentUserId = session?.user?.id;
-            if (!currentUserId) return; // Wait for session
+            if (!currentUserId) return; // Safety check
 
             const cachedUserId = localStorage.getItem("ionos-mailer-cache-owner");
 
-            // If cache belongs to a different user, WIPE IT instantly to prevent "disappearing" glitch
+            // Only wipe if there IS an old owner AND it's different from current user
+            // If cachedUserId is null (fresh install), don't wipe - just set owner
             if (cachedUserId && cachedUserId !== currentUserId) {
                 console.log("[LiveTracker] Cache owner mismatch. Wiping old data.");
                 localStorage.removeItem("ionos-mailer-campaigns-cache");
@@ -141,7 +146,7 @@ export function LiveCampaignTracker() {
         };
 
         validateCache();
-    }, [session]);
+    }, [status, session]);
 
     // Keep campaignsRef synced with state for Smart Merge
     useEffect(() => {
