@@ -446,24 +446,24 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                         </div>
                     ) : (
                         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
-                            <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-4 text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
-                                <div className="w-[100px]">Status</div>
-                                <div className="w-[110px]">Opened</div>
+                            <div className="bg-neutral-50/30 dark:bg-neutral-900/30 px-4 py-2 flex gap-3 sm:gap-4 text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
+                                <div className="w-[60px] sm:w-[100px]">Status</div>
+                                <div className="w-[80px] sm:w-[110px]">Opened</div>
                                 <div className="flex-1">Recipient</div>
-                                <div className="w-[120px] text-right">Sent at</div>
+                                <div className="w-[45px] sm:w-[120px] text-right">Sent</div>
                             </div>
 
                             {/* Table Rows */}
                             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {allResults.map((result, idx) => (
-                                    <div key={idx} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-4">
+                                    <div key={idx} className="p-3 px-4 flex items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-sm gap-3 sm:gap-4">
 
                                         {/* Status */}
-                                        <div className="w-[100px] flex-shrink-0">
+                                        <div className="w-[60px] sm:w-[100px] flex-shrink-0">
                                             <Badge
                                                 variant={result.status === 'success' ? 'default' : 'secondary'}
                                                 className={`
-                                                    h-6 px-0 text-[10px] border-0 font-bold tracking-wide w-[90px] justify-center shadow-none
+                                                    h-6 px-0 text-[10px] border-0 font-bold tracking-wide w-[60px] sm:w-[90px] justify-center shadow-none
                                                     ${result.status === 'success'
                                                         ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100'
                                                         : result.status === 'waiting'
@@ -471,17 +471,20 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                                             : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}
                                                 `}
                                             >
-                                                {result.status === 'success' ? 'SENT' : (result.status === 'waiting' ? 'WAITING' : 'FAILED')}
+                                                {/* Mobile: Icon Only or Short Text */}
+                                                <span className="sm:hidden">{result.status === 'success' ? 'SENT' : (result.status === 'waiting' ? 'WAIT' : 'FAIL')}</span>
+                                                {/* Desktop: Full Text */}
+                                                <span className="hidden sm:inline">{result.status === 'success' ? 'SENT' : (result.status === 'waiting' ? 'WAITING' : 'FAILED')}</span>
                                             </Badge>
                                             {result.error && (
-                                                <div className="text-[9px] text-red-500 mt-1 truncate max-w-[90px]" title={result.error}>
+                                                <div className="text-[9px] text-red-500 mt-1 truncate max-w-[60px] sm:max-w-[90px]" title={result.error}>
                                                     {result.error}
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Opened Status */}
-                                        <div className="w-[110px] flex-shrink-0">
+                                        <div className="w-[80px] sm:w-[110px] flex-shrink-0">
                                             {result.trackingId && trackingStatus[result.trackingId]?.opened && trackingStatus[result.trackingId]?.openedAt ? (
                                                 <div className="flex flex-col leading-tight">
                                                     {/* Desktop: single line with 'at' */}
@@ -520,9 +523,10 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         </div>
 
                                         {/* Time */}
-                                        <div className="flex items-center justify-end text-xs text-muted-foreground flex-shrink-0 w-[120px]">
-                                            <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-[10px]">
-                                                {format(new Date(result.batchTime), "dd.MM 'at' HH:mm")}
+                                        <div className="flex items-center justify-end text-xs text-muted-foreground flex-shrink-0 w-[45px] sm:w-[120px]">
+                                            <div className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-[9px] sm:text-[10px]">
+                                                <span className="sm:hidden">{format(new Date(result.batchTime), "HH:mm")}</span>
+                                                <span className="hidden sm:inline">{format(new Date(result.batchTime), "dd.MM 'at' HH:mm")}</span>
                                             </div>
                                         </div>
                                     </div>

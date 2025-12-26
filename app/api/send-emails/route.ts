@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma';
 import { encrypt, decrypt } from '@/lib/encryption';
 
 import { auth } from "@/auth";
-import { checkUsageStatus, hashIdentifier } from '@/lib/usage-limit';
+import { checkUsageStatus, hashIdentifier, incrementUserUsage } from '@/lib/usage-limit';
 
 export async function POST(req: Request) {
     try {
@@ -161,6 +161,10 @@ export async function POST(req: Request) {
         await prisma.emailJob.createMany({
             data: jobsData
         });
+
+        // 3. PERSIST USAGE (for backend table visibility)
+        // Fire and forget - don't block response
+        incrementUserUsage(effectiveUserId, recipients.length).catch(e => console.error("Usage update failed:", e));
 
         // 3. Return Success immediately
         const mockResults: SendResult[] = recipients.map((r: any) => ({
