@@ -2,6 +2,12 @@ import { generateAuthenticationOptions } from "@simplewebauthn/server"
 import { prisma } from "@/lib/prisma"
 import { getWebAuthnConfig } from "@/lib/webauthn-config"
 import crypto from 'crypto'
+import { NextResponse } from "next/server"
+
+export async function GET() {
+    // Lightweight GET for server warmup (wakes up the serverless function)
+    return NextResponse.json({ status: "ready" });
+}
 
 export async function POST(req: Request) {
     const { rpID } = getWebAuthnConfig()

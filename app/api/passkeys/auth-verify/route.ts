@@ -1,6 +1,12 @@
 import { verifyAuthenticationResponse } from "@simplewebauthn/server"
 import { prisma } from "@/lib/prisma"
 import { getWebAuthnConfig } from "@/lib/webauthn-config"
+import { NextResponse } from "next/server"
+
+export async function HEAD() {
+    // Lightweight HEAD for server warmup
+    return new NextResponse(null, { status: 200 });
+}
 
 export async function POST(req: Request) {
     const { rpID, origin } = getWebAuthnConfig()

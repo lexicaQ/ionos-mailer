@@ -41,6 +41,16 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
         }
     }, [status, session])
 
+    // BACKEND WARMUP: Wake up serverless functions for Passkeys when modal opens
+    useEffect(() => {
+        if (open) {
+            console.log("[Auth] Warming up passkey endpoints...");
+            // Non-blocking pings to wake up the JIT compiler/serverless containers
+            fetch("/api/passkeys/auth-options").catch(() => { });
+            fetch("/api/passkeys/auth-verify", { method: 'HEAD' }).catch(() => { });
+        }
+    }, [open]);
+
     // Form state
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
