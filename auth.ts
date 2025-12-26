@@ -113,8 +113,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return token
         },
         async session({ session, token }) {
-            if (session.user) {
-                session.user.id = (token.id as string) || (token.sub as string)
+            if (session.user && token.sub) {
+                // SECURITY: Verify user still exists in DB
+                // This ensures global logout if account is deleted
+                const userExists = await prisma.user.findUnique({
+                    where: { id: token.sub },
+                    select: { id: true }
+                });
+
+                if (!userExists) {
+                    // User deleted - kill session
+                    // By returning an empty object or null-ish user, NextAuth client should handle this as unauthenticated
+                    // or we can just let it fail naturally if client expects user.id
+                    return {} as any;
+                }
+
+                session.user.id = token.sub;
             }
             return session
         }

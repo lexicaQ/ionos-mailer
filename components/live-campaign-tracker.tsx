@@ -365,7 +365,6 @@ export function LiveCampaignTracker() {
             window.removeEventListener('campaign-created', handleCreation);
             window.removeEventListener('campaign-updated', handleUpdate);
             window.removeEventListener('email-sent', handleUpdate);
-            if (debounceTimer) clearTimeout(debounceTimer);
         };
     }, [fetchCampaigns]);
 
@@ -680,19 +679,19 @@ export function LiveCampaignTracker() {
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 bg-neutral-50/50 dark:bg-black/20">
                         {loading && filteredCampaigns.length === 0 ? (
-                            <div className="flex h-full items-center justify-center relative">
-                                {/* Animated gradient background */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 dark:from-blue-950/30 dark:via-purple-950/30 dark:to-blue-950/30 bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite]" />
-
-                                {/* Main content */}
-                                <div className="relative z-10 flex flex-col items-center gap-4">
-                                    <Activity className="h-12 w-12 text-blue-600 dark:text-blue-400 animate-bounce" />
+                            <div className="flex h-full items-center justify-center relative min-h-[300px]">
+                                {/* Minimalist monochrome loading state */}
+                                <div className="relative z-10 flex flex-col items-center gap-6 opacity-60">
+                                    <div className="relative">
+                                        <Activity className="h-10 w-10 text-neutral-900 dark:text-neutral-100 animate-pulse" />
+                                        <div className="absolute inset-0 bg-neutral-200 dark:bg-neutral-800 rounded-full blur-xl opacity-50 animate-pulse" />
+                                    </div>
                                     <div className="flex flex-col items-center gap-2">
-                                        <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Synchronizing campaigns...</p>
-                                        <div className="flex gap-1">
-                                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
-                                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.2s]"></span>
-                                            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse [animation-delay:0.4s]"></span>
+                                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 tracking-tight">Synchronizing campaigns...</p>
+                                        <div className="flex gap-1.5">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 animate-[bounce_1s_infinite_0ms]"></span>
+                                            <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 animate-[bounce_1s_infinite_200ms]"></span>
+                                            <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600 animate-[bounce_1s_infinite_400ms]"></span>
                                         </div>
                                     </div>
                                 </div>
