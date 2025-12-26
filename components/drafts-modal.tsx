@@ -140,11 +140,11 @@ export function DraftsModal({
 
         try {
             await deleteDraft(id)
-            // UPDATE LOCAL STATE ONLY (No Sync) to prevent "resurrection" race condition
-            // The server is deleting it currently. If we sync now, we might get the old state back.
-            // Next poll will confirm.
+            // UPDATE LOCAL STATE ONLY (No Sync)
+            // Small delay to ensure IDB transaction commits
+            await new Promise(resolve => setTimeout(resolve, 50));
             const local = await loadDrafts()
-            setDrafts(local || [])
+            setDrafts([...(local || [])]) // Spread to force re-render
             toast.success("Draft deleted")
         } catch (error: any) {
             console.error("Draft deletion failed:", error)

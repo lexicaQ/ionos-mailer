@@ -92,6 +92,13 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     const handleLogout = async () => {
         // INSTANT LOGOUT: Clear localStorage hint immediately (optimistic)
         localStorage.removeItem(SESSION_HINT_KEY)
+        // Clear caches to prevent "Flash of Old Data" on next login
+        localStorage.removeItem("ionos-mailer-campaigns-cache");
+        localStorage.removeItem("ionos-mailer-campaign-completion");
+        localStorage.removeItem("ionos-mailer-user-id");
+        localStorage.removeItem("ionos-mailer-cache-owner");
+        localStorage.removeItem("ionos-mailer-tracking-status");
+
         setLocalHint(false)
 
         // Show logout toast immediately

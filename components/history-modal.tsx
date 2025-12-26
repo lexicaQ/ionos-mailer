@@ -26,6 +26,7 @@ import {
     CheckCircle, XCircle, Trash2, Filter,
     FileSpreadsheet, FileText, Search, History, Mail, Send, Eye, EyeOff, RefreshCw, X
 } from "lucide-react"
+import { toast } from "sonner"
 import { format } from "date-fns"
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -375,9 +376,9 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
                                         await onClearAll();
                                         // Reset animation BEFORE closing to prevent visible spinner
                                         setIsClearing(false);
-                                        // Small delay to let user see the reset
-                                        await new Promise(resolve => setTimeout(resolve, 100));
-                                        setOpen(false);
+                                        toast.success("History cleared");
+                                        // Do NOT close modal - let user see it's empty
+                                        // setOpen(false); 
                                     } catch (e) {
                                         console.error('Clear failed:', e);
                                         clearInProgress.current = false;
