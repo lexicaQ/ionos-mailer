@@ -16,6 +16,10 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ customTrigger }: AuthDialogProps) {
+    const { data: session, status } = useSession()
+    const [open, setOpen] = useState(false)
+    const [loading, setLoading] = useState(false)
+
     const [mounted, setMounted] = useState(false)
     useEffect(() => setMounted(true), [])
 

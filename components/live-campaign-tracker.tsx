@@ -14,7 +14,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail
+    Activity, CheckCircle2, AlertTriangle, XCircle, Clock, Trash2, StopCircle, RefreshCw, FileSpreadsheet, FileText, X, Search, Mail, Info
 } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { format, formatDistanceToNow } from "date-fns"
@@ -433,12 +433,17 @@ export function LiveCampaignTracker() {
             const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
             const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
 
-            // Load cache instantly if state is empty
-            if (cachedData && campaigns.length === 0) {
+            // ALWAYS load from cache first on open - instant display
+            if (cachedData) {
                 try {
-                    setCampaigns(JSON.parse(cachedData));
-                    console.log("[LiveTracker] Loaded initial data from cache");
-                } catch (e) { }
+                    const parsed = JSON.parse(cachedData);
+                    if (parsed.length > 0) {
+                        setCampaigns(parsed);
+                        console.log("[LiveTracker] Loaded data from cache immediately");
+                    }
+                } catch (e) {
+                    console.error("[LiveTracker] Cache parse error:", e);
+                }
             }
 
             let needsFetch = true;
