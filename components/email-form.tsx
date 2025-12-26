@@ -525,11 +525,11 @@ export function EmailForm() {
     }
 
     const handleClearAllHistory = async () => {
-        // Optimistic: Clear local immediately BEFORE any async
-        historyManuallyCleared.current = true; // Prevent auto-sync refill
+        // Prevent accidental multiple clicks
+        if (history.length === 0) return;
+
         const previousHistory = [...history];
-        setHistory([]); // Instantly set to empty - this updates the button count too!
-        localStorage.removeItem("ionos-mailer-history");
+        historyManuallyCleared.current = true; // Prevent auto-sync refill
 
         try {
             // Collect all IDs to ensure we delete EXACTLY what the user sees
@@ -541,14 +541,22 @@ export function EmailForm() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: idsToDelete })
             });
-            const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || 'Server delete failed');
+                // Try to parse error message, but handle HTML/empty responses safely
+                let errorMessage = 'Server delete failed';
+                try {
+                    const data = await res.json();
+                    errorMessage = data.error || errorMessage;
+                } catch (e) { }
+                throw new Error(errorMessage);
             }
 
-            console.log(`Deleted ${data.count} history entries from server`);
+            // Success - Now clear local state
+            setHistory([]);
+            localStorage.removeItem("ionos-mailer-history");
             toast.success("History cleared", { duration: 1500 });
+
         } catch (e) {
             console.error('Failed to clear history from server:', e);
             // Revert on error
