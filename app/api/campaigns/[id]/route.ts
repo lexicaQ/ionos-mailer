@@ -33,6 +33,15 @@ export async function DELETE(
             where: { id: campaignId }
         });
 
+        // Force cache revalidation to prevent "zombie" campaigns
+        try {
+            const { revalidatePath } = await import('next/cache');
+            revalidatePath('/dashboard');
+            revalidatePath('/api/campaigns/status');
+        } catch (e) {
+            console.error("Revalidate failed:", e);
+        }
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Delete campaign error:", error);

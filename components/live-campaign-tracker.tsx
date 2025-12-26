@@ -821,21 +821,40 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                 <>
                                     <span className="font-medium text-neutral-700 dark:text-neutral-300">{progress.toFixed(0)}% Done</span>
 
-                                    <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
-                                    <span>{campaign.stats.sent} Sent</span>
+                                    {/* Status Badges - Use COMPUTED stats if jobs are loaded (fixes 0-stats issue) */}
+                                    {(() => {
+                                        // Derive stats from jobs if available (more accurate for loaded campaigns)
+                                        const hasJobs = campaign.jobs && campaign.jobs.length > 0;
+                                        const sentCount = hasJobs
+                                            ? campaign.jobs.filter(j => j.status === 'SENT' || j.status === 'FAILED').length
+                                            : campaign.stats.sent;
+                                        const openedCount = hasJobs
+                                            ? campaign.jobs.filter(j => j.openedAt).length
+                                            : campaign.stats.opened;
+                                        const pendingCount = hasJobs
+                                            ? campaign.jobs.filter(j => j.status === 'PENDING').length
+                                            : campaign.stats.pending;
 
-                                    {campaign.stats.pending > 0 && (
-                                        <>
-                                            <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
-                                            <span>{campaign.stats.pending} Wait</span>
-                                        </>
-                                    )}
+                                        return (
+                                            <>
+                                                {pendingCount > 0 && (
+                                                    <>
+                                                        <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
+                                                        <span>{pendingCount} Wait</span>
+                                                    </>
+                                                )}
 
-                                    <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
-                                    <span className="flex items-center gap-1 text-green-600 font-medium">
-                                        <span className={campaign.stats.opened > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
-                                        {campaign.stats.opened} Open
-                                    </span>
+                                                <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
+                                                <span>{sentCount} {sentCount === 1 ? 'Sent' : 'Sent'}</span>
+
+                                                <span className="h-0.5 w-0.5 bg-neutral-300 rounded-full" />
+                                                <span className="flex items-center gap-1 text-green-600 font-medium">
+                                                    <span className={openedCount > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
+                                                    {openedCount} Open
+                                                </span>
+                                            </>
+                                        );
+                                    })()}
                                 </>
                             )}
                         </div>
