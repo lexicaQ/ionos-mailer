@@ -49,10 +49,22 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
 
     // BACKEND WARMUP: Wake up serverless functions for Passkeys when modal opens
     // Also called on button hover for even faster response
+    // BACKEND WARMUP: Wake up serverless functions for Passkeys when modal opens
+    // Also called on button hover for even faster response
     const warmupEndpoints = useCallback(() => {
+        console.log("[Auth] Aggressive warmup triggered");
         // Non-blocking pings to wake up the JIT compiler/serverless containers
-        fetch("/api/passkeys/auth-options").catch(() => { });
-        fetch("/api/passkeys/auth-verify", { method: 'HEAD' }).catch(() => { });
+
+        // 1. Passkey endpoints (essential for speed)
+        fetch("/api/passkeys/auth-options", { priority: 'low' }).catch(() => { });
+        fetch("/api/passkeys/auth-verify", { method: 'HEAD', priority: 'low' }).catch(() => { });
+
+        // 2. NextAuth endpoints (for session creation)
+        fetch("/api/auth/csrf", { priority: 'low' }).catch(() => { });
+        fetch("/api/auth/session", { priority: 'low' }).catch(() => { });
+
+        // 3. Campaign status (for dashboard load after login)
+        fetch("/api/campaigns/status?mode=overview", { priority: 'low' }).catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -198,8 +210,13 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
             <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setOpen(true)}
+                onClick={() => {
+                    warmupEndpoints();
+                    setOpen(true);
+                }}
                 onMouseEnter={warmupEndpoints}
+                onTouchStart={warmupEndpoints}
+                onFocus={warmupEndpoints}
                 className="gap-2 bg-white dark:bg-neutral-950"
             >
                 <Cloud className="h-4 w-4" />
