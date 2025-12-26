@@ -220,7 +220,7 @@ export function DraftsModal({
 
             {/* Load Drafts - styled as Full Popup Dialog */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-200">
+                <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-800/50 shadow-2xl transition-none">
                     <DialogHeader className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 bg-white/50 dark:bg-[#181818]/50 backdrop-blur-sm space-y-4 shrink-0 z-10">
                         <div className="flex items-center gap-3">
                             <DialogTitle className="text-xl font-bold tracking-tight">My Drafts</DialogTitle>
@@ -273,7 +273,7 @@ export function DraftsModal({
                                             <div
                                                 key={draft.id}
                                                 onClick={() => handleLoadDraft(draft)}
-                                                className="group relative flex flex-col p-4 rounded-xl border border-neutral-200/60 dark:border-neutral-800/60 bg-white dark:bg-[#1e1e1e] hover:shadow-lg hover:border-neutral-300 dark:hover:border-neutral-700 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer shadow-sm h-[180px]"
+                                                className="group relative flex flex-col p-4 rounded-xl border border-neutral-200/60 dark:border-neutral-800/60 bg-white dark:bg-[#1e1e1e] shadow-sm hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors cursor-pointer h-[180px]"
                                             >
                                                 <div className="flex justify-between items-start gap-4 mb-2">
                                                     <div className="min-w-0 flex-1 pr-6 space-y-1.5">
