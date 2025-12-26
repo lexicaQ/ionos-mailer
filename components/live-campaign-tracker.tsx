@@ -67,9 +67,11 @@ export function LiveCampaignTracker() {
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
+    const [selectedSurveyCampaign, setSelectedSurveyCampaign] = useState<Campaign | null>(null)
 
     // FIXED: Handle null names and empty jobs arrays properly
     const filteredCampaigns = campaigns.filter(c => {
+        if (c.isDirect) return false;
         const nameMatch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
         const recipientMatch = c.jobs && c.jobs.length > 0
             ? c.jobs.some(j => j.recipient?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -572,6 +574,7 @@ export function LiveCampaignTracker() {
                                         onToggle={fetchCampaignJobs}
                                         isLoaded={!!c.jobs && c.jobs.length > 0}
                                         isLoading={loadingCampaignId === c.id}
+                                        onShowSurvey={setSelectedSurveyCampaign}
                                     />
                                 ))}
                                 {/* Anchor to scroll to bottom if needed in future */}
@@ -581,11 +584,20 @@ export function LiveCampaignTracker() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {selectedSurveyCampaign && (
+                <SurveyResultsPopup
+                    open={!!selectedSurveyCampaign}
+                    onOpenChange={(v) => !v && setSelectedSurveyCampaign(null)}
+                    campaignName={selectedSurveyCampaign.name}
+                    jobs={selectedSurveyCampaign.jobs || []}
+                />
+            )}
         </>
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, onToggle, isLoaded, isLoading }: {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, onToggle, isLoaded, isLoading, onShowSurvey }: {
     campaign: Campaign,
     index?: number,
     displayIndex: number,
@@ -594,7 +606,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
     searchTerm: string,
     onToggle: (campaignId: string) => void,
     isLoaded: boolean,
-    isLoading: boolean
+    isLoading: boolean,
+    onShowSurvey: (c: Campaign) => void
 }) {
     const calculateProgress = (c: Campaign) => {
         // If we have loaded jobs, calculate stats directly from them for accuracy
@@ -725,11 +738,19 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                 <span className="flex items-center gap-1 text-green-600 font-medium">
                                                     <span className={openedCount > 0 ? "animate-pulse h-1.5 w-1.5 rounded-full bg-green-500" : ""} />
                                                     {openedCount} Open
+                                                    ```
                                                 </span>
 
                                                 {/* Survey Summary - nature of survey response breakdown */}
                                                 {hasJobs && campaign.jobs.some(j => j.surveyChoice) && (
-                                                    <div className="flex items-center gap-1.5 ml-2 p-1 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700" title="Survey Response Nature">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onShowSurvey(campaign);
+                                                        }}
+                                                        className="flex items-center gap-1.5 ml-2 p-1 rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                                                        title="Click to view survey analytics"
+                                                    >
                                                         <Info className="h-3 w-3 text-neutral-500" />
                                                         <div className="flex gap-1">
                                                             {(() => {
@@ -745,7 +766,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                                 );
                                                             })()}
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 )}
                                             </>
                                         );
@@ -888,21 +909,8 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                     {job.recipient}
                                                 </div>
                                                 {/* Survey Response Badge */}
-                                                {job.surveyChoice && (
-                                                    <span
-                                                        className={`cursor-pointer px-1.5 py-0.5 rounded text-[7px] sm:text-[9px] font-bold uppercase tracking-wider ${job.surveyChoice === 'yes' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                            job.surveyChoice === 'maybe' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                                job.surveyChoice === 'no' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                                    'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
-                                                            }`}
-                                                        title={`Survey response: ${job.surveyChoice}`}
-                                                    >
-                                                        {job.surveyChoice === 'yes' ? 'YES' :
-                                                            job.surveyChoice === 'maybe' ? 'MAYBE' :
-                                                                job.surveyChoice === 'no' ? 'NO' :
-                                                                    job.surveyChoice.toUpperCase().slice(0, 6)}
-                                                    </span>
-                                                )}
+                                                {/* Survey Response Badge HIDDEN as requested */}
+                                                {/* {job.surveyChoice && (...)} */}
                                             </div>
                                             <div className={`text-[8px] sm:text-xs truncate max-w-full ${isFailed ? 'text-red-500 font-medium' : 'text-muted-foreground opacity-80'}`} title={isFailed ? (job.error || "Unknown Failure") : job.subject}>
                                                 {isFailed ? (

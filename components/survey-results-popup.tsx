@@ -2,115 +2,140 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
+import { CheckCircle2, HelpCircle, XCircle, User } from 'lucide-react'
+
+interface EmailJob {
+    id: string
+    recipient: string
+    surveyChoice?: string | null
+    surveyClickedAt?: string | null
+    // ... other fields not needed for display
+}
 
 interface SurveyResultsPopupProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    surveyChoice: string | null
-    surveyClickedAt: string | null
-    recipient: string
+    campaignName?: string | null
+    jobs: EmailJob[]
 }
 
-const choiceConfig: Record<string, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
+const choiceConfig: Record<string, { label: string; color: string; bgColor: string; borderColor: string; icon: any }> = {
     yes: {
-        label: "Yes, I'm in!",
+        label: "Interested",
         color: 'text-green-700 dark:text-green-400',
-        bgColor: 'bg-green-100 dark:bg-green-900/30',
-        borderColor: 'border-green-500',
-        icon: (
-            <svg className="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline strokeLinecap="round" strokeLinejoin="round" points="22 4 12 14.01 9 11.01" />
-            </svg>
-        )
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        borderColor: 'border-green-200 dark:border-green-800',
+        icon: CheckCircle2
     },
     maybe: {
-        label: "Let me think",
+        label: "Considering",
         color: 'text-orange-700 dark:text-orange-400',
-        bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-        borderColor: 'border-orange-500',
-        icon: (
-            <svg className="h-12 w-12 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-        )
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        borderColor: 'border-orange-200 dark:border-orange-800',
+        icon: HelpCircle
     },
     no: {
-        label: "Not interested",
+        label: "Not Interested",
         color: 'text-red-700 dark:text-red-400',
-        bgColor: 'bg-red-100 dark:bg-red-900/30',
-        borderColor: 'border-red-500',
-        icon: (
-            <svg className="h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
-        )
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        borderColor: 'border-red-200 dark:border-red-800',
+        icon: XCircle
     }
 }
 
-export function SurveyResultsPopup({ open, onOpenChange, surveyChoice, surveyClickedAt, recipient }: SurveyResultsPopupProps) {
-    const config = surveyChoice ? (choiceConfig[surveyChoice.toLowerCase()] || choiceConfig.yes) : null
+export function SurveyResultsPopup({ open, onOpenChange, campaignName, jobs }: SurveyResultsPopupProps) {
+    // Filter only jobs with survey responses
+    const responses = jobs.filter(j => j.surveyChoice);
+
+    // Calculate stats
+    const stats = {
+        yes: responses.filter(j => j.surveyChoice === 'yes').length,
+        maybe: responses.filter(j => j.surveyChoice === 'maybe').length,
+        no: responses.filter(j => j.surveyChoice === 'no').length,
+        total: responses.length
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[400px]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Survey Response
+            <DialogContent className="sm:max-w-[600px] h-[80vh] flex flex-col p-0 gap-0 bg-white dark:bg-neutral-950">
+                <DialogHeader className="p-6 pb-2">
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                        Survey Results
+                        {campaignName && <span className="text-muted-foreground font-normal text-base ml-2">for "{campaignName}"</span>}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="mt-4 space-y-4">
-                    {/* Recipient */}
-                    <div className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">{recipient}</span>
+                <div className="flex-1 overflow-hidden flex flex-col p-6 pt-2 space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {['yes', 'maybe', 'no'].map((type) => {
+                            const config = choiceConfig[type];
+                            const count = stats[type as keyof typeof stats];
+                            const percent = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                            const Icon = config.icon;
+
+                            return (
+                                <div key={type} className={`p-4 rounded-xl border ${config.borderColor} ${config.bgColor} flex flex-col items-center justify-center text-center gap-1`}>
+                                    <Icon className={`h-6 w-6 ${config.color} mb-1`} />
+                                    <span className={`text-2xl font-bold ${config.color}`}>{count}</span>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{config.label}</span>
+                                    <span className="text-[10px] text-muted-foreground opacity-70">{percent}%</span>
+                                </div>
+                            )
+                        })}
                     </div>
 
-                    {surveyChoice && config ? (
-                        <>
-                            {/* Choice Visualization */}
-                            <div className={`p-6 rounded-xl border-2 ${config.borderColor} ${config.bgColor} text-center animate-in fade-in zoom-in duration-300`}>
-                                <div className="flex justify-center mb-4 animate-bounce">
-                                    {config.icon}
+                    {/* Respondent List */}
+                    <div className="flex-1 overflow-hidden border rounded-lg bg-neutral-50/50 dark:bg-neutral-900/20 flex flex-col">
+                        <div className="p-3 border-b bg-neutral-50 dark:bg-neutral-900/50 text-xs font-medium text-muted-foreground flex justify-between">
+                            <span>Respondent</span>
+                            <span>Choice & Time</span>
+                        </div>
+                        <ScrollArea className="flex-1">
+                            {responses.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                    <p>No survey responses yet.</p>
                                 </div>
-                                <p className={`text-lg font-bold ${config.color}`}>
-                                    {config.label}
-                                </p>
-                            </div>
+                            ) : (
+                                <div className="divide-y">
+                                    {responses
+                                        // Sort by clickedAt decent
+                                        .sort((a, b) => new Date(b.surveyClickedAt || 0).getTime() - new Date(a.surveyClickedAt || 0).getTime())
+                                        .map((job) => {
+                                            const choice = job.surveyChoice?.toLowerCase() || 'unknown';
+                                            const config = choiceConfig[choice];
 
-                            {/* Timestamp */}
-                            {surveyClickedAt && (
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Responded at:</span>
-                                    <Badge variant="secondary" className="font-mono">
-                                        {format(new Date(surveyClickedAt), 'dd.MM.yyyy HH:mm')}
-                                    </Badge>
+                                            return (
+                                                <div key={job.id} className="p-3 text-sm flex items-center justify-between hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50 transition-colors">
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${config?.bgColor || 'bg-neutral-100'}`}>
+                                                            <User className={`h-4 w-4 ${config?.color || 'text-neutral-500'}`} />
+                                                        </div>
+                                                        <div className="truncate font-medium text-neutral-700 dark:text-neutral-300">
+                                                            {job.recipient}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                                        {config && (
+                                                            <Badge variant="outline" className={`${config.color} ${config.borderColor} ${config.bgColor} border hover:bg-transparent`}>
+                                                                {choice === 'yes' ? "Interested" : choice === 'maybe' ? "Considering" : "Not Interested"}
+                                                            </Badge>
+                                                        )}
+                                                        {job.surveyClickedAt && (
+                                                            <span className="text-[10px] text-muted-foreground">
+                                                                {format(new Date(job.surveyClickedAt), 'MMM dd, HH:mm')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
                                 </div>
                             )}
-
-                            {/* Visual confirmation */}
-                            <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 text-center">
-                                <p className="text-xs text-muted-foreground">
-                                    This is exactly what the recipient saw after clicking
-                                </p>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <svg className="h-12 w-12 mx-auto mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-sm">No survey response yet</p>
-                        </div>
-                    )}
+                        </ScrollArea>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
