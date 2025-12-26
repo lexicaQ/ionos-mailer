@@ -120,8 +120,16 @@ export async function syncDrafts(): Promise<void> {
 
                 // DELETE local drafts that don't exist in cloud anymore
                 let deletedCount = 0;
+                const now = Date.now();
                 for (const local of localDrafts) {
                     if (!cloudIds.has(local.id)) {
+                        // PROTECTION: If local draft was updated recently (< 60s), assume it's pending upload and DO NOT delete
+                        const localTime = new Date(local.updatedAt).getTime();
+                        if (now - localTime < 60000) {
+                            console.log(`[syncDrafts] 🛡️ Skipper deletion of fresh local draft "${local.name}"`);
+                            continue;
+                        }
+
                         console.log(`[syncDrafts] ⚠️ Deleting local draft "${local.name}" (${local.id}) - not in cloud`);
                         await deleteDraftDB(local.id);
                         deletedCount++;
@@ -132,6 +140,18 @@ export async function syncDrafts(): Promise<void> {
                 // UPSERT cloud drafts to local
                 let upsertedCount = 0;
                 for (const d of cloudDrafts) {
+                    // Check if local version is newer
+                    const local = localDrafts.find(l => l.id === d.id);
+                    if (local) {
+                        const localDate = new Date(local.updatedAt).getTime();
+                        const cloudDate = new Date(d.updatedAt).getTime();
+                        // If local is newer (and difference > 1s to ignore clock skew), skip overwrite
+                        if (localDate > cloudDate + 1000) {
+                            console.log(`[syncDrafts] 🛡️ Preserving newer local draft "${d.name}"`);
+                            continue;
+                        }
+                    }
+
                     // Encrypt Cloud Data for Local Storage
                     const payload = {
                         subject: d.subject || "",

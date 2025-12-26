@@ -275,8 +275,23 @@ export function DraftsModal({
                     <div className="flex-1 overflow-hidden flex flex-col bg-neutral-50/30 dark:bg-[#0f0f0f]/30">
                         <ScrollArea className="flex-1 h-full min-h-[100px]">
                             {filteredDrafts.length === 0 ? (
-                                <div className="flex items-center justify-center py-20">
-                                    {/* Empty state - just show nothing, spinner is in header */}
+                                <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[300px]">
+                                    <div className="bg-neutral-100 dark:bg-neutral-800/50 p-4 rounded-full mb-4">
+                                        <FileText className="h-8 w-8 text-neutral-400 dark:text-neutral-500" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+                                        {searchTerm ? "No drafts found" : "No saved drafts"}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground maxWidth-xs mx-auto max-w-[280px]">
+                                        {searchTerm
+                                            ? "Try adjusting your search criteria"
+                                            : "Save your work-in-progress emails to pick them up later from any device."}
+                                    </p>
+                                    {!searchTerm && (
+                                        <div className="mt-6 text-xs text-neutral-500 bg-neutral-100/50 dark:bg-neutral-900/50 px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-800">
+                                            Tip: Click "Save" in the editor
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="p-6 pb-12 grid grid-cols-1 gap-4">
