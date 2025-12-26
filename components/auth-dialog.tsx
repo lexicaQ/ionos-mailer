@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { ResponsiveModal } from "@/components/responsive-modal"
 import { toast } from "sonner"
 import { LogOut, Loader2, Cloud, Mail } from "lucide-react"
+import { useRef } from "react"
 
 const SESSION_HINT_KEY = "ionos-mailer-logged-in"
 
@@ -38,15 +39,42 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
         }
     }, [status, session])
 
-    // BACKEND WARMUP: Wake up serverless functions for Passkeys when modal opens
+    // BACKEND WARMUP: Speculative Prefetching of auth options
+    // This makes the Face ID/PIN prompt appear INSTANTLY
+    const prefetchedOptions = useRef<{ options: any, challengeId: string } | null>(null)
+    const isPrefetching = useRef(false)
+
+    const prefetchOptions = async (emailToUse?: string) => {
+        if (isPrefetching.current) return
+        isPrefetching.current = true
+        try {
+            console.log("[Auth] Prefetching speculative passkey options...")
+            const { getPasskeyOptions } = await import("@/lib/passkeys")
+            const data = await getPasskeyOptions(emailToUse)
+            prefetchedOptions.current = data
+            console.log("[Auth] Speculative options ready")
+        } catch (e) {
+            console.warn("[Auth] Speculative prefetch failed", e)
+        } finally {
+            isPrefetching.current = false
+        }
+    }
+
     useEffect(() => {
         if (open) {
-            console.log("[Auth] Warming up passkey endpoints...");
-            // Non-blocking pings to wake up the JIT compiler/serverless containers
-            fetch("/api/passkeys/auth-options").catch(() => { });
-            fetch("/api/passkeys/auth-verify", { method: 'HEAD' }).catch(() => { });
+            prefetchOptions(email || undefined)
+        } else {
+            prefetchedOptions.current = null // Reset on close
         }
-    }, [open]);
+    }, [open])
+
+    // Re-prefetch if email changes (after user stops typing)
+    useEffect(() => {
+        if (open && email.includes("@")) {
+            const timer = setTimeout(() => prefetchOptions(email), 500)
+            return () => clearTimeout(timer)
+        }
+    }, [email, open])
 
     // Form state
     const [email, setEmail] = useState("")
@@ -236,14 +264,26 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                         type="button"
                         variant="outline"
                         className="w-full gap-2"
+                        disabled={loading}
                         onClick={async () => {
                             setLoading(true);
                             try {
-                                const { getPasskeyCredential } = await import("@/lib/passkeys");
-                                // Get passkey credential from WebAuthn
-                                const { credential, challengeId } = await getPasskeyCredential(email || undefined);
+                                const { startAuthentication } = await import("@simplewebauthn/browser");
 
-                                // Verify with backend first to get auth token
+                                // 1. Use prefetched options OR fetch now if not ready
+                                let optionsData = prefetchedOptions.current;
+                                if (!optionsData) {
+                                    console.log("[Auth] Prefetch not ready, fetching now...");
+                                    const { getPasskeyOptions } = await import("@/lib/passkeys");
+                                    optionsData = await getPasskeyOptions(email || undefined);
+                                }
+
+                                const { options, challengeId } = optionsData;
+
+                                // 2. Show biometric prompt (INSTANT because challenge is local)
+                                const credential = await startAuthentication(options);
+
+                                // 3. Verify with backend first to get auth token
                                 const verifyRes = await fetch("/api/passkeys/auth-verify", {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
@@ -252,43 +292,33 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
 
                                 if (!verifyRes.ok) {
                                     const error = await verifyRes.json();
-                                    // Clear any stale hints
-                                    localStorage.removeItem(SESSION_HINT_KEY);
-                                    setLocalHint(false);
                                     throw new Error(error.error || "Verification failed");
                                 }
 
                                 const { authToken } = await verifyRes.json();
 
-                                // Use auth token for fast NextAuth login (no re-verification!)
+                                // 4. Use auth token for fast NextAuth login
                                 const result = await signIn("webauthn", {
                                     authToken,
                                     redirect: false
                                 });
 
                                 if (result?.error) {
-                                    // Clear hints on error
-                                    localStorage.removeItem(SESSION_HINT_KEY);
-                                    setLocalHint(false);
-                                    toast.error("Passkey login failed");
-                                    console.error(result.error);
-                                } else {
-                                    // Only set hint on successful login
-                                    localStorage.setItem(SESSION_HINT_KEY, "true");
-                                    setLocalHint(true);
-                                    toast.success("Logged in with Passkey!");
-                                    setOpen(false);
-                                    // Force reload to update session immediately and clear stale checks
-                                    window.location.reload();
+                                    throw new Error("Passkey login failed");
                                 }
-                            } catch (e: any) {
-                                // Clear hints on any error
-                                localStorage.removeItem(SESSION_HINT_KEY);
-                                setLocalHint(false);
 
-                                if (e.message?.includes("cancelled") || e.message?.includes("canceled")) {
+                                // Success!
+                                localStorage.setItem(SESSION_HINT_KEY, "true");
+                                setLocalHint(true);
+                                toast.success("Logged in with Passkey!");
+                                setOpen(false);
+                                window.location.reload();
+
+                            } catch (e: any) {
+                                if (e.name === "NotAllowedError" || e.message?.includes("cancelled") || e.message?.includes("canceled")) {
                                     // User cancelled - ignore
                                 } else {
+                                    console.error("[Auth] Passkey Error:", e);
                                     toast.error(e.message || "Passkey error");
                                 }
                             } finally {
@@ -296,9 +326,13 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
                             }
                         }}
                     >
-                        <svg className="h-4 w-4 text-black dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                        </svg>
+                        {loading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <svg className="h-4 w-4 text-black dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                        )}
                         Passkey
                     </Button>
                 </div>

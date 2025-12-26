@@ -118,11 +118,9 @@ export async function authenticateWithPasskey(email?: string): Promise<{
 }
 
 /**
- * Get passkey credential for NextAuth sign-in
- * Returns the credential AND challengeId to be sent to NextAuth
+ * Step 1: Get authentication options from server (Speculative Prefetch)
  */
-export async function getPasskeyCredential(email?: string): Promise<{ credential: any, challengeId: string }> {
-    // Get authentication options
+export async function getPasskeyOptions(email?: string): Promise<{ options: any, challengeId: string }> {
     const optionsRes = await fetch("/api/passkeys/auth-options", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,6 +133,16 @@ export async function getPasskeyCredential(email?: string): Promise<{ credential
 
     const options = await optionsRes.json()
     const { challengeId } = options
+    return { options, challengeId }
+}
+
+/**
+ * Get passkey credential for NextAuth sign-in
+ * Returns the credential AND challengeId to be sent to NextAuth
+ */
+export async function getPasskeyCredential(email?: string): Promise<{ credential: any, challengeId: string }> {
+    // Get authentication options
+    const { options, challengeId } = await getPasskeyOptions(email)
 
     // Start WebAuthn authentication ceremony
     try {
