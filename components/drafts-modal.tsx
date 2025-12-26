@@ -391,15 +391,56 @@ export function DraftsModal({
                             </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-muted-foreground ml-1">Draft Name</label>
-                            <Input
-                                placeholder="e.g. Summer Party Invite v1"
-                                value={draftName}
-                                onChange={(e) => setDraftName(e.target.value)}
-                                autoFocus
-                                className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 h-10"
-                            />
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground ml-1">Draft Name</label>
+                                <Input
+                                    placeholder="e.g. Summer Party Invite v1"
+                                    value={draftName}
+                                    onChange={(e) => {
+                                        setDraftName(e.target.value);
+                                        // If typing creates a new name, deselect existing unless it matches exactly
+                                        if (selectedDraftId) {
+                                            const existing = drafts.find(d => d.name === e.target.value);
+                                            if (!existing) setSelectedDraftId(null);
+                                        }
+                                    }}
+                                    autoFocus
+                                    className="bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 h-10"
+                                />
+                            </div>
+
+                            {/* Overwrite Selection List */}
+                            {drafts.length > 0 && (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground ml-1">Or populate from / overwrite existing:</label>
+                                    <ScrollArea className="h-[140px] rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-2">
+                                        <div className="space-y-1">
+                                            {drafts.map(draft => (
+                                                <button
+                                                    key={draft.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDraftName(draft.name);
+                                                        setSelectedDraftId(draft.id);
+                                                    }}
+                                                    className={cn(
+                                                        "w-full text-left px-3 py-2 rounded-md text-xs transition-colors flex items-center justify-between group",
+                                                        selectedDraftId === draft.id
+                                                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/50"
+                                                            : "hover:bg-white dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+                                                    )}
+                                                >
+                                                    <span className="truncate font-medium">{draft.name}</span>
+                                                    <span className="text-[10px] text-muted-foreground opacity-70 group-hover:opacity-100">
+                                                        {format(new Date(draft.updatedAt), 'MMM dd')}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex justify-end gap-2">
