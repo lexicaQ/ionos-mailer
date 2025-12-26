@@ -118,9 +118,10 @@ export async function authenticateWithPasskey(email?: string): Promise<{
 }
 
 /**
- * Step 1: Get authentication options from server (Speculative Prefetch)
+ * Fetch authentication options (Challenge) from the server
+ * Call this EAGERLY to avoid delays when the user clicks login
  */
-export async function getPasskeyOptions(email?: string): Promise<{ options: any, challengeId: string }> {
+export async function fetchAuthOptions(email?: string): Promise<any> {
     const optionsRes = await fetch("/api/passkeys/auth-options", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,18 +132,14 @@ export async function getPasskeyOptions(email?: string): Promise<{ options: any,
         throw new Error("Failed to initialize passkey login")
     }
 
-    const options = await optionsRes.json()
-    const { challengeId } = options
-    return { options, challengeId }
+    return await optionsRes.json()
 }
 
 /**
- * Get passkey credential for NextAuth sign-in
- * Returns the credential AND challengeId to be sent to NextAuth
+ * Start the browser authentication flow using pre-fetched options
  */
-export async function getPasskeyCredential(email?: string): Promise<{ credential: any, challengeId: string }> {
-    // Get authentication options
-    const { options, challengeId } = await getPasskeyOptions(email)
+export async function startPasskeyAuthentication(options: any): Promise<{ credential: any, challengeId: string }> {
+    const { challengeId } = options
 
     // Start WebAuthn authentication ceremony
     try {
@@ -154,6 +151,18 @@ export async function getPasskeyCredential(email?: string): Promise<{ credential
         }
         throw error
     }
+}
+
+/**
+ * Get passkey credential for NextAuth sign-in
+ * Returns the credential AND challengeId to be sent to NextAuth
+ */
+export async function getPasskeyCredential(email?: string): Promise<{ credential: any, challengeId: string }> {
+    // 1. Get options
+    const options = await fetchAuthOptions(email)
+
+    // 2. Start Auth
+    return await startPasskeyAuthentication(options)
 }
 
 /**
