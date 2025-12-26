@@ -164,7 +164,7 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
     // Logged in state - Minimalist (Just Logout Icon) with fade animation
     if (mounted && shouldShowLogout) {
         return (
-            <div>
+            <div suppressHydrationWarning>
                 <Button
                     variant="outline"
                     size="icon"

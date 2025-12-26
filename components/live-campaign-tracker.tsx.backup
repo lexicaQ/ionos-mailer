@@ -61,18 +61,90 @@ interface Campaign {
 }
 
 export function LiveCampaignTracker() {
-    const { data: session } = useSession()
     const [open, setOpen] = useState(false)
-    const [campaigns, setCampaigns] = useState<Campaign[]>([])
+    const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+        // Load from localStorage cache on initial render
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-campaigns-cache");
+            if (cached) {
+                try {
+                    return JSON.parse(cached);
+                } catch (e) {
+                    console.error("Cache parse failed", e);
+                }
+            }
+        }
+        return [];
+    })
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
+    const [isFirstSync, setIsFirstSync] = useState(true) // Track first sync only
+
+    // Lazy loading state - persist to localStorage
+    const [loadedCampaignIds, setLoadedCampaignIds] = useState<Set<string>>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-loaded-campaigns");
+            if (cached) {
+                try {
+                    return new Set(JSON.parse(cached));
+                } catch (e) {
+                    return new Set();
+                }
+            }
+        }
+        return new Set();
+    })
     const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null)
 
-    // Filter campaigns by search term
+    // Campaign completion status cache (tracks which campaigns are 100% complete)
+    const [completionCache, setCompletionCache] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem("ionos-mailer-campaign-completion");
+            if (cached) {
+                try {
+                    return JSON.parse(cached);
+                } catch (e) {
+                    return {};
+                }
+            }
+        }
+        return {};
+    })
+
+    // Filter campaigns by search term only (no longer filtering by isDirect)
     const filteredCampaigns = campaigns.filter(c =>
         c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.jobs.some(j => j.recipient.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
+    // Cache Validation - ONLY run when explicitly needed (logout, different user login)
+    // REMOVED: Aggressive validation on every session change was causing race conditions
+    // Cache is now only wiped on explicit logout (handled in auth-dialog.tsx)
+    const { data: session, status } = useSession();
+
+    // Set cache owner when authenticated (but don't wipe on every change)
+    useEffect(() => {
+        if (status === 'authenticated' && session?.user?.id) {
+            const currentUserId = session.user.id;
+            const cachedUserId = localStorage.getItem("ionos-mailer-cache-owner");
+
+            // Only set owner if not already set (first login) or if matches
+            if (!cachedUserId || cachedUserId === currentUserId) {
+                localStorage.setItem("ionos-mailer-cache-owner", currentUserId);
+            }
+            // If different user, log but DON'T wipe - let user see their old data
+            // They can manually refresh to get their actual data
+            else if (cachedUserId !== currentUserId) {
+                console.log("[LiveTracker] Different user detected. Cache will refresh on next open.");
+                localStorage.setItem("ionos-mailer-cache-owner", currentUserId);
+            }
+        }
+    }, [status, session]);
+
+    // Keep campaignsRef synced with state for Smart Merge
+    useEffect(() => {
+        campaignsRef.current = campaigns;
+    }, [campaigns]);
 
     // Data Migration (One-time check)
     useEffect(() => {
@@ -99,48 +171,129 @@ export function LiveCampaignTracker() {
 
     const isFetching = useRef(false);
 
-    // SIMPLIFIED: Always fetch fresh from server, no caching
-    const fetchCampaigns = useCallback(async () => {
+    // FETCH CAMPAIGNS - INSTANT CACHE DISPLAY (LIKE HISTORY)
+    const fetchCampaigns = useCallback(async (force = false) => {
         // Prevent concurrent fetches
         if (isFetching.current) {
-            console.log('[LiveTracker] Fetch already in progress, skipping...');
+            console.log('Fetch already in progress, skipping...');
             return;
         }
 
+        // Check if we have any cached data
+        const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
+        const hasCache = cachedData && cachedData !== "[]";
+
+        // TTL CACHING LOGIC (5 Minutes) - SKIP if force=true OR no cache exists
+        if (!force && hasCache) {
+            const lastFetch = localStorage.getItem("ionos-mailer-campaigns-last-fetch");
+            if (lastFetch) {
+                const age = Date.now() - parseInt(lastFetch, 10);
+                // If cache is younger than 5 minutes (300000ms), SKIP fetch
+                if (age < 300000) {
+                    console.log(`[LiveTracker] Cache is fresh (${Math.floor(age / 1000)}s old). Skipping fetch.`);
+
+                    // Still load cache just in case state is empty (e.g. hard refresh)
+                    if (campaignsRef.current.length === 0) {
+                        try {
+                            const parsed = JSON.parse(cachedData!);
+                            setCampaigns(parsed);
+                            campaignsRef.current = parsed; // Keep ref in sync
+                        } catch (e) { }
+                    }
+                    return;
+                }
+            }
+        }
+
+        // No cache or force = ALWAYS fetch from server
+        console.log('[LiveTracker] Fetching from server...');
+
         isFetching.current = true;
-        setLoading(true);
+
+        // Track if this is the very first sync (to show animation once)
+        const hasInitialData = campaignsRef.current.length > 0;
 
         try {
+            // Set loading state for visual feedback (spinner in header only)
+            // Cache is already loaded by the modal open effect - don't reload here
+            setLoading(true);
+
+            // 3. Fetch fresh data from server in background (overview mode for speed)
             const res = await fetch("/api/campaigns/status?mode=overview", { cache: 'no-store' });
 
             if (res.status === 401) {
-                toast.error('Please sign in to view campaigns');
+                console.log('[LiveTracker] Unauthorized fetch - preserving cache');
+                // FIX: Properly clean up state before returning
+                setLoading(false);
+                isFetching.current = false;
                 return;
             }
 
-            if (!res.ok) {
-                toast.error('Failed to load campaigns');
-                return;
-            }
+            if (res.ok) {
+                const data = await res.json();
+                // Sort by date DESCENDING (Newest First -> #1)
+                data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-            const data = await res.json();
+                // Sort jobs chronologically (Ascending: First scheduled -> Last scheduled)
+                data.forEach((c: any) => {
+                    if (c.jobs) {
+                        c.jobs.sort((a: any, b: any) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+                    }
+                });
 
-            // Sort by date DESCENDING (Newest First)
-            data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                // Data already filtered by DB query (deleted campaigns don't exist)
+                const filtered = data;
 
-            // Sort jobs chronologically
-            data.forEach((c: any) => {
-                if (c.jobs) {
-                    c.jobs.sort((a: any, b: any) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+                // Only show sync indicator and update if data actually changed
+                const currentDataString = JSON.stringify(campaignsRef.current);
+                const newDataString = JSON.stringify(filtered);
+                const hasChanges = currentDataString !== newDataString;
+
+                if (hasChanges || !hasInitialData) {
+                    // FIX: Check for empty server response FIRST before any state updates
+                    // This protects the user's view no matter what the server returns
+                    if (filtered.length === 0 && campaignsRef.current.length > 0) {
+                        console.log('[LiveTracker] Server returned empty but we have local data. Keeping your campaigns visible.');
+                        // Don't update state - just finish loading
+                        return;
+                    }
+
+                    // SMART MERGE V3: Preserve ALL local campaigns not in server response
+                    // Removed time limit - keep everything local that server doesn't know about
+                    const serverIds = new Set(filtered.map((c: any) => c.id));
+                    const preservedLocal = campaignsRef.current.filter(c => !serverIds.has(c.id));
+
+                    // Merge: Local campaigns first (that aren't on server), then server data
+                    const merged = [...preservedLocal, ...filtered];
+                    // Ensure uniqueness by ID (server wins if duplicate)
+                    const uniqueMap = new Map();
+                    merged.forEach(c => uniqueMap.set(c.id, c));
+                    const uniqueMerged = Array.from(uniqueMap.values());
+
+                    // Re-sort to ensure newest is always on top
+                    uniqueMerged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                    setCampaigns(uniqueMerged);
+                    // Update cache WITHOUT deleted campaigns
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(uniqueMerged));
+
+                    // UPDATE TTL TIMESTAMP
+                    localStorage.setItem("ionos-mailer-campaigns-last-fetch", Date.now().toString());
+
+                    // Update completion status cache
+                    const newCompletionCache: Record<string, boolean> = {};
+                    uniqueMerged.forEach((campaign: Campaign) => {
+                        const totalCompleted = campaign.stats.sent + campaign.stats.failed +
+                            campaign.jobs.filter(j => j.status === 'CANCELLED').length;
+                        const isComplete = campaign.stats.total > 0 && totalCompleted >= campaign.stats.total;
+                        newCompletionCache[campaign.id] = isComplete;
+                    });
+                    setCompletionCache(newCompletionCache);
+                    localStorage.setItem("ionos-mailer-campaign-completion", JSON.stringify(newCompletionCache));
                 }
-            });
-
-            setCampaigns(data);
-            console.log(`[LiveTracker] Loaded ${data.length} campaigns from server`);
-
+            }
         } catch (error) {
             console.error("Failed to fetch campaigns:", error);
-            toast.error('Network error');
         } finally {
             setLoading(false);
             isFetching.current = false;
@@ -155,13 +308,16 @@ export function LiveCampaignTracker() {
             try {
                 const { jobs, stats } = JSON.parse(cachedJobs);
                 // Immediately show cached data
-                setCampaigns(prev =>
-                    prev.map(c =>
+                setCampaigns(prev => {
+                    const updated = prev.map(c =>
                         c.id === campaignId
                             ? { ...c, jobs, stats }
                             : c
-                    )
-                );
+                    );
+                    return updated;
+                });
+                // Mark as loaded so we don't fetch again
+                setLoadedCampaignIds(prev => new Set(prev).add(campaignId));
                 return; // Don't fetch from server if we have cache
             } catch (e) {
                 console.error('Failed to parse cached jobs:', e);
@@ -177,16 +333,28 @@ export function LiveCampaignTracker() {
                 const { jobs, stats } = await res.json();
 
                 // Update the specific campaign with jobs
-                setCampaigns(prev =>
-                    prev.map(c =>
+                setCampaigns(prev => {
+                    const updated = prev.map(c =>
                         c.id === campaignId
                             ? { ...c, jobs, stats }
                             : c
-                    )
-                );
+                    );
+
+                    // Persist updated campaigns to cache
+                    localStorage.setItem("ionos-mailer-campaigns-cache", JSON.stringify(updated));
+
+                    return updated;
+                });
 
                 // Cache jobs for this campaign
                 localStorage.setItem(`campaign-jobs-${campaignId}`, JSON.stringify({ jobs, stats }));
+
+                // Mark as loaded and persist to localStorage
+                setLoadedCampaignIds(prev => {
+                    const newSet = new Set(prev).add(campaignId);
+                    localStorage.setItem("ionos-mailer-loaded-campaigns", JSON.stringify(Array.from(newSet)));
+                    return newSet;
+                });
             }
         } catch (error) {
             console.error(`Failed to fetch jobs for campaign ${campaignId}:`, error);
@@ -194,6 +362,13 @@ export function LiveCampaignTracker() {
             setLoadingCampaignId(null);
         }
     }, []);
+
+    const campaignsRef = useRef<Campaign[]>([]);
+
+    // Keep ref in sync for the interval
+    useEffect(() => {
+        campaignsRef.current = campaigns;
+    }, [campaigns]);
 
 
 
@@ -231,7 +406,7 @@ export function LiveCampaignTracker() {
         // Instant sync on campaign updates
         const handleUpdate = () => {
             console.log('[LiveTracker] Update event, fetching immediately...');
-            fetchCampaigns();
+            fetchCampaigns(true);
         };
         window.addEventListener('campaign-updated', handleUpdate);
         window.addEventListener('email-sent', handleUpdate);
@@ -244,9 +419,29 @@ export function LiveCampaignTracker() {
     }, [fetchCampaigns]);
 
     useEffect(() => {
-        // Always fetch fresh from server when modal opens
+        // Fetch campaigns only when modal opens
+        // CACHE-FIRST: Always show cached data instantly, then sync from server
         if (open) {
-            fetchCampaigns();
+            const cachedData = localStorage.getItem("ionos-mailer-campaigns-cache");
+
+            // 1. ALWAYS load from cache first - instant display
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    if (parsed.length > 0) {
+                        setCampaigns(parsed);
+                        // CRITICAL: Also update ref immediately so fetchCampaigns can see it
+                        // The useEffect for ref sync runs AFTER render, but fetchCampaigns runs NOW
+                        campaignsRef.current = parsed;
+                        console.log("[LiveTracker] Loaded data from cache immediately");
+                    }
+                } catch (e) {
+                    console.error("[LiveTracker] Cache parse error:", e);
+                }
+            }
+
+            // 2. ALWAYS sync from server in background on open
+            fetchCampaigns(true);
         }
     }, [open, fetchCampaigns]);
 
@@ -340,7 +535,7 @@ export function LiveCampaignTracker() {
                 if (res.status === 401 || res.status === 403) {
                     alert("Permission denied. You cannot delete this campaign.");
                     // Reload to restore
-                    fetchCampaigns();
+                    fetchCampaigns(true);
                 } else if (res.status === 404) {
                     // Already gone, keep removed
                     toast.success("Campaign deleted");
@@ -355,7 +550,7 @@ export function LiveCampaignTracker() {
             console.error("Deletion error:", e);
             toast.error("Failed to delete campaign");
             // Reload to see actual state
-            fetchCampaigns();
+            fetchCampaigns(true);
         }
     }, [fetchCampaigns]);
 
@@ -514,7 +709,7 @@ export function LiveCampaignTracker() {
                                     size="sm"
                                     onClick={() => {
                                         // FORCE REFRESH: Use true to bypass TTL and show animation
-                                        fetchCampaigns();
+                                        fetchCampaigns(true);
                                     }}
                                     disabled={loading}
                                     className="gap-2 h-8 text-xs"
@@ -587,8 +782,9 @@ export function LiveCampaignTracker() {
                                         onDelete={(e) => deleteCampaign(c.id, e)}
                                         onCancelJob={cancelJob}
                                         searchTerm={searchTerm}
+                                        isFirstSync={isFirstSync}
                                         onToggle={fetchCampaignJobs}
-                                        isLoaded={!!c.jobs && c.jobs.length > 0}
+                                        isLoaded={loadedCampaignIds.has(c.id)}
                                         isLoading={loadingCampaignId === c.id}
                                     />
                                 ))}
@@ -603,13 +799,14 @@ export function LiveCampaignTracker() {
     )
 }
 
-function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, onToggle, isLoaded, isLoading }: {
+function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJob, searchTerm, isFirstSync, onToggle, isLoaded, isLoading }: {
     campaign: Campaign,
     index?: number,
     displayIndex: number,
     onDelete: (e: React.MouseEvent) => void,
     onCancelJob: (cid: string, jid: string, e?: React.MouseEvent) => void,
     searchTerm: string,
+    isFirstSync: boolean,
     onToggle: (campaignId: string) => void,
     isLoaded: boolean,
     isLoading: boolean
@@ -823,7 +1020,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                 const now = new Date();
                                 const diffInMinutes = Math.floor((now.getTime() - scheduledDate.getTime()) / 60000);
                                 // Only show as overdue if: 1) still pending, 2) more than 2 minutes late, 3) NOT first sync (data may be stale)
-                                const isOverdue = isPending && diffInMinutes > 2;
+                                const isOverdue = isPending && diffInMinutes > 2 && !isFirstSync;
 
                                 // Calculate delay for sent items if data exists, otherwise approximate
                                 let sentDelay = 0;
