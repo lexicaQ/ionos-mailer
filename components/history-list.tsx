@@ -109,6 +109,7 @@ export function HistoryList({ batches, trackingStatus = {} }: HistoryListProps) 
                                         {batch.results.map((result, idx) => (
                                             <TableRow key={idx} className="hover:bg-white dark:hover:bg-neutral-800/50">
                                                 <TableCell>
+                                                    {/* Check for waiting/queued/pending status */}
                                                     {result.status === 'waiting' || (!result.success && !result.error) ? (
                                                         <Clock className="h-5 w-5 text-neutral-400 animate-pulse" />
                                                     ) : result.success ? (

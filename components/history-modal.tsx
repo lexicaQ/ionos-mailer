@@ -126,7 +126,7 @@ export function HistoryModal({ batches, onDeleteBatch, onClearAll, onRefresh }: 
 
         // Fetch history when modal opens (NO auto-sync on page load)
         if (!clearInProgress.current && onRefresh) {
-            onRefresh(false); // Default: Don't force, use cache
+            onRefresh(true); // FORCE refresh on open to ensure cross-device consistency
         }
 
         // NO automatic polling - user must click Refresh button

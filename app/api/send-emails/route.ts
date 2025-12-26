@@ -167,7 +167,7 @@ export async function POST(req: Request) {
             email: r.email,
             success: true,
             timestamp: new Date().toISOString(),
-            status: 'queued'
+            status: 'waiting' // Schema compatible waiting state
         }));
 
         return NextResponse.json({ results: mockResults, campaignId: campaign.id });
