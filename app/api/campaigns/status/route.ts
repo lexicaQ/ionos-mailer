@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
         const session = await auth();
 
         if (!session?.user?.id) {
-            // Return empty array for unauthenticated requests (no data leak)
-            return NextResponse.json([]);
+            // Return 401 so frontend knows not to overwrite cache with empty list
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const userId = session.user.id;

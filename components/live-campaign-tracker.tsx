@@ -203,6 +203,12 @@ export function LiveCampaignTracker() {
 
             // 3. Fetch fresh data from server in background (overview mode for speed)
             const res = await fetch("/api/campaigns/status?mode=overview", { cache: 'no-store' });
+
+            if (res.status === 401) {
+                console.log('[LiveTracker] Unauthorized fetch - preserving cache');
+                return;
+            }
+
             if (res.ok) {
                 const data = await res.json();
                 // Sort by date DESCENDING (Newest First -> #1)
