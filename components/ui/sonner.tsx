@@ -50,6 +50,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "dark:!bg-[oklch(0.2_0_0)]",
+          closeButton: "!bg-foreground/10 !text-foreground hover:!bg-foreground/20 !border-foreground/20",
         },
       }}
       closeButton
