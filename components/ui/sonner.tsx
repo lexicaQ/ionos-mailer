@@ -29,24 +29,29 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "hsl(var(--background))",
+          "--normal-bg": "oklch(0.95 0 0)",
           "--normal-text": "hsl(var(--foreground))",
           "--normal-border": "hsl(var(--border))",
-          "--success-bg": "hsl(var(--background))",
+          "--success-bg": "oklch(0.95 0 0)",
           "--success-text": "hsl(var(--foreground))",
           "--success-border": "hsl(var(--foreground))",
-          "--error-bg": "hsl(var(--background))",
+          "--error-bg": "oklch(0.95 0 0)",
           "--error-text": "hsl(var(--foreground))",
           "--error-border": "hsl(var(--foreground))",
-          "--warning-bg": "hsl(var(--background))",
+          "--warning-bg": "oklch(0.95 0 0)",
           "--warning-text": "hsl(var(--foreground))",
           "--warning-border": "hsl(var(--foreground))",
-          "--info-bg": "hsl(var(--background))",
+          "--info-bg": "oklch(0.95 0 0)",
           "--info-text": "hsl(var(--foreground))",
           "--info-border": "hsl(var(--foreground))",
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      toastOptions={{
+        classNames: {
+          toast: "dark:!bg-[oklch(0.2_0_0)]",
+        },
+      }}
       closeButton
       {...props}
     />
