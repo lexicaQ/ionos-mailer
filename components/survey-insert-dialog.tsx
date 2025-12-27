@@ -77,9 +77,9 @@ export function SurveyInsertDialog({ onInsert }: SurveyInsertDialogProps) {
                                 <div style={{ fontFamily: 'inherit' }}>
                                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#000000', marginBottom: '8px' }}>What do you think?</p>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                                        <div style={{ color: '#000000', textDecoration: 'none', border: 'none', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</div>
-                                        <div style={{ color: '#000000', textDecoration: 'none', border: 'none', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</div>
-                                        <div style={{ color: '#000000', textDecoration: 'none', border: 'none', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>× Not interested</div>
+                                        <div style={{ color: '#2563eb', textDecoration: 'underline', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>✓ Yes, I am interested</div>
+                                        <div style={{ color: '#2563eb', textDecoration: 'underline', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>? Let me think about it</div>
+                                        <div style={{ color: '#2563eb', textDecoration: 'underline', display: 'inline-block', fontSize: '13px', fontWeight: 600 }}>× Not interested</div>
                                     </div>
                                 </div>
                             </div>

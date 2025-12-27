@@ -42,15 +42,15 @@ export const DEFAULT_SURVEY_TEMPLATE = `
   <p style="font-size: 16px; font-weight: 700; color: #000000; margin: 0 0 8px 0;">What do you think?</p>
   
   <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-    <a href="{{TRACKING_URL_YES}}" target="_blank" style="color: #000000; text-decoration: none; border: none; display: inline-block; font-size: 14px; font-weight: 500;">
+    <a href="{{TRACKING_URL_YES}}" target="_blank" style="color: #2563eb; text-decoration: underline; display: inline-block; font-size: 14px; font-weight: 500;">
       ✓ Yes, I am interested
     </a>
     
-    <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="color: #000000; text-decoration: none; border: none; display: inline-block; font-size: 14px; font-weight: 500;">
+    <a href="{{TRACKING_URL_MAYBE}}" target="_blank" style="color: #2563eb; text-decoration: underline; display: inline-block; font-size: 14px; font-weight: 500;">
       ? Let me think about it
     </a>
     
-    <a href="{{TRACKING_URL_NO}}" target="_blank" style="color: #000000; text-decoration: none; border: none; display: inline-block; font-size: 14px; font-weight: 500;">
+    <a href="{{TRACKING_URL_NO}}" target="_blank" style="color: #2563eb; text-decoration: underline; display: inline-block; font-size: 14px; font-weight: 500;">
       × Not interested
     </a>
   </div>
