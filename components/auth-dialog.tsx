@@ -74,6 +74,15 @@ export function AuthDialog({ customTrigger }: AuthDialogProps) {
         }
     }, [open, warmupEndpoints]);
 
+    // INSTANT WARMUP: Start warming up as soon as Sign In button renders
+    // This shaves off 1-2 seconds from cold start by preemptively waking serverless functions
+    useEffect(() => {
+        if (!session?.user && !localHint && mounted) {
+            console.log("[Auth] Pre-warming endpoints on button render...");
+            warmupEndpoints();
+        }
+    }, [session, localHint, mounted, warmupEndpoints]);
+
     // Form state
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")

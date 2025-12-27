@@ -17,7 +17,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
-      richColors
       duration={4000}
       visibleToasts={9}
       expand={true}
@@ -30,9 +29,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
+          "--normal-bg": "hsl(var(--background))",
+          "--normal-text": "hsl(var(--foreground))",
+          "--normal-border": "hsl(var(--border))",
+          "--success-bg": "hsl(var(--background))",
+          "--success-text": "hsl(var(--foreground))",
+          "--success-border": "hsl(var(--foreground))",
+          "--error-bg": "hsl(var(--background))",
+          "--error-text": "hsl(var(--foreground))",
+          "--error-border": "hsl(var(--foreground))",
+          "--warning-bg": "hsl(var(--background))",
+          "--warning-text": "hsl(var(--foreground))",
+          "--warning-border": "hsl(var(--foreground))",
+          "--info-bg": "hsl(var(--background))",
+          "--info-text": "hsl(var(--foreground))",
+          "--info-border": "hsl(var(--foreground))",
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }

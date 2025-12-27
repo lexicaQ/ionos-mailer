@@ -226,3 +226,19 @@
 .dark .prose a {
   color: #ffffff;
 }
+
+/* Mobile Toast Stacking - Ensure proper vertical stacking on mobile screens */
+@media (max-width: 640px) {
+  [data-sonner-toaster] {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    max-width: 100vw !important;
+    padding: 0 16px 16px 16px !important;
+  }
+  
+  [data-sonner-toast] {
+    max-width: calc(100vw - 32px) !important;
+    margin-bottom: 8px !important;
+  }
+}
