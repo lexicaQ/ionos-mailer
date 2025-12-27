@@ -741,7 +741,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                 </span>
 
                                                 {/* Survey Summary - nature of survey response breakdown */}
-                                                {hasJobs && campaign.jobs.some(j => j.surveyChoice) && (
+                                                {hasJobs && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -750,7 +750,7 @@ function MinimalCampaignRow({ campaign, index, displayIndex, onDelete, onCancelJ
                                                         className="ml-2 transition-opacity hover:opacity-70 focus:outline-none"
                                                         title="View Survey Analytics"
                                                     >
-                                                        <Info className="h-4 w-4 text-neutral-400 hover:text-blue-500" />
+                                                        <Info className="h-4 w-4 text-neutral-400" />
                                                     </button>
                                                 )}
                                             </>
